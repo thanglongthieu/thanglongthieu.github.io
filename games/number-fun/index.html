@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Smart Grid – Odd One Out</title>
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #050510;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow: hidden;
+      touch-action: none; /* prevent scroll on iPhone */
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    #app {
+      box-sizing: border-box;
+      width: 100%;
+      height: 100%;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .header {
+      text-align: center;
+    }
+
+    .title {
+      font-size: 22px;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      opacity: 0.8;
+    }
+
+    .top-bar {
+      margin-top: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+    }
+
+    .stats span {
+      margin-left: 10px;
+    }
+
+    .timer-bar-wrapper {
+      margin-top: 6px;
+      width: 100%;
+      height: 8px;
+      background: #222;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .timer-bar {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #34c759, #ffcc00, #ff3b30);
+      transform-origin: left center;
+      transform: scaleX(1);
+      transition: transform 0.1s linear;
+    }
+
+    .grid-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .grid-hint {
+      font-size: 14px;
+      text-align: center;
+      opacity: 0.85;
+      min-height: 36px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-rows: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+      width: 100%;
+      max-width: 360px;
+    }
+
+    .cell {
+      background: #1c1c2e;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      min-height: 70px;
+      border: 2px solid #2c2c3e;
+      transition: transform 0.07s ease, background-color 0.1s ease, border-color 0.1s ease;
+    }
+
+    .cell:active {
+      transform: scale(0.96);
+    }
+
+    .cell.correct {
+      background: #1c8f3f;
+      border-color: #2fe36b;
+    }
+
+    .cell.wrong {
+      background: #b3261e;
+      border-color: #ff453a;
+    }
+
+    .info-text {
+      font-size: 14px;
+      text-align: center;
+      min-height: 22px;
+    }
+
+    .info-text.good {
+      color: #30d158;
+    }
+
+    .info-text.bad {
+      color: #ff453a;
+    }
+
+    .footer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .start-btn {
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 999px;
+      border: none;
+      background: #0a84ff;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(10,132,255,0.6);
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+
+    .start-btn:active {
+      transform: translateY(1px) scale(0.97);
+      box-shadow: 0 2px 6px rgba(10,132,255,0.5);
+    }
+
+    .hint-bottom {
+      font-size: 12px;
+      text-align: center;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <div class="title">Smart Grid – Odd One Out</div>
+    <div class="subtitle">Find the ONE wrong number in the pattern grid.</div>
+    <div class="top-bar">
+      <div>Lives: <span id="lives">3</span></div>
+      <div class="stats">
+        <span>Score: <span id="score">0</span></span>
+        <span>Best: <span id="bestScore">0</span></span>
+      </div>
+    </div>
+    <div class="timer-bar-wrapper">
+      <div class="timer-bar" id="timerBar"></div>
+    </div>
+  </div>
+
+  <div class="grid-area">
+    <div class="grid-hint" id="gridHint">
+      Tap “Start” to begin.<br>
+      Almost all numbers follow a pattern. One is wrong – find it!
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="info-text" id="infoText"></div>
+  </div>
+
+  <div class="footer">
+    <button id="startBtn" class="start-btn">Start / Restart</button>
+    <div class="hint-bottom">
+      iPhone: just tap the number you think is wrong.<br>
+      Each round: new pattern, less time. How far can you go?
+    </div>
+  </div>
+</div>
+
+<script>
+  // --- DOM elements ---
+  const gridEl = document.getElementById('grid');
+  const gridHint = document.getElementById('gridHint');
+  const infoText = document.getElementById('infoText');
+  const startBtn = document.getElementById('startBtn');
+  const timerBar = document.getElementById('timerBar');
+  const scoreSpan = document.getElementById('score');
+  const bestScoreSpan = document.getElementById('bestScore');
+  const livesSpan = document.getElementById('lives');
+
+  // --- Game state ---
+  let running = false;
+  let score = 0;
+  let bestScore = 0;
+  let lives = 3;
+
+  let wrongIndex = -1; // 0..8
+  let roundTimerId = null;
+  let roundDuration = 15000; // ms
+  let roundStartTime = 0;
+
+  // load best score from localStorage if available
+  try {
+    const stored = localStorage.getItem('smartGridBest');
+    if (stored !== null) {
+      bestScore = Number(stored) || 0;
+      bestScoreSpan.textContent = bestScore;
+    }
+  } catch (e) {
+    // ignore storage errors
+  }
+
+  // --- Helpers ---
+  function randInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  // Generate a 3×3 numeric pattern grid and one wrong cell
+  // pattern type: multiplication table with a twist
+  function generateRound() {
+    const base = randInt(2, 9);     // base number
+    const step = randInt(1, 4);     // step for columns
+    // grid[r][c] = base*(r+1) + step*(c)
+    const grid = [];
+    for (let r = 0; r < 3; r++) {
+      const row = [];
+      for (let c = 0; c < 3; c++) {
+        row.push(base * (r + 1) + step * c);
+      }
+      grid.push(row);
+    }
+
+    // choose wrong cell
+    const r = randInt(0, 2);
+    const c = randInt(0, 2);
+    wrongIndex = r * 3 + c;
+
+    // adjust wrong value
+    const wrongDelta = randInt(2, 9) * (Math.random() < 0.5 ? -1 : 1);
+    grid[r][c] = grid[r][c] + wrongDelta;
+
+    // small hint text (optional)
+    // we don't tell exact rule, only "rows/columns follow a pattern"
+    gridHint.textContent = 'Rows & columns follow a simple pattern… except ONE number. Tap the wrong one.';
+
+    return grid;
+  }
+
+  function renderGrid(grid) {
+    gridEl.innerHTML = '';
+    grid.forEach((row, r) => {
+      row.forEach((value, c) => {
+        const idx = r * 3 + c;
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.textContent = value;
+        cell.dataset.index = idx;
+        gridEl.appendChild(cell);
+
+        cell.addEventListener('pointerdown', (e) => {
+          e.preventDefault();
+          handleCellTap(idx, cell);
+        });
+      });
+    });
+  }
+
+  function resetTimerBar() {
+    timerBar.style.transform = 'scaleX(1)';
+  }
+
+  function startRoundTimer() {
+    if (roundTimerId) {
+      clearInterval(roundTimerId);
+      roundTimerId = null;
+    }
+    roundStartTime = performance.now();
+    const duration = roundDuration;
+    resetTimerBar();
+
+    roundTimerId = setInterval(() => {
+      const now = performance.now();
+      const elapsed = now - roundStartTime;
+      const ratio = 1 - elapsed / duration;
+      timerBar.style.transform = `scaleX(${Math.max(0, ratio)})`;
+      if (elapsed >= duration) {
+        clearInterval(roundTimerId);
+        roundTimerId = null;
+        // time up
+        roundTimeout();
+      }
+    }, 80);
+  }
+
+  function stopRoundTimer() {
+    if (roundTimerId) {
+      clearInterval(roundTimerId);
+      roundTimerId = null;
+    }
+  }
+
+  function startGame() {
+    running = true;
+    score = 0;
+    lives = 3;
+    scoreSpan.textContent = score;
+    livesSpan.textContent = lives;
+    infoText.textContent = '';
+    infoText.className = 'info-text';
+    roundDuration = 15000; // reset difficulty
+    newRound();
+  }
+
+  function gameOver() {
+    running = false;
+    stopRoundTimer();
+    const msg = `Game Over! Score: ${score}`;
+    infoText.textContent = msg;
+    infoText.className = 'info-text bad';
+    gridHint.textContent = 'Tap “Start” to try again.';
+    // highlight nothing
+  }
+
+  function handleCorrect() {
+    score++;
+    scoreSpan.textContent = score;
+    if (score > bestScore) {
+      bestScore = score;
+      bestScoreSpan.textContent = bestScore;
+      try {
+        localStorage.setItem('smartGridBest', String(bestScore));
+      } catch (e) {}
+    }
+
+    infoText.textContent = '✅ Correct! New pattern coming…';
+    infoText.className = 'info-text good';
+
+    // slightly increase difficulty: reduce time
+    roundDuration = Math.max(5000, roundDuration - 600);
+
+    // short delay before next round
+    stopRoundTimer();
+    setTimeout(() => {
+      if (running) newRound();
+    }, 600);
+  }
+
+  function handleWrong() {
+    lives--;
+    livesSpan.textContent = lives;
+    infoText.textContent = '❌ Not that one. Look carefully at rows AND columns!';
+    infoText.className = 'info-text bad';
+
+    if (lives <= 0) {
+      gameOver();
+    }
+  }
+
+  function roundTimeout() {
+    if (!running) return;
+    lives--;
+    livesSpan.textContent = lives;
+    infoText.textContent = '⏰ Time up! Try to be faster.';
+    infoText.className = 'info-text bad';
+
+    if (lives <= 0) {
+      gameOver();
+    } else {
+      // show which one was wrong briefly then next round
+      highlightWrongCell();
+      setTimeout(() => {
+        if (running) newRound();
+      }, 800);
+    }
+  }
+
+  function highlightWrongCell() {
+    const cells = Array.from(gridEl.children);
+    cells.forEach((cell) => {
+      const idx = Number(cell.dataset.index);
+      cell.classList.remove('correct', 'wrong');
+      if (idx === wrongIndex) {
+        cell.classList.add('correct');
+      }
+    });
+  }
+
+  function handleCellTap(idx, cellEl) {
+    if (!running) return;
+    // prevent double triggers while animating
+    if (!gridEl.contains(cellEl)) return;
+
+    const cells = Array.from(gridEl.children);
+    cells.forEach(c => c.classList.remove('correct', 'wrong'));
+
+    if (idx === wrongIndex) {
+      cellEl.classList.add('correct');
+      handleCorrect();
+    } else {
+      cellEl.classList.add('wrong');
+      // also show the real wrong one
+      const wrongCell = cells.find(c => Number(c.dataset.index) === wrongIndex);
+      if (wrongCell) wrongCell.classList.add('correct');
+      handleWrong();
+      if (lives > 0) {
+        // brief pause then next grid
+        stopRoundTimer();
+        setTimeout(() => {
+          if (running) newRound();
+        }, 800);
+      }
+    }
+  }
+
+  function newRound() {
+    const grid = generateRound();
+    renderGrid(grid);
+    infoText.textContent = '';
+    infoText.className = 'info-text';
+    startRoundTimer();
+  }
+
+  // start button – pointer event works for iPhone & desktop
+  startBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    startGame();
+  });
+</script>
+</body>
+</html>
