@@ -2,26 +2,262 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Fullscreen Iframe</title>
-
+  <title>Dodge The Blocks</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <style>
-    html, body {
+    body {
       margin: 0;
-      padding: 0;
-      height: 100%;
-      width: 100%;
-      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #050510;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
-    iframe {
+
+    h1 {
+      margin: 6px 0;
+      font-size: 22px;
+      text-align: center;
+    }
+
+    #info {
+      margin-bottom: 8px;
+      font-size: 16px;
+      text-align: center;
+    }
+
+    #gameWrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    canvas {
+      border: 2px solid #fff;
+      border-radius: 12px;
+      background: #141428;
+      touch-action: none; /* avoid scroll while dragging */
+    }
+
+    #controls {
+      margin-top: 10px;
+    }
+
+    button {
+      padding: 8px 18px;
+      font-size: 16px;
+      border-radius: 8px;
       border: none;
-      width: 100%;
-      height: 100%;
+      background: #0a84ff;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    button:active {
+      transform: scale(0.96);
+    }
+
+    #hint {
+      margin-top: 6px;
+      font-size: 13px;
+      opacity: 0.8;
+      text-align: center;
+      max-width: 320px;
     }
   </style>
 </head>
-
 <body>
-  <iframe src="https://dinalab-dev-ed.develop.my.salesforce-sites.com/"></iframe>
+  <h1>Dodge The Blocks</h1>
+  <div id="info">
+    Time: <span id="time">0.0</span>s
+  </div>
+
+  <div id="gameWrapper">
+    <canvas id="gameCanvas" width="360" height="560"></canvas>
+    <div id="controls">
+      <button id="startBtn">Start / Restart</button>
+    </div>
+    <div id="hint">
+      Drag your finger (or mouse) left/right to move the blue circle.<br/>
+      Don’t let the red blocks hit you!
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const startBtn = document.getElementById('startBtn');
+    const timeSpan = document.getElementById('time');
+
+    const W = canvas.width;
+    const H = canvas.height;
+
+    const player = {
+      x: W / 2,
+      y: H - 60,
+      radius: 14,
+      speed: 400 // not used directly; we follow finger
+    };
+
+    let obstacles = [];
+    let running = false;
+    let startTime = 0;
+    let lastFrameTime = 0;
+    let lastSpawnTime = 0;
+    let spawnInterval = 900; // ms, will get faster
+
+    function resetGame() {
+      obstacles = [];
+      player.x = W / 2;
+      spawnInterval = 900;
+      running = true;
+      startTime = performance.now();
+      lastFrameTime = startTime;
+      lastSpawnTime = startTime;
+      timeSpan.textContent = '0.0';
+      requestAnimationFrame(gameLoop);
+    }
+
+    function spawnObstacle(now) {
+      const size = 20 + Math.random() * 25;
+      const x = size / 2 + Math.random() * (W - size);
+      // speed increases with time
+      const elapsed = (now - startTime) / 1000;
+      const baseSpeed = 160;
+      const speed = baseSpeed + elapsed * 30 + Math.random() * 40;
+
+      obstacles.push({ x, y: -size, size, speed });
+    }
+
+    function update(dt, now) {
+      // Spawn new obstacles
+      if (now - lastSpawnTime > spawnInterval) {
+        spawnObstacle(now);
+        lastSpawnTime = now;
+        // Make it spawn more frequently over time
+        spawnInterval = Math.max(300, spawnInterval - 10);
+      }
+
+      // Move obstacles
+      for (const o of obstacles) {
+        o.y += o.speed * dt;
+      }
+
+      // Remove off-screen
+      obstacles = obstacles.filter(o => o.y < H + o.size);
+
+      // Collision check
+      for (const o of obstacles) {
+        const dx = player.x - o.x;
+        const dy = player.y - o.y;
+        const distX = Math.abs(dx);
+        const distY = Math.abs(dy);
+        const half = o.size / 2;
+
+        // Approximate circle-rect collision
+        const closestX = Math.max(-half, Math.min(distX, half));
+        const closestY = Math.max(-half, Math.min(distY, half));
+        const distSq = (distX - closestX) ** 2 + (distY - closestY) ** 2;
+
+        if (distSq < player.radius ** 2) {
+          gameOver(now);
+          break;
+        }
+      }
+
+      // Update time
+      const elapsed = (now - startTime) / 1000;
+      timeSpan.textContent = elapsed.toFixed(1);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+
+      // Background gradient-ish
+      const grad = ctx.createLinearGradient(0, 0, 0, H);
+      grad.addColorStop(0, '#151538');
+      grad.addColorStop(1, '#050512');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+
+      // Draw player
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+      ctx.fillStyle = '#3cc1ff';
+      ctx.fill();
+
+      // Draw obstacles
+      ctx.fillStyle = '#ff3b30';
+      for (const o of obstacles) {
+        ctx.fillRect(o.x - o.size / 2, o.y - o.size / 2, o.size, o.size);
+      }
+    }
+
+    function gameLoop(now) {
+      if (!running) return;
+      const dt = (now - lastFrameTime) / 1000;
+      lastFrameTime = now;
+
+      update(dt, now);
+      draw();
+
+      if (running) {
+        requestAnimationFrame(gameLoop);
+      }
+    }
+
+    function gameOver(now) {
+      running = false;
+      const elapsed = (now - startTime) / 1000;
+      alert('Game Over! You survived ' + elapsed.toFixed(1) + ' seconds.');
+    }
+
+    // --- Controls: touch + mouse ---
+
+    function handlePointer(clientX) {
+      const rect = canvas.getBoundingClientRect();
+      const x = clientX - rect.left;
+      // Keep inside canvas
+      player.x = Math.max(player.radius, Math.min(W - player.radius, x));
+    }
+
+    canvas.addEventListener('touchstart', e => {
+      e.preventDefault();
+      if (e.touches.length > 0) {
+        handlePointer(e.touches[0].clientX);
+      }
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', e => {
+      e.preventDefault();
+      if (e.touches.length > 0) {
+        handlePointer(e.touches[0].clientX);
+      }
+    }, { passive: false });
+
+    canvas.addEventListener('mousedown', e => {
+      handlePointer(e.clientX);
+    });
+
+    canvas.addEventListener('mousemove', e => {
+      if (e.buttons & 1) {
+        handlePointer(e.clientX);
+      }
+    });
+
+    function onStartPress(e) {
+      if (e.type === 'touchstart') {
+        e.preventDefault();
+      }
+      resetGame();
+    }
+
+    startBtn.addEventListener('click', onStartPress);
+    startBtn.addEventListener('touchstart', onStartPress, { passive: false });
+  </script>
 </body>
 </html>
