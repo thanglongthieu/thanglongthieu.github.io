@@ -6,75 +6,130 @@
   <title>Andi & Anna Games Room</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background:#f7f7f7;
-      padding:20px;
-      text-align:center;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f7f7f7;
+      padding: 20px;
+      text-align: center;
     }
-    h1 { margin-bottom:30px; }
+    h1 {
+      margin-bottom: 10px;
+    }
+    p.lead {
+      margin-top: 0;
+      margin-bottom: 25px;
+      font-size: 0.95rem;
+      opacity: 0.8;
+    }
 
     .grid {
-      display:grid;
-      grid-template-columns:repeat(auto-fill, minmax(180px, 1fr));
-      gap:20px;
-      max-width:900px;
-      margin:0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 20px;
+      max-width: 900px;
+      margin: 0 auto;
     }
 
     .card {
-      background:#fff;
-      padding:15px;
-      border-radius:10px;
-      box-shadow:0 2px 5px rgba(0,0,0,0.1);
+      background: #fff;
+      padding: 15px;
+      border-radius: 14px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+
+    .card a {
+      text-decoration: none;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
     .card img {
-      width:120px;
-      height:120px;
-      object-fit:contain;
+      width: 120px;
+      height: 120px;
+      object-fit: contain;
+      margin-bottom: 10px;
     }
 
-    a { text-decoration:none; color:#333; font-weight:bold; }
+    .card-title {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .card-desc {
+      font-size: 0.85rem;
+      opacity: 0.8;
+    }
+
+    .footer-note {
+      margin-top: 30px;
+      font-size: 0.8rem;
+      opacity: 0.7;
+    }
   </style>
 </head>
 <body>
-
   <h1>🎮 Andi & Anna Games Room</h1>
+  <p class="lead">
+    Choose a game below! Each game lives in the <code>/games/</code> folder with its own
+    <code>index.html</code> and <code>icon.png</code>.
+  </p>
+
   <div id="games" class="grid"></div>
 
-<script>
-const username = "YOUR_GITHUB_USERNAME";
-const repo = "YOUR_REPO_NAME";
-const path = "games";
+  <p class="footer-note">
+    To add a new game, just create a folder in <code>/games/</code> and update the game list in this file.
+  </p>
 
-async function loadGames() {
-  const url = `https://api.github.com/repos/${username}/${repo}/contents/${path}`;
-  const res = await fetch(url);
-  const items = await res.json();
+  <script>
+    // --- CONFIG: list your games here -------------------------
+    // id = folder name under /games/
+    const games = [
+      {
+        id: "math-fun",
+        title: "Math Fun",
+        description: "Quick + − × ÷ practice for all grades"
+      },
+      // Add more games like:
+      // { id: "space-run", title: "Space Run", description: "Dodge the asteroids!" },
+      // { id: "puzzle-room", title: "Puzzle Room", description: "Logic & brain teasers" },
+    ];
+    // ----------------------------------------------------------
 
-  const gamesDiv = document.getElementById("games");
+    function buildGamesGrid() {
+      const gamesDiv = document.getElementById("games");
 
-  for (const item of items) {
-    if (item.type === "dir") {
-      const gameName = item.name;
-      const gameUrl = `/games/${gameName}/index.html`;
-      const iconUrl = `/games/${gameName}/icon.png`;
+      // Handle GitHub Pages base path (user site / project site)
+      // e.g. /           or /my-repo
+      const path = window.location.pathname;
+      const basePath = path
+        .replace(/\/index\.html$/, "")  // remove /index.html
+        .replace(/\/$/, "");            // remove trailing /
 
-      // Create card
-      const div = document.createElement("div");
-      div.className = "card";
-      div.innerHTML = `
-        <a href="${gameUrl}">
-          <img src="${iconUrl}" alt="${gameName}" />
-          <p>${gameName.replace(/-/g, " ")}</p>
-        </a>
-      `;
-      gamesDiv.appendChild(div);
+      const gamesBase = basePath + "/games";
+
+      games.forEach(game => {
+        const gameUrl = `${gamesBase}/${game.id}/index.html`;
+        const iconUrl = `${gamesBase}/${game.id}/icon.png`;
+
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+          <a href="${gameUrl}">
+            <img src="${iconUrl}" alt="${game.title}" onerror="this.style.display='none'" />
+            <div class="card-title">${game.title}</div>
+            <div class="card-desc">${(game.description || "").replace(/</g, "&lt;")}</div>
+          </a>
+        `;
+        gamesDiv.appendChild(card);
+      });
     }
-  }
-}
-loadGames();
-</script>
 
+    buildGamesGrid();
+  </script>
 </body>
 </html>
