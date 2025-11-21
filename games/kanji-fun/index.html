@@ -17,6 +17,7 @@
       overflow: hidden; /* no scroll on iPhone */
       -webkit-user-select: none;
       user-select: none;
+      touch-action: none;
     }
 
     .app {
@@ -66,13 +67,13 @@
       border: none;
     }
 
-    .stats span {
-      margin-left: 8px;
-    }
-
     .stats {
       text-align: right;
       flex: 1;
+    }
+
+    .stats span {
+      margin-left: 8px;
     }
 
     .quiz-area {
@@ -89,6 +90,7 @@
       font-size: 14px;
       opacity: 0.85;
       line-height: 1.4;
+      min-height: 36px;
     }
 
     .reading {
@@ -102,6 +104,7 @@
       font-size: 16px;
       text-align: center;
       opacity: 0.9;
+      min-height: 22px;
     }
 
     .choices {
@@ -118,10 +121,11 @@
       border: none;
       background: #222a40;
       color: #fff;
+      transition: transform 0.08s ease, background-color 0.15s ease;
     }
 
     .choice-btn:active {
-      transform: scale(0.95);
+      transform: scale(0.94);
     }
 
     .choice-btn.correct-show {
@@ -138,26 +142,24 @@
       min-height: 20px;
     }
 
-    .controls {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
+    .feedback.flash-good {
+      animation: flashGood 0.4s;
     }
 
-    .start-btn {
-      padding: 8px 18px;
-      font-size: 16px;
-      border-radius: 999px;
-      border: none;
-      background: #0a84ff;
-      color: #fff;
+    .feedback.flash-bad {
+      animation: flashBad 0.4s;
     }
 
-    .hint-bottom {
-      font-size: 12px;
-      text-align: center;
-      opacity: 0.8;
+    @keyframes flashGood {
+      0%   { color: #00ff9d; transform: scale(1); }
+      50%  { color: #ffffff; transform: scale(1.06); }
+      100% { color: #00ff9d; transform: scale(1); }
+    }
+
+    @keyframes flashBad {
+      0%   { color: #ff4d4f; transform: scale(1); }
+      50%  { color: #ffffff; transform: scale(0.94); }
+      100% { color: #ff4d4f; transform: scale(1); }
     }
 
     .draw-area {
@@ -197,6 +199,40 @@
       border: none;
       background: #ff9f0a;
       color: #000;
+      transition: transform 0.08s ease;
+    }
+
+    .clear-btn:active {
+      transform: scale(0.94);
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .start-btn {
+      padding: 8px 18px;
+      font-size: 16px;
+      border-radius: 999px;
+      border: none;
+      background: #0a84ff;
+      color: #fff;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      box-shadow: 0 4px 10px rgba(10,132,255,0.5);
+    }
+
+    .start-btn:active {
+      transform: translateY(1px) scale(0.97);
+      box-shadow: 0 2px 5px rgba(10,132,255,0.4);
+    }
+
+    .hint-bottom {
+      font-size: 12px;
+      text-align: center;
+      opacity: 0.8;
     }
   </style>
 </head>
@@ -218,6 +254,7 @@
         <div class="stats">
           <span>⏱ <span id="time">60</span>s</span>
           <span>⭐ <span id="score">0</span></span>
+          <span>🔥 Streak: <span id="streak">0</span></span>
         </div>
       </div>
     </div>
@@ -254,13 +291,14 @@
     <div class="controls">
       <button id="startBtn" class="start-btn">スタート / リスタート</button>
       <div class="hint-bottom">
-        iPhone：答えのボタンをタップ、下の白いところで漢字を書いてみよう。
+        iPhone：答えのボタンをタップ、下の白いところで漢字を書いてみよう。<br/>
+        スコアでランクが決まるよ！
       </div>
     </div>
   </div>
 
   <script>
-    // --- Kanji data sets ---
+    // --- Kanji data sets (can extend later) ---
     const kanjiSets = {
       easy: [
         { kanji: '水', reading: 'みず', meaning: 'water' },
@@ -277,7 +315,6 @@
       basic: [
         { kanji: '日', reading: 'ひ / にち', meaning: 'day / sun' },
         { kanji: '月', reading: 'つき / げつ', meaning: 'moon / month' },
-        { kanji: '田', reading: 'た', meaning: 'rice field' },
         { kanji: '田', reading: 'た', meaning: 'rice field' },
         { kanji: '人', reading: 'ひと', meaning: 'person' },
         { kanji: '大', reading: 'おお(きい)', meaning: 'big' },
@@ -310,6 +347,7 @@
     const levelSelect = document.getElementById('levelSelect');
     const timeSpan = document.getElementById('time');
     const scoreSpan = document.getElementById('score');
+    const streakSpan = document.getElementById('streak');
     const readingText = document.getElementById('readingText');
     const meaningText = document.getElementById('meaningText');
     const feedback = document.getElementById('feedback');
@@ -322,7 +360,7 @@
     const clearBtn = document.getElementById('clearBtn');
     const dctx = drawCanvas.getContext('2d');
 
-    // Resize canvas to container
+    // --- Resize drawing canvas to container ---
     function resizeDrawCanvas() {
       const rect = drawCanvas.getBoundingClientRect();
       drawCanvas.width = rect.width;
@@ -337,7 +375,262 @@
     let timerId = null;
     let timeLeft = 60;
     let score = 0;
+    let streak = 0;
+    let bestStreak = 0;
     let gameRunning = false;
 
+    // --- Simple sound engine (Web Audio API) ---
+    let audioCtx = null;
+    function getAudioCtx() {
+      if (!audioCtx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) {
+          audioCtx = new AC();
+        }
+      }
+      return audioCtx;
+    }
+
+    function playBeep(type) {
+      const ctx = getAudioCtx();
+      if (!ctx) return; // no audio support
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      if (type === 'start') {
+        osc.frequency.value = 700;
+        gain.gain.value = 0.12;
+      } else if (type === 'correct') {
+        osc.frequency.value = 880;
+        gain.gain.value = 0.15;
+      } else if (type === 'wrong') {
+        osc.frequency.value = 200;
+        gain.gain.value = 0.18;
+      } else {
+        osc.frequency.value = 440;
+        gain.gain.value = 0.1;
+      }
+
+      osc.type = 'sine';
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      const now = ctx.currentTime;
+      osc.start(now);
+      osc.stop(now + 0.18);
+      gain.gain.setTargetAtTime(0, now + 0.05, 0.08);
+    }
+
+    // --- Helpers ---
     function getCurrentSet() {
-      const set =
+      return kanjiSets[levelSelect.value] || kanjiSets.easy;
+    }
+
+    function randomFromArray(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function generateQuestion() {
+      const set = getCurrentSet();
+      const correct = randomFromArray(set);
+      currentQuestion = correct;
+
+      readingText.textContent = correct.reading;
+      meaningText.textContent = correct.meaning;
+      modelKanji.textContent = correct.kanji;
+
+      // Prepare kanji choices
+      const allKanji = set.map(k => k.kanji);
+      const choices = new Set();
+      choices.add(correct.kanji);
+
+      while (choices.size < 4) {
+        choices.add(randomFromArray(allKanji));
+      }
+
+      const choiceArray = Array.from(choices);
+      // Shuffle
+      for (let i = choiceArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [choiceArray[i], choiceArray[j]] = [choiceArray[j], choiceArray[i]];
+      }
+
+      choiceButtons.forEach((btn, idx) => {
+        btn.textContent = choiceArray[idx];
+        btn.classList.remove('correct-show', 'wrong-show');
+        btn.disabled = !gameRunning;
+      });
+
+      feedback.textContent = '';
+      feedback.classList.remove('flash-good', 'flash-bad');
+      hintText.textContent = 'よみと意味から正しい漢字をえらぼう！';
+    }
+
+    function updateStreakDisplay() {
+      streakSpan.textContent = streak;
+    }
+
+    function startGame() {
+      gameRunning = true;
+      timeLeft = 60;
+      score = 0;
+      streak = 0;
+      updateStreakDisplay();
+      timeSpan.textContent = timeLeft;
+      scoreSpan.textContent = score;
+      feedback.textContent = '';
+      feedback.classList.remove('flash-good', 'flash-bad');
+      hintText.textContent = 'がんばって！ 60秒でできるだけたくさん正解しよう💪';
+
+      playBeep('start');
+
+      if (timerId) clearInterval(timerId);
+      timerId = setInterval(() => {
+        timeLeft--;
+        timeSpan.textContent = timeLeft;
+        if (timeLeft <= 0) {
+          endGame();
+        }
+      }, 1000);
+
+      generateQuestion();
+    }
+
+    function endGame() {
+      gameRunning = false;
+      if (timerId) {
+        clearInterval(timerId);
+        timerId = null;
+      }
+      choiceButtons.forEach(btn => btn.disabled = true);
+
+      // rank by score
+      let rank = '';
+      if (score >= 25) {
+        rank = '神レベル！すごい👏';
+      } else if (score >= 15) {
+        rank = 'とてもいい！その調子✨';
+      } else if (score >= 8) {
+        rank = 'いい感じ！もっと練習しよう😊';
+      } else {
+        rank = 'まだこれから！少しずつ覚えよう💡';
+      }
+
+      feedback.textContent = `おわり！ スコア: ${score} / 連続正解最大: ${bestStreak}`;
+      alert(`ゲーム終了！\nスコア: ${score}\n連続正解最大: ${bestStreak}\n\nランク: ${rank}`);
+      hintText.textContent = 'もう一度やるときは「スタート」をタップしてね。';
+    }
+
+    function showFeedback(text, isCorrect) {
+      feedback.textContent = text;
+      feedback.classList.remove('flash-good', 'flash-bad');
+      // force reflow for animation reset
+      void feedback.offsetWidth;
+      feedback.classList.add(isCorrect ? 'flash-good' : 'flash-bad');
+    }
+
+    function handleChoice(btn) {
+      if (!gameRunning || !currentQuestion) return;
+
+      const chosen = btn.textContent;
+      choiceButtons.forEach(b => b.classList.remove('correct-show', 'wrong-show'));
+
+      if (chosen === currentQuestion.kanji) {
+        score++;
+        scoreSpan.textContent = score;
+        streak++;
+        if (streak > bestStreak) bestStreak = streak;
+        updateStreakDisplay();
+        btn.classList.add('correct-show');
+        showFeedback('✅ 正解！', true);
+        playBeep('correct');
+      } else {
+        streak = 0;
+        updateStreakDisplay();
+        btn.classList.add('wrong-show');
+        const correctBtn = choiceButtons.find(
+          b => b.textContent === currentQuestion.kanji
+        );
+        if (correctBtn) correctBtn.classList.add('correct-show');
+        showFeedback(`❌ ざんねん… 正解は「${currentQuestion.kanji}」`, false);
+        playBeep('wrong');
+      }
+
+      // Next question after short delay
+      setTimeout(() => {
+        if (gameRunning) generateQuestion();
+      }, 650);
+    }
+
+    // --- Answer buttons (pointer events work on touch + mouse) ---
+    choiceButtons.forEach(btn => {
+      btn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        handleChoice(btn);
+      });
+    });
+
+    // --- Start button (fixed, works on iPhone SE) ---
+    startBtn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      startGame();
+    });
+
+    // --- Mini writing practice (pointer drawing) ---
+    let drawing = false;
+
+    function getCanvasPos(evt) {
+      const rect = drawCanvas.getBoundingClientRect();
+      const x = evt.clientX - rect.left;
+      const y = evt.clientY - rect.top;
+      return { x, y };
+    }
+
+    function clearDrawing() {
+      dctx.fillStyle = '#ffffff';
+      dctx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
+      dctx.lineJoin = 'round';
+      dctx.lineCap = 'round';
+      dctx.lineWidth = 4;
+      dctx.strokeStyle = '#000000';
+    }
+
+    function startDraw(evt) {
+      evt.preventDefault();
+      drawing = true;
+      const pos = getCanvasPos(evt);
+      dctx.beginPath();
+      dctx.moveTo(pos.x, pos.y);
+    }
+
+    function moveDraw(evt) {
+      if (!drawing) return;
+      evt.preventDefault();
+      const pos = getCanvasPos(evt);
+      dctx.lineTo(pos.x, pos.y);
+      dctx.stroke();
+    }
+
+    function endDraw(evt) {
+      if (!drawing) return;
+      evt && evt.preventDefault();
+      drawing = false;
+      dctx.closePath();
+    }
+
+    drawCanvas.addEventListener('pointerdown', startDraw);
+    drawCanvas.addEventListener('pointermove', moveDraw);
+    drawCanvas.addEventListener('pointerup', endDraw);
+    drawCanvas.addEventListener('pointercancel', endDraw);
+    drawCanvas.addEventListener('pointerleave', endDraw);
+
+    clearBtn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      clearDrawing();
+    });
+
+    // Initial: disable answer buttons until game starts
+    choiceButtons.forEach(b => b.disabled = true);
+  </script>
+</body>
+</html>
