@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>Kanji Fun Game</title>
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #050510;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #fff;
+      overflow: hidden; /* no scroll on iPhone */
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .app {
+      box-sizing: border-box;
+      width: 100%;
+      height: 100%;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .header {
+      text-align: center;
+    }
+
+    .title {
+      font-size: 22px;
+      margin-bottom: 4px;
+    }
+
+    .sub {
+      font-size: 13px;
+      opacity: 0.8;
+    }
+
+    .top-bar {
+      margin-top: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      gap: 8px;
+    }
+
+    .top-left {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+    }
+
+    select {
+      font-size: 13px;
+      padding: 3px 6px;
+      border-radius: 6px;
+      border: none;
+    }
+
+    .stats span {
+      margin-left: 8px;
+    }
+
+    .stats {
+      text-align: right;
+      flex: 1;
+    }
+
+    .quiz-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: stretch;
+      gap: 8px;
+    }
+
+    .hint-text {
+      text-align: center;
+      font-size: 14px;
+      opacity: 0.85;
+      line-height: 1.4;
+    }
+
+    .reading {
+      font-size: 24px;
+      font-weight: 600;
+      text-align: center;
+      margin-top: 4px;
+    }
+
+    .meaning {
+      font-size: 16px;
+      text-align: center;
+      opacity: 0.9;
+    }
+
+    .choices {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .choice-btn {
+      font-size: 26px;
+      padding: 10px 0;
+      border-radius: 10px;
+      border: none;
+      background: #222a40;
+      color: #fff;
+    }
+
+    .choice-btn:active {
+      transform: scale(0.95);
+    }
+
+    .choice-btn.correct-show {
+      background: #1c8f3f;
+    }
+
+    .choice-btn.wrong-show {
+      background: #b3261e;
+    }
+
+    .feedback {
+      text-align: center;
+      font-size: 14px;
+      min-height: 20px;
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .start-btn {
+      padding: 8px 18px;
+      font-size: 16px;
+      border-radius: 999px;
+      border: none;
+      background: #0a84ff;
+      color: #fff;
+    }
+
+    .hint-bottom {
+      font-size: 12px;
+      text-align: center;
+      opacity: 0.8;
+    }
+
+    .draw-area {
+      border-radius: 10px;
+      border: 1px solid #444;
+      padding: 6px;
+      background: #111;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .draw-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+    }
+
+    .draw-kanji {
+      font-size: 32px;
+      padding: 0 4px;
+    }
+
+    #drawCanvas {
+      width: 100%;
+      height: 120px;
+      background: #fff;
+      border-radius: 6px;
+      touch-action: none;
+    }
+
+    .clear-btn {
+      padding: 4px 10px;
+      font-size: 12px;
+      border-radius: 999px;
+      border: none;
+      background: #ff9f0a;
+      color: #000;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <div class="title">Kanji Fun Game ✍️</div>
+      <div class="sub">よみ ＋ いみ を見て、正しい漢字をタップしてね</div>
+
+      <div class="top-bar">
+        <div class="top-left">
+          <span>レベル:</span>
+          <select id="levelSelect">
+            <option value="easy">やさしい（小さい子向け）</option>
+            <option value="basic">基本（小学生〜）</option>
+            <option value="n5">JLPT N5レベル</option>
+          </select>
+        </div>
+        <div class="stats">
+          <span>⏱ <span id="time">60</span>s</span>
+          <span>⭐ <span id="score">0</span></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="quiz-area">
+      <div class="hint-text" id="hintText">
+        「スタート」を押してゲーム開始！<br>
+        よみと意味を見て、正しい漢字を選ぼう。
+      </div>
+      <div class="reading" id="readingText">—</div>
+      <div class="meaning" id="meaningText">—</div>
+
+      <div class="choices">
+        <button class="choice-btn" data-index="0"></button>
+        <button class="choice-btn" data-index="1"></button>
+        <button class="choice-btn" data-index="2"></button>
+        <button class="choice-btn" data-index="3"></button>
+      </div>
+
+      <div class="feedback" id="feedback"></div>
+    </div>
+
+    <div class="draw-area">
+      <div class="draw-header">
+        <span>書くれんしゅう（指でなぞってね）</span>
+        <div>
+          お手本: <span id="modelKanji" class="draw-kanji">漢</span>
+          <button id="clearBtn" class="clear-btn">けす</button>
+        </div>
+      </div>
+      <canvas id="drawCanvas"></canvas>
+    </div>
+
+    <div class="controls">
+      <button id="startBtn" class="start-btn">スタート / リスタート</button>
+      <div class="hint-bottom">
+        iPhone：答えのボタンをタップ、下の白いところで漢字を書いてみよう。
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- Kanji data sets ---
+    const kanjiSets = {
+      easy: [
+        { kanji: '水', reading: 'みず', meaning: 'water' },
+        { kanji: '火', reading: 'ひ', meaning: 'fire' },
+        { kanji: '木', reading: 'き', meaning: 'tree' },
+        { kanji: '山', reading: 'やま', meaning: 'mountain' },
+        { kanji: '川', reading: 'かわ', meaning: 'river' },
+        { kanji: '雨', reading: 'あめ', meaning: 'rain' },
+        { kanji: '口', reading: 'くち', meaning: 'mouth' },
+        { kanji: '目', reading: 'め', meaning: 'eye' },
+        { kanji: '耳', reading: 'みみ', meaning: 'ear' },
+        { kanji: '手', reading: 'て', meaning: 'hand' }
+      ],
+      basic: [
+        { kanji: '日', reading: 'ひ / にち', meaning: 'day / sun' },
+        { kanji: '月', reading: 'つき / げつ', meaning: 'moon / month' },
+        { kanji: '田', reading: 'た', meaning: 'rice field' },
+        { kanji: '田', reading: 'た', meaning: 'rice field' },
+        { kanji: '人', reading: 'ひと', meaning: 'person' },
+        { kanji: '大', reading: 'おお(きい)', meaning: 'big' },
+        { kanji: '小', reading: 'ちい(さい)', meaning: 'small' },
+        { kanji: '上', reading: 'うえ', meaning: 'up / above' },
+        { kanji: '下', reading: 'した', meaning: 'down / below' },
+        { kanji: '中', reading: 'なか', meaning: 'inside / middle' },
+        { kanji: '左', reading: 'ひだり', meaning: 'left' },
+        { kanji: '右', reading: 'みぎ', meaning: 'right' },
+        { kanji: '校', reading: 'こう', meaning: 'school' },
+        { kanji: '先', reading: 'さき / せん', meaning: 'ahead / previous' }
+      ],
+      n5: [
+        { kanji: '学', reading: 'まな(ぶ) / がく', meaning: 'study / learning' },
+        { kanji: '生', reading: 'せい / い(きる)', meaning: 'life / birth' },
+        { kanji: '先', reading: 'さき / せん', meaning: 'ahead / previous' },
+        { kanji: '校', reading: 'こう', meaning: 'school' },
+        { kanji: '行', reading: 'い(く) / こう', meaning: 'go / act' },
+        { kanji: '来', reading: 'く(る) / らい', meaning: 'come' },
+        { kanji: '見', reading: 'み(る) / けん', meaning: 'see / look' },
+        { kanji: '食', reading: 'た(べる) / しょく', meaning: 'eat / food' },
+        { kanji: '飲', reading: 'の(む)', meaning: 'drink' },
+        { kanji: '話', reading: 'はな(す) / わ', meaning: 'talk / speak' },
+        { kanji: '書', reading: 'か(く)', meaning: 'write' },
+        { kanji: '読', reading: 'よ(む)', meaning: 'read' }
+      ]
+    };
+
+    // --- DOM elements ---
+    const levelSelect = document.getElementById('levelSelect');
+    const timeSpan = document.getElementById('time');
+    const scoreSpan = document.getElementById('score');
+    const readingText = document.getElementById('readingText');
+    const meaningText = document.getElementById('meaningText');
+    const feedback = document.getElementById('feedback');
+    const hintText = document.getElementById('hintText');
+    const startBtn = document.getElementById('startBtn');
+    const choiceButtons = Array.from(document.querySelectorAll('.choice-btn'));
+    const modelKanji = document.getElementById('modelKanji');
+
+    const drawCanvas = document.getElementById('drawCanvas');
+    const clearBtn = document.getElementById('clearBtn');
+    const dctx = drawCanvas.getContext('2d');
+
+    // Resize canvas to container
+    function resizeDrawCanvas() {
+      const rect = drawCanvas.getBoundingClientRect();
+      drawCanvas.width = rect.width;
+      drawCanvas.height = rect.height;
+      clearDrawing();
+    }
+    window.addEventListener('resize', resizeDrawCanvas);
+    resizeDrawCanvas();
+
+    // --- Game state ---
+    let currentQuestion = null;
+    let timerId = null;
+    let timeLeft = 60;
+    let score = 0;
+    let gameRunning = false;
+
+    function getCurrentSet() {
+      const set =
