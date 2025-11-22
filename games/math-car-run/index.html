@@ -294,7 +294,6 @@
         <span>Questions: <span id="qCount">0</span></span>
         <span>Correct: <span id="qCorrect">0</span></span>
         <span>Accuracy: <span id="accuracy">0%</span></span>
-        <span id="testStatus" class="badge" style="display:none;">Test mode</span>
       </div>
       <div>
         <span class="badge">Answer: hours as fraction a/b</span>
@@ -332,7 +331,6 @@
   <div class="button-row">
     <button id="randomBtn" class="btn">🎲 Random Problem</button>
     <button id="checkBtn" class="btn primary">✅ Check & Show Solution</button>
-    <button id="testBtn" class="btn">🧪 Start Test (10Q)</button>
     <button id="speakBtn" class="btn">🔊 Read Question</button>
     <button id="resetQuizBtn" class="btn">♻ Reset Stats</button>
   </div>
@@ -376,7 +374,7 @@
 
     <div class="hint-bottom">
       iPhone: fill in, then tap <b>“Check & Show Solution”</b>.<br>
-      Use <b>Random</b> for practice, or <b>Start Test</b> for 10-question test mode.
+      Use <b>Random</b> for practice.
     </div>
   </div>
 </div>
@@ -391,10 +389,8 @@
 
   const randomBtn = document.getElementById('randomBtn');
   const checkBtn = document.getElementById('checkBtn');
-  const testBtn = document.getElementById('testBtn');
   const speakBtn = document.getElementById('speakBtn');
   const resetQuizBtn = document.getElementById('resetQuizBtn');
-  const testStatus = document.getElementById('testStatus');
 
   const fractionLine = document.getElementById('fractionLine');
   const hourFractionLine = document.getElementById('hourFractionLine');
@@ -422,7 +418,6 @@
   let animReq = null;
   let simStartTime = 0;
   let simDuration = 8000; // ms
-  let meetTimeSeconds = 0;
   let roadLeft = 0;
   let roadRight = 0;
   let meetingX = 0;
@@ -435,50 +430,15 @@
   let lastD1 = null;       // m
   let lastD2 = null;
 
-  // --- Quiz / test state ---
+  // --- Quiz state ---
   let totalQuestions = 0;
   let correctAnswers = 0;
-  let inTest = false;
-  const TEST_QUESTION_COUNT = 10;
-  let currentTestIndex = 0; // 0-based
 
   function updateQuizStats() {
     qCountSpan.textContent = totalQuestions;
     qCorrectSpan.textContent = correctAnswers;
     const acc = totalQuestions > 0 ? (100 * correctAnswers / totalQuestions) : 0;
     accuracySpan.textContent = acc.toFixed(0) + '%';
-  }
-
-  function startTest() {
-    inTest = true;
-    currentTestIndex = 0;
-    totalQuestions = 0;
-    correctAnswers = 0;
-    updateQuizStats();
-    testStatus.style.display = 'inline-block';
-    quizFeedback.textContent = `Test mode: Question 1 of ${TEST_QUESTION_COUNT}. Enter a/b and press Check.`;
-    generateRandomProblem();
-  }
-
-  function endTest() {
-    inTest = false;
-    testStatus.style.display = 'none';
-    const acc = totalQuestions > 0 ? (100 * correctAnswers / totalQuestions) : 0;
-    const msg =
-      `Test finished!\nCorrect: ${correctAnswers}/${totalQuestions}\nAccuracy: ${acc.toFixed(1)}%`;
-    alert(msg);
-    quizFeedback.innerHTML =
-      `Test finished: <span class="highlight">${correctAnswers}/${totalQuestions}</span> correct ` +
-      `(${acc.toFixed(1)}%).`;
-  }
-
-  function resetStats() {
-    totalQuestions = 0;
-    correctAnswers = 0;
-    inTest = false;
-    testStatus.style.display = 'none';
-    updateQuizStats();
-    quizFeedback.textContent = 'Quiz: —';
   }
 
   // --- Helpers ---
@@ -534,7 +494,10 @@
   }
 
   function startSimulation() {
-    if (!(lastDistance > 0 && lastSpeed1 > 0 && lastSpeed2 > 0 && lastTHours > 0)) return;
+    // need valid data
+    if (!(lastDistance > 0 && lastSpeed1 > 0 && lastSpeed2 > 0 && lastTHours > 0 && lastD1 >= 0)) {
+      return;
+    }
 
     stopAnimation();
     layoutPositions();
@@ -543,9 +506,12 @@
     const startX1 = roadLeft;
     const startX2 = roadRight;
 
-    const d1 = lastSpeed1 * lastTHours * 3600; // Car1 distance from A in meters (v1 m/s * t s)
+    // ✅ FIX: use lastD1 (distance car 1 actually travels to meeting point)
+    const d1 = lastD1; // meters
     const ratio = lastDistance > 0 ? d1 / lastDistance : 0.5;
-    meetingX = roadLeft + ratio * roadLengthPx;
+    const clampedRatio = Math.max(0, Math.min(1, ratio));
+
+    meetingX = roadLeft + clampedRatio * roadLengthPx;
 
     meetMarkerEl.style.left = `${meetingX - 1}px`;
     meetTextEl.style.left = `${meetingX}px`;
@@ -734,7 +700,6 @@
     let num = distance;
     let den = denomRaw;
 
-    // If floats, round for a nicer fraction (typical problems use integers)
     num = Math.round(num);
     den = Math.round(den);
 
@@ -763,7 +728,6 @@
     lastTHours = tHours;
     lastD1 = d1;
     lastD2 = d2;
-    meetTimeSeconds = tSeconds;
 
     drawGraph();
     startSimulation();
@@ -796,7 +760,6 @@
     const { tHours, tMinutes, fracNum, fracDen } =
       computeSolution(distance, speed1, speed2);
 
-    // Quiz evaluation
     totalQuestions++;
 
     // Simplify student's fraction
@@ -806,16 +769,14 @@
 
     let isCorrect = false;
 
-    // If our fraction is "clean" integers, compare fraction equality
     if (Number.isFinite(fracNum) && Number.isFinite(fracDen) &&
         fracNum > 0 && fracDen > 0) {
       if (sNum === fracNum && sDen === fracDen) {
         isCorrect = true;
       } else {
-        // Fallback numeric compare
         const studentHours = ansNum / ansDen;
         const diffH = Math.abs(studentHours - tHours);
-        isCorrect = diffH <= 1e-3; // within ~0.06 min
+        isCorrect = diffH <= 1e-3;
       }
     } else {
       const studentHours = ansNum / ansDen;
@@ -839,50 +800,22 @@
         `(Your: ${sNum}/${sDen}, Real: ${fracNum}/${fracDen}, ` +
         `≈ ${tMinutes.toFixed(2)} min)`;
     }
-
-    // Test mode progression
-    if (inTest) {
-      currentTestIndex++;
-      if (currentTestIndex >= TEST_QUESTION_COUNT) {
-        endTest();
-      } else {
-        quizFeedback.innerHTML +=
-          ` | Test: Question ${currentTestIndex + 1} of ${TEST_QUESTION_COUNT}.`;
-        generateRandomProblem(); // next question
-      }
-    }
   }
 
   // --- Random problem generator ---
   function generateRandomProblem() {
-    if (inTest) {
-      // test-specific ranges
-      const d = 1000 + Math.floor(Math.random() * 20) * 100; // 1000–3000 m
-      let v1, v2, tSec;
-      while (true) {
-        v1 = 5 + Math.floor(Math.random() * 16);  // 5–20 m/s
-        v2 = 5 + Math.floor(Math.random() * 16);
-        tSec = d / (v1 + v2);
-        if (tSec >= 60 && tSec <= 7200) break; // between 1 min and 2 hours
-      }
-      distanceInput.value = d.toString();
-      speed1Input.value = v1.toString();
-      speed2Input.value = v2.toString();
-    } else {
-      // practice ranges
-      const d = 1000 + Math.floor(Math.random() * 40) * 100; // 1000–5000 m
-      let v1, v2, tSec;
-      while (true) {
-        v1 = 3 + Math.floor(Math.random() * 23);  // 3–25 m/s
-        v2 = 3 + Math.floor(Math.random() * 23);
-        tSec = d / (v1 + v2);
-        if (tSec >= 30 && tSec <= 7200) break;
-      }
-      distanceInput.value = d.toString();
-      speed1Input.value = v1.toString();
-      speed2Input.value = v2.toString();
+    const d = 1000 + Math.floor(Math.random() * 40) * 100; // 1000–5000 m
+    let v1, v2, tSec;
+    while (true) {
+      v1 = 3 + Math.floor(Math.random() * 23);  // 3–25 m/s
+      v2 = 3 + Math.floor(Math.random() * 23);
+      tSec = d / (v1 + v2);
+      if (tSec >= 30 && tSec <= 7200) break;
     }
 
+    distanceInput.value = d.toString();
+    speed1Input.value = v1.toString();
+    speed2Input.value = v2.toString();
     ansNumInput.value = '';
     ansDenInput.value = '';
 
@@ -891,7 +824,7 @@
     decimalLine.textContent = 'Decimal: —';
     timeLine.textContent = 'Meeting time: —';
     positionLine.textContent = 'Meeting position: —';
-    if (!inTest) quizFeedback.textContent = 'Quiz: —';
+    quizFeedback.textContent = 'Quiz: —';
 
     stopAnimation();
     layoutPositions();
@@ -928,30 +861,23 @@
     window.speechSynthesis.speak(utter);
   }
 
+  // --- Quiz reset ---
+  function resetQuiz() {
+    totalQuestions = 0;
+    correctAnswers = 0;
+    updateQuizStats();
+    quizFeedback.textContent = 'Quiz: —';
+  }
+
   // --- Events ---
   randomBtn.addEventListener('pointerdown', (e) => {
     e.preventDefault();
-    if (inTest) {
-      alert('Random practice is disabled during test mode.');
-      return;
-    }
     generateRandomProblem();
   });
 
   checkBtn.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     checkAnswerAndShow();
-  });
-
-  testBtn.addEventListener('pointerdown', (e) => {
-    e.preventDefault();
-    if (inTest) {
-      if (confirm('A test is already running. End it and start a new one?')) {
-        startTest();
-      }
-    } else {
-      startTest();
-    }
   });
 
   speakBtn.addEventListener('pointerdown', (e) => {
@@ -961,7 +887,7 @@
 
   resetQuizBtn.addEventListener('pointerdown', (e) => {
     e.preventDefault();
-    resetStats();
+    resetQuiz();
   });
 
   window.addEventListener('load', () => {
