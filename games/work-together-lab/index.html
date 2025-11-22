@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Work Together – Math Lab</title>
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #050510;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow: hidden;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .app {
+      box-sizing: border-box;
+      width: 100%;
+      height: 100%;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .header {
+      text-align: center;
+    }
+
+    .title {
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      opacity: 0.8;
+    }
+
+    .top-bar {
+      margin-top: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      gap: 6px;
+    }
+
+    .quiz-info span {
+      margin-right: 8px;
+    }
+
+    .badge {
+      border-radius: 999px;
+      padding: 2px 7px;
+      background: rgba(255,255,255,0.1);
+      font-size: 11px;
+    }
+
+    .inputs {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 6px;
+      font-size: 14px;
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: nowrap;
+    }
+
+    .row label {
+      flex: 0 0 155px;
+    }
+
+    .row input {
+      flex: 1;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: none;
+      font-size: 14px;
+    }
+
+    .row span.unit {
+      font-size: 12px;
+      opacity: 0.8;
+      flex: 0 0 auto;
+    }
+
+    .answer-fraction {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex: 1;
+    }
+
+    .answer-fraction input {
+      width: 30%;
+    }
+
+    .button-row {
+      margin-top: 6px;
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 7px 12px;
+      font-size: 13px;
+      border-radius: 999px;
+      border: none;
+      background: #1c1c2e;
+      color: #fff;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.5);
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.1s ease;
+    }
+
+    .btn.primary {
+      background: #0a84ff;
+      box-shadow: 0 3px 10px rgba(10,132,255,0.7);
+    }
+
+    .btn:active {
+      transform: translateY(1px) scale(0.97);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    }
+
+    .result-box {
+      margin-top: 6px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      background: rgba(0,0,0,0.35);
+      font-size: 12px;
+    }
+
+    .result-line {
+      margin: 2px 0;
+    }
+
+    .highlight {
+      color: #ffd60a;
+      font-weight: 600;
+    }
+
+    .correct-text {
+      color: #30d158;
+      font-weight: 600;
+    }
+
+    .wrong-text {
+      color: #ff453a;
+      font-weight: 600;
+    }
+
+    .sim-and-graph {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 6px;
+      min-height: 200px;
+    }
+
+    .sim-title, .graph-title {
+      font-size: 12px;
+      opacity: 0.85;
+      text-align: center;
+    }
+
+    .sim-area {
+      position: relative;
+      flex: 0 0 110px;
+      border-radius: 10px;
+      background: #111827;
+      box-shadow: 0 0 10px rgba(0,0,0,0.7);
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .job-bar-bg {
+      position: relative;
+      width: 100%;
+      height: 26px;
+      border-radius: 13px;
+      background: #1f2933;
+      overflow: hidden;
+      box-shadow: inset 0 0 6px rgba(0,0,0,0.7);
+    }
+
+    .job-bar-inner {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 0%;
+      display: flex;
+      flex-direction: row;
+    }
+
+    .job-part-a {
+      background: #0a84ff;
+    }
+
+    .job-part-b {
+      background: #ff375f;
+    }
+
+    .job-labels {
+      font-size: 11px;
+      display: flex;
+      justify-content: space-between;
+      opacity: 0.9;
+    }
+
+    .graph-area {
+      flex: 1;
+      border-radius: 10px;
+      background: #111;
+      box-shadow: 0 0 10px rgba(0,0,0,0.7);
+      padding: 6px;
+    }
+
+    #graphCanvas {
+      width: 100%;
+      height: 100%;
+      background: #05060a;
+      border-radius: 6px;
+    }
+
+    .hint-bottom {
+      font-size: 11px;
+      text-align: center;
+      opacity: 0.8;
+      margin-top: 2px;
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="title">Work Together – Math Lab</div>
+    <div class="subtitle">
+      A and B work on the same job. A alone takes T₁ hours, B alone takes T₂ hours.<br>
+      Together, how long will it take? Answer in hours as a fraction a/b.
+    </div>
+    <div class="top-bar">
+      <div class="quiz-info">
+        <span>Questions: <span id="qCount">0</span></span>
+        <span>Correct: <span id="qCorrect">0</span></span>
+        <span>Accuracy: <span id="accuracy">0%</span></span>
+      </div>
+      <div>
+        <span class="badge">Answer: hours as a/b</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="inputs">
+    <div class="row">
+      <label for="timeA">Time A alone:</label>
+      <input id="timeA" type="number" step="1" min="1" placeholder="e.g. 4">
+      <span class="unit">hours</span>
+    </div>
+    <div class="row">
+      <label for="timeB">Time B alone:</label>
+      <input id="timeB" type="number" step="1" min="1" placeholder="e.g. 6">
+      <span class="unit">hours</span>
+    </div>
+    <div class="row">
+      <label>Your answer t (hours):</label>
+      <div class="answer-fraction">
+        <input id="ansNum" type="number" step="1" min="1" placeholder="a">
+        <span>/</span>
+        <input id="ansDen" type="number" step="1" min="1" placeholder="b">
+      </div>
+      <span class="unit">hours</span>
+    </div>
+  </div>
+
+  <div class="button-row">
+    <button id="randomBtn" class="btn">🎲 Random Problem</button>
+    <button id="checkBtn" class="btn primary">✅ Check & Show Solution</button>
+    <button id="speakBtn" class="btn">🔊 Read Question</button>
+    <button id="resetBtn" class="btn">♻ Reset Stats</button>
+  </div>
+
+  <div class="result-box">
+    <div class="result-line">
+      Formula: <span class="highlight">t = 1 / (1/T₁ + 1/T₂)</span> = <span class="highlight">T₁T₂ / (T₁ + T₂)</span>
+    </div>
+    <div class="result-line" id="rateLine">Step 1 (rates): —</div>
+    <div class="result-line" id="fracLine">Step 2 (fraction): —</div>
+    <div class="result-line" id="reducedLine">Step 3 (reduced): —</div>
+    <div class="result-line" id="decimalLine">Decimal: —</div>
+    <div class="result-line" id="timeLine">Meeting time: —</div>
+    <div class="result-line" id="quizFeedback">Quiz: —</div>
+  </div>
+
+  <div class="sim-and-graph">
+    <div class="sim-area">
+      <div class="sim-title">Job completion bar (0 → 1 job)</div>
+      <div class="job-bar-bg">
+        <div class="job-bar-inner" id="jobBarInner">
+          <div class="job-part-a" id="jobPartA"></div>
+          <div class="job-part-b" id="jobPartB"></div>
+        </div>
+      </div>
+      <div class="job-labels">
+        <span id="contribAText">A contribution: —</span>
+        <span id="contribBText">B contribution: —</span>
+      </div>
+    </div>
+
+    <div class="graph-area">
+      <div class="graph-title">
+        Work vs time – A alone, B alone, and together
+      </div>
+      <canvas id="graphCanvas"></canvas>
+    </div>
+
+    <div class="hint-bottom">
+      iPhone: enter T₁, T₂, then your answer a/b.  
+      Tap “Check & Show Solution” to see rates, fraction steps, bar animation, and graph.
+    </div>
+  </div>
+</div>
+
+<script>
+  // DOM
+  const timeAInput = document.getElementById('timeA');
+  const timeBInput = document.getElementById('timeB');
+  const ansNumInput = document.getElementById('ansNum');
+  const ansDenInput = document.getElementById('ansDen');
+
+  const randomBtn = document.getElementById('randomBtn');
+  const checkBtn = document.getElementById('checkBtn');
+  const speakBtn = document.getElementById('speakBtn');
+  const resetBtn = document.getElementById('resetBtn');
+
+  const rateLine = document.getElementById('rateLine');
+  const fracLine = document.getElementById('fracLine');
+  const reducedLine = document.getElementById('reducedLine');
+  const decimalLine = document.getElementById('decimalLine');
+  const timeLine = document.getElementById('timeLine');
+  const quizFeedback = document.getElementById('quizFeedback');
+
+  const qCountSpan = document.getElementById('qCount');
+  const qCorrectSpan = document.getElementById('qCorrect');
+  const accuracySpan = document.getElementById('accuracy');
+
+  const jobBarInner = document.getElementById('jobBarInner');
+  const jobPartA = document.getElementById('jobPartA');
+  const jobPartB = document.getElementById('jobPartB');
+  const contribAText = document.getElementById('contribAText');
+  const contribBText = document.getElementById('contribBText');
+
+  const graphCanvas = document.getElementById('graphCanvas');
+  const gctx = graphCanvas.getContext('2d');
+
+  // State
+  let totalQuestions = 0;
+  let correctAnswers = 0;
+  let lastT1 = null;
+  let lastT2 = null;
+  let lastT = null; // together time
+
+  function gcd(a, b) {
+    a = Math.abs(a);
+    b = Math.abs(b);
+    while (b !== 0) {
+      const t = b;
+      b = a % b;
+      a = t;
+    }
+    return a || 1;
+  }
+
+  function updateStats() {
+    qCountSpan.textContent = totalQuestions;
+    qCorrectSpan.textContent = correctAnswers;
+    const acc = totalQuestions > 0 ? (100 * correctAnswers / totalQuestions) : 0;
+    accuracySpan.textContent = acc.toFixed(0) + '%';
+  }
+
+  // Graph
+  function resizeGraphCanvas() {
+    const rect = graphCanvas.getBoundingClientRect();
+    graphCanvas.width = rect.width;
+    graphCanvas.height = rect.height;
+  }
+
+  function drawGraph() {
+    resizeGraphCanvas();
+    const ctx = gctx;
+    const w = graphCanvas.width;
+    const h = graphCanvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    if (!(lastT1 > 0 && lastT2 > 0 && lastT > 0)) {
+      ctx.fillStyle = '#666';
+      ctx.font = '12px -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Solve a problem to see the graph.', w / 2, h / 2);
+      return;
+    }
+
+    const maxT = Math.max(lastT1, lastT2, lastT);
+    const marginLeft = 34;
+    const marginRight = 10;
+    const marginTop = 10;
+    const marginBottom = 22;
+    const innerW = w - marginLeft - marginRight;
+    const innerH = h - marginTop - marginBottom;
+
+    function xFromT(t) {
+      return marginLeft + (t / maxT) * innerW;
+    }
+    function yFromW(work) {
+      return h - marginBottom - work * innerH;
+    }
+
+    // axes
+    ctx.strokeStyle = '#888';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(marginLeft, h - marginBottom);
+    ctx.lineTo(w - marginRight, h - marginBottom);
+    ctx.moveTo(marginLeft, h - marginBottom);
+    ctx.lineTo(marginLeft, marginTop);
+    ctx.stroke();
+
+    ctx.fillStyle = '#aaa';
+    ctx.font = '10px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('time (hours)', (w + marginLeft - marginRight) / 2, h - 6);
+
+    ctx.save();
+    ctx.translate(10, (h - marginBottom + marginTop) / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = 'center';
+    ctx.fillText('work done (0–1 job)', 0, 0);
+    ctx.restore();
+
+    // ticks on x
+    ctx.fillStyle = '#777';
+    const tSteps = 4;
+    ctx.textAlign = 'center';
+    for (let i = 0; i <= tSteps; i++) {
+      const t = (maxT * i) / tSteps;
+      const x = xFromT(t);
+      const y = h - marginBottom;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x, y + 3);
+      ctx.strokeStyle = '#555';
+      ctx.stroke();
+      ctx.fillText(t.toFixed(1), x, y + 12);
+    }
+
+    // ticks on y
+    ctx.textAlign = 'right';
+    const wSteps = 4;
+    for (let i = 0; i <= wSteps; i++) {
+      const wp = i / wSteps;
+      const x = marginLeft;
+      const y = yFromW(wp);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x - 3, y);
+      ctx.strokeStyle = '#555';
+      ctx.stroke();
+      ctx.fillText(wp.toFixed(2), x - 4, y + 3);
+    }
+
+    // A alone: wA(t) = t / T1
+    const T1 = lastT1;
+    const T2 = lastT2;
+    const T = lastT;
+
+    function drawLine(color, fn) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      const steps = 60;
+      for (let i = 0; i <= steps; i++) {
+        const t = (maxT * i) / steps;
+        const wv = fn(t);
+        const x = xFromT(t);
+        const y = yFromW(Math.min(1, Math.max(0, wv)));
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+
+    // A alone (up to job completion)
+    drawLine('#0a84ff', t => Math.min(1, t / T1));
+    // B alone
+    drawLine('#ff375f', t => Math.min(1, t / T2));
+    // Together
+    drawLine('#34c759', t => Math.min(1, t / T));
+
+    // Legend
+    ctx.fillStyle = '#0a84ff';
+    ctx.textAlign = 'left';
+    ctx.fillText('A alone', marginLeft + 6, marginTop + 10);
+    ctx.fillStyle = '#ff375f';
+    ctx.fillText('B alone', marginLeft + 6, marginTop + 22);
+    ctx.fillStyle = '#34c759';
+    ctx.fillText('Together', marginLeft + 6, marginTop + 34);
+
+    // Meeting point (for together)
+    const meetX = xFromT(T);
+    const meetY = yFromW(1);
+    ctx.fillStyle = '#ffd60a';
+    ctx.beginPath();
+    ctx.arc(meetX, meetY, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Job bar animation
+  function animateJobBar(contribA, contribB) {
+    jobBarInner.style.width = '0%';
+    jobPartA.style.width = '0%';
+    jobPartB.style.width = '0%';
+
+    const pA = contribA / (contribA + contribB);
+    const pB = contribB / (contribA + contribB);
+
+    const totalDuration = 2000; // ms
+    const start = performance.now();
+
+    function step(now) {
+      const elapsed = now - start;
+      const alpha = Math.min(1, elapsed / totalDuration);
+      const totalPercent = alpha * 100;
+      const aWidth = totalPercent * pA;
+      const bWidth = totalPercent * pB;
+
+      jobBarInner.style.width = totalPercent + '%';
+      jobPartA.style.width = aWidth + '%';
+      jobPartB.style.width = bWidth + '%';
+
+      if (alpha < 1) {
+        requestAnimationFrame(step);
+      }
+    }
+
+    requestAnimationFrame(step);
+  }
+
+  function computeSolution(T1, T2) {
+    const rA = 1 / T1;
+    const rB = 1 / T2;
+    const rTotal = rA + rB;
+    const t = 1 / rTotal; // hours
+    lastT1 = T1;
+    lastT2 = T2;
+    lastT = t;
+
+    // Step by step text
+    rateLine.textContent =
+      `Step 1: A rate = 1/${T1} job/h, B rate = 1/${T2} job/h, together = 1/${T1} + 1/${T2} = ` +
+      `${(1/T1).toFixed(3)} + ${(1/T2).toFixed(3)} job/h = ${(rTotal).toFixed(3)} job/h`;
+
+    const num = T1 * T2;
+    const den = T1 + T2;
+    fracLine.textContent =
+      `Step 2: t = 1 / (1/${T1} + 1/${T2}) = 1/${T1} + 1/${T2}⁻¹ = (T₁T₂)/(T₁+T₂) = ${T1}×${T2} / (${T1}+${T2}) = ${num}/${den} hours`;
+
+    const g = gcd(num, den);
+    const simpleN = num / g;
+    const simpleD = den / g;
+    reducedLine.textContent =
+      `Step 3: Reduce fraction: ${num}/${den} = ${simpleN}/${simpleD} hours`;
+
+    decimalLine.textContent =
+      `Decimal: t ≈ ${t.toFixed(4)} hours (≈ ${(t*60).toFixed(1)} minutes)`;
+
+    timeLine.textContent =
+      `Answer: about ${(t*60).toFixed(1)} minutes (exactly ${simpleN}/${simpleD} hours).`;
+
+    // Contributions: A does rA * t job, B does rB * t job
+    const contribAVal = rA * t; // fraction of job
+    const contribBVal = rB * t;
+
+    contribAText.textContent =
+      `A contribution: ${(contribAVal*100).toFixed(1)}% of job`;
+    contribBText.textContent =
+      `B contribution: ${(contribBVal*100).toFixed(1)}% of job`;
+
+    animateJobBar(contribAVal, contribBVal);
+    drawGraph();
+
+    return { t, fracNum: simpleN, fracDen: simpleD };
+  }
+
+  function checkAnswerAndShow() {
+    const T1 = parseFloat(timeAInput.value);
+    const T2 = parseFloat(timeBInput.value);
+    const ansNum = parseFloat(ansNumInput.value);
+    const ansDen = parseFloat(ansDenInput.value);
+
+    if (!(T1 > 0 && T2 > 0)) {
+      alert('Please enter positive times for A and B.');
+      return;
+    }
+    if (!(ansNum > 0 && ansDen > 0)) {
+      alert('Please enter your answer as a fraction a/b (both > 0).');
+      return;
+    }
+
+    const { t, fracNum, fracDen } = computeSolution(T1, T2);
+
+    totalQuestions++;
+    // Simplify student fraction
+    const gS = gcd(ansNum, ansDen);
+    const sNum = ansNum / gS;
+    const sDen = ansDen / gS;
+
+    let isCorrect = false;
+    if (Number.isFinite(fracNum) && Number.isFinite(fracDen)) {
+      if (sNum === fracNum && sDen === fracDen) {
+        isCorrect = true;
+      } else {
+        const studentH = ansNum / ansDen;
+        const diff = Math.abs(studentH - t);
+        isCorrect = diff <= 1e-3;
+      }
+    } else {
+      const studentH = ansNum / ansDen;
+      const diff = Math.abs(studentH - t);
+      isCorrect = diff <= 1e-3;
+    }
+
+    if (isCorrect) correctAnswers++;
+    updateStats();
+
+    if (isCorrect) {
+      quizFeedback.innerHTML =
+        `Quiz: <span class="correct-text">Correct!</span> ` +
+        `(Your: ${sNum}/${sDen}, Real: ${fracNum}/${fracDen}, ` +
+        `≈ ${(t*60).toFixed(1)} min)`;
+    } else {
+      quizFeedback.innerHTML =
+        `Quiz: <span class="wrong-text">Not quite.</span> ` +
+        `(Your: ${sNum}/${sDen}, Real: ${fracNum}/${fracDen}, ` +
+        `≈ ${(t*60).toFixed(1)} min)`;
+    }
+  }
+
+  function generateRandomProblem() {
+    // Simple integers so fraction looks nice
+    const options = [
+      [3, 6],
+      [4, 6],
+      [4, 12],
+      [5, 10],
+      [6, 8],
+      [2, 5],
+      [3, 9],
+      [3, 4],
+      [5, 15],
+      [7, 14]
+    ];
+    const pair = options[Math.floor(Math.random()*options.length)];
+    const T1 = pair[0];
+    const T2 = pair[1];
+
+    timeAInput.value = T1.toString();
+    timeBInput.value = T2.toString();
+    ansNumInput.value = '';
+    ansDenInput.value = '';
+
+    rateLine.textContent = 'Step 1 (rates): —';
+    fracLine.textContent = 'Step 2 (fraction): —';
+    reducedLine.textContent = 'Step 3 (reduced): —';
+    decimalLine.textContent = 'Decimal: —';
+    timeLine.textContent = 'Meeting time: —';
+    quizFeedback.textContent = 'Quiz: —';
+
+    // Reset bar & graph
+    jobBarInner.style.width = '0%';
+    jobPartA.style.width = '0%';
+    jobPartB.style.width = '0%';
+    contribAText.textContent = 'A contribution: —';
+    contribBText.textContent = 'B contribution: —';
+    lastT1 = null;
+    lastT2 = null;
+    lastT = null;
+    drawGraph();
+  }
+
+  function speakQuestion() {
+    const T1 = parseFloat(timeAInput.value);
+    const T2 = parseFloat(timeBInput.value);
+
+    if (!(T1 > 0 && T2 > 0)) {
+      alert('Please enter times for A and B first.');
+      return;
+    }
+    if (!('speechSynthesis' in window)) {
+      alert('Speech is not supported in this browser.');
+      return;
+    }
+
+    const text =
+      `Worker A can finish a job alone in ${T1} hours. ` +
+      `Worker B can finish the same job alone in ${T2} hours. ` +
+      `If they work together from the beginning, how long will it take? ` +
+      `Give your answer as a fraction a over b hours.`;
+
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'en-US';
+    utter.rate = 1;
+    window.speechSynthesis.speak(utter);
+  }
+
+  function resetStats() {
+    totalQuestions = 0;
+    correctAnswers = 0;
+    updateStats();
+    quizFeedback.textContent = 'Quiz: —';
+  }
+
+  // Events (pointerdown for iPhone)
+  randomBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    generateRandomProblem();
+  });
+
+  checkBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    checkAnswerAndShow();
+  });
+
+  speakBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    speakQuestion();
+  });
+
+  resetBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    resetStats();
+  });
+
+  window.addEventListener('load', () => {
+    updateStats();
+    drawGraph();
+  });
+
+  window.addEventListener('resize', () => {
+    drawGraph();
+  });
+</script>
+</body>
+</html>
