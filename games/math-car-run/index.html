@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Two Cars Meeting – Math Simulator</title>
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #050510;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow: hidden;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .app {
+      box-sizing: border-box;
+      width: 100%;
+      height: 100%;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .header {
+      text-align: center;
+    }
+
+    .title {
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      opacity: 0.8;
+    }
+
+    .inputs {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 6px;
+      font-size: 14px;
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .row label {
+      flex: 0 0 130px;
+    }
+
+    .row input {
+      flex: 1;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: none;
+      font-size: 14px;
+    }
+
+    .row span.unit {
+      font-size: 12px;
+      opacity: 0.8;
+      flex: 0 0 auto;
+    }
+
+    .button-row {
+      margin-top: 6px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .start-btn {
+      padding: 9px 20px;
+      font-size: 16px;
+      border-radius: 999px;
+      border: none;
+      background: #0a84ff;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(10,132,255,0.6);
+      transition: transform 0.08s ease, box-shadow 0.08s ease;
+    }
+
+    .start-btn:active {
+      transform: translateY(1px) scale(0.97);
+      box-shadow: 0 2px 6px rgba(10,132,255,0.5);
+    }
+
+    .result-box {
+      margin-top: 6px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      background: rgba(0,0,0,0.3);
+      font-size: 13px;
+    }
+
+    .result-line {
+      margin: 2px 0;
+    }
+
+    .highlight {
+      color: #ffd60a;
+      font-weight: 600;
+    }
+
+    .sim-area-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .sim-title {
+      font-size: 13px;
+      opacity: 0.85;
+      text-align: center;
+    }
+
+    .sim-area {
+      position: relative;
+      flex: 1;
+      max-height: 260px;
+      border-radius: 10px;
+      background: linear-gradient(#1c1c2e 0, #1c1c2e 50%, #111 50%, #111 100%);
+      box-shadow: 0 0 10px rgba(0,0,0,0.7);
+      overflow: hidden;
+      margin-top: 2px;
+    }
+
+    .road {
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      bottom: 40px;
+      height: 40px;
+      background: #333;
+      border-radius: 20px;
+      box-shadow: inset 0 0 6px rgba(0,0,0,0.8);
+    }
+
+    .road-line {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      top: 17px;
+      height: 6px;
+      background-image: linear-gradient(90deg,
+        #ddd 0, #ddd 30px,
+        transparent 30px, transparent 45px);
+      background-size: 45px 6px;
+      opacity: 0.9;
+    }
+
+    .car {
+      position: absolute;
+      bottom: 52px;
+      width: 26px;
+      height: 16px;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: #000;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.6);
+    }
+
+    .car1 {
+      background: #ffcc00;
+    }
+
+    .car2 {
+      background: #ff453a;
+    }
+
+    .car-label {
+      position: absolute;
+      bottom: 72px;
+      font-size: 11px;
+      color: #fff;
+      opacity: 0.85;
+      transform: translateX(-50%);
+      white-space: nowrap;
+    }
+
+    .meet-marker {
+      position: absolute;
+      bottom: 42px;
+      width: 2px;
+      height: 46px;
+      background: #0a84ff;
+      display: none;
+    }
+
+    .meet-text {
+      position: absolute;
+      bottom: 92px;
+      font-size: 11px;
+      color: #0a84ff;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      display: none;
+    }
+
+    .hint-bottom {
+      font-size: 11px;
+      text-align: center;
+      opacity: 0.8;
+      margin-top: 2px;
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="title">Two Cars Meeting – Math App</div>
+    <div class="subtitle">
+      Car 1: A → B with speed X, Car 2: B → A with speed Y.<br>
+      Find time when they meet, and see a simple simulation.
+    </div>
+  </div>
+
+  <div class="inputs">
+    <div class="row">
+      <label for="distance">Distance A → B:</label>
+      <input id="distance" type="number" step="0.1" min="0" placeholder="e.g. 120">
+      <span class="unit">km</span>
+    </div>
+    <div class="row">
+      <label for="speed1">Speed Car 1 (A→B):</label>
+      <input id="speed1" type="number" step="0.1" min="0" placeholder="e.g. 60">
+      <span class="unit">km/h</span>
+    </div>
+    <div class="row">
+      <label for="speed2">Speed Car 2 (B→A):</label>
+      <input id="speed2" type="number" step="0.1" min="0" placeholder="e.g. 80">
+      <span class="unit">km/h</span>
+    </div>
+  </div>
+
+  <div class="button-row">
+    <button id="startBtn" class="start-btn">Start Simulation</button>
+  </div>
+
+  <div class="result-box" id="resultBox">
+    <div class="result-line" id="formulaLine">
+      Formula: <span class="highlight">t = distance / (speed₁ + speed₂)</span>
+    </div>
+    <div class="result-line" id="valueLine">t = —</div>
+    <div class="result-line" id="timeLine">Meeting time: —</div>
+    <div class="result-line" id="positionLine">Meeting position: —</div>
+  </div>
+
+  <div class="sim-area-wrapper">
+    <div class="sim-title">
+      Simulation (not to exact scale): cars move toward each other until they meet.
+    </div>
+    <div class="sim-area" id="simArea">
+      <div class="road">
+        <div class="road-line"></div>
+      </div>
+      <div class="car car1" id="car1">1</div>
+      <div class="car car2" id="car2">2</div>
+      <div class="car-label" id="label1">Car 1 (A→B)</div>
+      <div class="car-label" id="label2">Car 2 (B→A)</div>
+      <div class="meet-marker" id="meetMarker"></div>
+      <div class="meet-text" id="meetText">Meet here</div>
+    </div>
+    <div class="hint-bottom">
+      On iPhone: type numbers, tap “Start Simulation”.<br>
+      The math time is real; the animation is sped up so you can see it quickly.
+    </div>
+  </div>
+</div>
+
+<script>
+  const distanceInput = document.getElementById('distance');
+  const speed1Input = document.getElementById('speed1');
+  const speed2Input = document.getElementById('speed2');
+  const startBtn = document.getElementById('startBtn');
+
+  const valueLine = document.getElementById('valueLine');
+  const timeLine = document.getElementById('timeLine');
+  const positionLine = document.getElementById('positionLine');
+
+  const simArea = document.getElementById('simArea');
+  const car1El = document.getElementById('car1');
+  const car2El = document.getElementById('car2');
+  const label1El = document.getElementById('label1');
+  const label2El = document.getElementById('label2');
+  const meetMarkerEl = document.getElementById('meetMarker');
+  const meetTextEl = document.getElementById('meetText');
+
+  let animReq = null;
+  let simStartTime = 0;
+  let simDuration = 8000; // ms, how long the whole animation should take
+  let meetTimeSeconds = 0;
+  let roadLeft = 0;
+  let roadRight = 0;
+  let meetingX = 0; // in pixels along the road
+
+  function formatTimeHours(h) {
+    const totalMinutes = h * 60;
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    if (hours <= 0) {
+      return `${minutes.toFixed(1)} minutes`;
+    } else {
+      return `${hours} h ${minutes.toFixed(1)} min`;
+    }
+  }
+
+  function stopAnimation() {
+    if (animReq !== null) {
+      cancelAnimationFrame(animReq);
+      animReq = null;
+    }
+  }
+
+  function layoutPositions() {
+    const road = simArea.querySelector('.road');
+    const roadRect = road.getBoundingClientRect();
+    const simRect = simArea.getBoundingClientRect();
+
+    roadLeft = roadRect.left - simRect.left;
+    roadRight = roadRect.right - simRect.left;
+
+    // initial positions: car1 at A (left), car2 at B (right)
+    const startX1 = roadLeft;
+    const startX2 = roadRight;
+
+    car1El.style.left = `${startX1 - car1El.offsetWidth / 2}px`;
+    car2El.style.left = `${startX2 - car2El.offsetWidth / 2}px`;
+
+    label1El.style.left = `${startX1}px`;
+    label2El.style.left = `${startX2}px`;
+
+    // hide meeting marker until we know meetingX
+    meetMarkerEl.style.display = 'none';
+    meetTextEl.style.display = 'none';
+  }
+
+  function startSimulation() {
+    stopAnimation();
+    layoutPositions();
+
+    const roadLengthPx = roadRight - roadLeft;
+    const startX1 = roadLeft;
+    const startX2 = roadRight;
+
+    // Meeting position in pixels proportional to where the cars meet
+    // Car1 distance until meet: d1 = v1 * t
+    // meetingX = left + (d1 / totalDistance) * roadLengthPx
+    const totalDistance = parseFloat(distanceInput.value);
+    const speed1 = parseFloat(speed1Input.value);
+    const speed2 = parseFloat(speed2Input.value);
+
+    const d1 = speed1 * (meetTimeSeconds / 3600); // km
+    const ratio = totalDistance > 0 ? d1 / totalDistance : 0.5;
+    meetingX = roadLeft + ratio * roadLengthPx;
+
+    // show marker in final place
+    meetMarkerEl.style.left = `${meetingX - 1}px`;
+    meetTextEl.style.left = `${meetingX}px`;
+
+    meetMarkerEl.style.display = 'block';
+    meetTextEl.style.display = 'block';
+
+    const startTime = performance.now();
+    simStartTime = startTime;
+
+    function step(now) {
+      const elapsed = now - simStartTime;
+      const alpha = Math.min(1, elapsed / simDuration); // 0 → 1
+
+      const x1 = startX1 + (meetingX - startX1) * alpha;
+      const x2 = startX2 + (meetingX - startX2) * alpha;
+
+      car1El.style.left = `${x1 - car1El.offsetWidth / 2}px`;
+      car2El.style.left = `${x2 - car2El.offsetWidth / 2}px`;
+
+      label1El.style.left = `${x1}px`;
+      label2El.style.left = `${x2}px`;
+
+      if (alpha < 1) {
+        animReq = requestAnimationFrame(step);
+      } else {
+        animReq = null;
+      }
+    }
+
+    animReq = requestAnimationFrame(step);
+  }
+
+  function computeAndSimulate() {
+    const distance = parseFloat(distanceInput.value);
+    const speed1 = parseFloat(speed1Input.value);
+    const speed2 = parseFloat(speed2Input.value);
+
+    if (!(distance > 0 && speed1 > 0 && speed2 > 0)) {
+      alert('Please enter positive numbers for distance and both speeds.');
+      return;
+    }
+
+    const tHours = distance / (speed1 + speed2); // hours
+    meetTimeSeconds = tHours * 3600;
+
+    const tDisplay = tHours.toFixed(3);
+    valueLine.textContent =
+      `t = ${distance} / (${speed1} + ${speed2}) = ${tDisplay} hours`;
+
+    timeLine.textContent = `Meeting time: ${formatTimeHours(tHours)}`;
+
+    // meeting position from A side:
+    // car1 distance until meet: d1 = speed1 * t
+    const d1 = speed1 * tHours;
+    const d2 = distance - d1;
+    positionLine.textContent =
+      `Meeting position: Car 1 has traveled ${d1.toFixed(2)} km from A, `
+      + `Car 2 has traveled ${d2.toFixed(2)} km from B.`;
+
+    startSimulation();
+  }
+
+  // Use pointerdown so it feels snappy on iPhone & desktop
+  startBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    computeAndSimulate();
+  });
+
+  // Initial layout after load
+  window.addEventListener('load', () => {
+    layoutPositions();
+  });
+
+  window.addEventListener('resize', () => {
+    layoutPositions();
+  });
+</script>
+</body>
+</html>
