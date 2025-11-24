@@ -1,8 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Two Cars Fraction Math Lab</title>
+<meta name="viewport"
+      content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    background: #10131A;
+    color: #ffffff;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  h1 { margin: 10px; font-size: 22px; }
+
+  .wrapper {
+    width: 95%;
+    max-width: 430px;
+    background: #1D2433;
+    padding: 14px;
+    border-radius: 12px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.4);
+  }
+
+  label {
+    font-size: 14px;
+    margin-top: 6px;
+    display: block;
+  }
+
+  input {
+    width: 100%;
+    padding: 8px;
+    margin-top: 4px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    border: none;
+    font-size: 15px;
+  }
+
+  button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 8px;
+    font-size: 17px;
+    background: #007aff;
+    border: none;
+    color: white;
+    border-radius: 10px;
+    font-weight: bold;
+  }
+
+  .box {
+    margin-top: 12px;
+    padding: 10px;
+    background: #121822;
+    border-radius: 8px;
+    font-size: 15px;
+    line-height: 1.4em;
+  }
+
+  .highlight {
+    color: #FFDD44;
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+
+<h1>🚗 Two Cars – Fraction Method</h1>
+
+<div class="wrapper">
+  <label>Distance A → B (km):</label>
+  <input id="distanceInput" type="number" step="0.1">
+
+  <label>Speed Car 1 (km/h):</label>
+  <input id="speed1Input" type="number">
+
+  <label>Speed Car 2 (km/h):</label>
+  <input id="speed2Input" type="number">
+
+  <button id="startBtn">Calculate Meeting Time</button>
+
+  <div class="box">
+    <div id="fractionLine">Fraction: —</div>
+    <div id="reducedFractionLine">Reduced: —</div>
+    <div id="decimalLine">Decimal: —</div>
+    <div id="timeLine">Meeting time: —</div>
+    <div id="positionLine">Position: —</div>
+  </div>
+</div>
+
+<script>
+const distanceInput = document.getElementById('distanceInput');
+const speed1Input = document.getElementById('speed1Input');
+const speed2Input = document.getElementById('speed2Input');
+const startBtn = document.getElementById('startBtn');
+
 const fractionLine = document.getElementById('fractionLine');
 const reducedFractionLine = document.getElementById('reducedFractionLine');
 const decimalLine = document.getElementById('decimalLine');
+const timeLine = document.getElementById('timeLine');
+const positionLine = document.getElementById('positionLine');
 
-// Greatest common divisor
 function gcd(a, b) {
   a = Math.abs(a);
   b = Math.abs(b);
@@ -14,50 +119,46 @@ function gcd(a, b) {
   return a || 1;
 }
 
-function computeAndSimulate() {
+startBtn.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
   const distance = parseFloat(distanceInput.value);
-  const speed1 = parseFloat(speed1Input.value); // v1
-  const speed2 = parseFloat(speed2Input.value); // v2
+  const v1 = parseFloat(speed1Input.value);
+  const v2 = parseFloat(speed2Input.value);
 
-  if (!(distance > 0 && speed1 > 0 && speed2 > 0)) {
-    alert('Enter positive numbers for distance and both speeds.');
+  if (!(distance > 0 && v1 > 0 && v2 > 0)) {
+    alert("Please enter positive numbers.");
     return;
   }
 
-  const sumSpeed = speed1 + speed2; // v1 + v2
+  const sumSpeed = v1 + v2;
 
-  // 1) Show the algebra formula with numbers plugged in
-  // t = distance / (v1 + v2) = 120 / (60 + 80)
-  fractionLine.textContent =
-    `t = distance / (v₁ + v₂) = ${distance} / (${speed1} + ${speed2})`;
+  // Show fraction steps
+  fractionLine.innerHTML =
+    `t = distance / (v₁ + v₂) = ${distance} / (${v1} + ${v2}) = ` +
+    `<span class="highlight">${distance}/${sumSpeed}</span>`;
 
-  // 2) Show the fraction and the reduced fraction
-  //    = 120/140 = 6/7 hours
   const g = gcd(distance, sumSpeed);
   const simpleN = distance / g;
   const simpleD = sumSpeed / g;
 
-  reducedFractionLine.textContent =
-    `= ${distance}/${sumSpeed} = ${simpleN}/${simpleD} hours`;
+  reducedFractionLine.innerHTML =
+    `Reduced: ${distance}/${sumSpeed} = ` +
+    `<span class="highlight">${simpleN}/${simpleD}</span> hours`;
 
-  // 3) Decimal value (optional but nice)
   const tHours = distance / sumSpeed;
-  decimalLine.textContent = `≈ ${tHours.toFixed(4)} hours`;
+  decimalLine.innerHTML =
+    `Decimal: ${tHours.toFixed(4)} hours`;
 
-  // 4) Convert to hours + minutes (if you still want to show this)
-  const totalMinutes = tHours * 60;
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  timeLine.textContent =
-    `Meeting time: ${hours} h ${minutes.toFixed(1)} min`;
+  const min = tHours * 60;
+  timeLine.innerHTML =
+    `Meeting time: <span class="highlight">${min.toFixed(1)} min</span>`;
 
-  // 5) Distance each car travels (optional, can remove if not needed)
-  const d1 = speed1 * tHours;
+  const d1 = v1 * tHours;
   const d2 = distance - d1;
-  positionLine.textContent =
-    `Position: Car1 traveled ${d1.toFixed(2)} km, Car2 traveled ${d2.toFixed(2)} km`;
+  positionLine.innerHTML =
+    `Car1: ${d1.toFixed(2)} km | Car2: ${d2.toFixed(2)} km`;
+});
+</script>
 
-  // 6) If you still use the animation
-  meetTimeSeconds = tHours * 3600;
-  startSimulation();
-}
+</body>
+</html>
