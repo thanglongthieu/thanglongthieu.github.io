@@ -254,8 +254,8 @@
   <div class="header">
     <div class="title">Work Together – Math Lab</div>
     <div class="subtitle">
-      A and B work on the same job. A alone takes T₁ hours, B alone takes T₂ hours.<br>
-      Together, how long will it take? Answer in hours as a fraction a/b.
+      Worker A and B can each finish the job alone in T₁ and T₂ hours.<br>
+      If they work together, how long will it take? Answer in hours as a fraction a/b.
     </div>
     <div class="top-bar">
       <div class="quiz-info">
@@ -300,13 +300,13 @@
 
   <div class="result-box">
     <div class="result-line">
-      Formula: <span class="highlight">t = 1 / (1/T₁ + 1/T₂)</span> = <span class="highlight">T₁T₂ / (T₁ + T₂)</span>
+      Formula: <span class="highlight">t = 1 / (1/T₁ + 1/T₂) = T₁T₂ / (T₁ + T₂)</span>
     </div>
-    <div class="result-line" id="rateLine">Step 1 (rates): —</div>
+    <div class="result-line" id="rateLine">Step 1 (formula with T₁,T₂): —</div>
     <div class="result-line" id="fracLine">Step 2 (fraction): —</div>
     <div class="result-line" id="reducedLine">Step 3 (reduced): —</div>
     <div class="result-line" id="decimalLine">Decimal: —</div>
-    <div class="result-line" id="timeLine">Meeting time: —</div>
+    <div class="result-line" id="timeLine">Answer: —</div>
     <div class="result-line" id="quizFeedback">Quiz: —</div>
   </div>
 
@@ -334,13 +334,13 @@
 
     <div class="hint-bottom">
       iPhone: enter T₁, T₂, then your answer a/b.  
-      Tap “Check & Show Solution” to see rates, fraction steps, bar animation, and graph.
+      Tap “Check & Show Solution” to see fraction steps, job bar animation, and graph.
     </div>
   </div>
 </div>
 
 <script>
-  // DOM
+  // --- DOM references ---
   const timeAInput = document.getElementById('timeA');
   const timeBInput = document.getElementById('timeB');
   const ansNumInput = document.getElementById('ansNum');
@@ -371,13 +371,14 @@
   const graphCanvas = document.getElementById('graphCanvas');
   const gctx = graphCanvas.getContext('2d');
 
-  // State
+  // --- State ---
   let totalQuestions = 0;
   let correctAnswers = 0;
   let lastT1 = null;
   let lastT2 = null;
-  let lastT = null; // together time
+  let lastT = null; // together time in hours
 
+  // --- Helpers ---
   function gcd(a, b) {
     a = Math.abs(a);
     b = Math.abs(b);
@@ -396,7 +397,7 @@
     accuracySpan.textContent = acc.toFixed(0) + '%';
   }
 
-  // Graph
+  // --- Graph ---
   function resizeGraphCanvas() {
     const rect = graphCanvas.getBoundingClientRect();
     graphCanvas.width = rect.width;
@@ -433,7 +434,7 @@
       return h - marginBottom - work * innerH;
     }
 
-    // axes
+    // Axes
     ctx.strokeStyle = '#888';
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -455,7 +456,7 @@
     ctx.fillText('work done (0–1 job)', 0, 0);
     ctx.restore();
 
-    // ticks on x
+    // Ticks on x
     ctx.fillStyle = '#777';
     const tSteps = 4;
     ctx.textAlign = 'center';
@@ -471,7 +472,7 @@
       ctx.fillText(t.toFixed(1), x, y + 12);
     }
 
-    // ticks on y
+    // Ticks on y
     ctx.textAlign = 'right';
     const wSteps = 4;
     for (let i = 0; i <= wSteps; i++) {
@@ -485,11 +486,6 @@
       ctx.stroke();
       ctx.fillText(wp.toFixed(2), x - 4, y + 3);
     }
-
-    // A alone: wA(t) = t / T1
-    const T1 = lastT1;
-    const T2 = lastT2;
-    const T = lastT;
 
     function drawLine(color, fn) {
       ctx.strokeStyle = color;
@@ -507,11 +503,15 @@
       ctx.stroke();
     }
 
-    // A alone (up to job completion)
+    const T1 = lastT1;
+    const T2 = lastT2;
+    const T = lastT;
+
+    // A alone: wA(t) = t / T1
     drawLine('#0a84ff', t => Math.min(1, t / T1));
-    // B alone
+    // B alone: wB(t) = t / T2
     drawLine('#ff375f', t => Math.min(1, t / T2));
-    // Together
+    // Together: w(t) = t / T
     drawLine('#34c759', t => Math.min(1, t / T));
 
     // Legend
@@ -523,7 +523,7 @@
     ctx.fillStyle = '#34c759';
     ctx.fillText('Together', marginLeft + 6, marginTop + 34);
 
-    // Meeting point (for together)
+    // Completion point for together
     const meetX = xFromT(T);
     const meetY = yFromW(1);
     ctx.fillStyle = '#ffd60a';
@@ -532,7 +532,7 @@
     ctx.fill();
   }
 
-  // Job bar animation
+  // --- Job bar animation ---
   function animateJobBar(contribA, contribB) {
     jobBarInner.style.width = '0%';
     jobPartA.style.width = '0%';
@@ -563,45 +563,50 @@
     requestAnimationFrame(step);
   }
 
+  // --- Core solution (new simple formula style) ---
   function computeSolution(T1, T2) {
     const rA = 1 / T1;
     const rB = 1 / T2;
     const rTotal = rA + rB;
     const t = 1 / rTotal; // hours
+
+    // Save for graph
     lastT1 = T1;
     lastT2 = T2;
     lastT = t;
 
-    // Step by step text
+    // 1) Show formula with T1, T2
     rateLine.textContent =
-      `Step 1: A rate = 1/${T1} job/h, B rate = 1/${T2} job/h, together = 1/${T1} + 1/${T2} = ` +
-      `${(1/T1).toFixed(3)} + ${(1/T2).toFixed(3)} job/h = ${(rTotal).toFixed(3)} job/h`;
+      `t = 1 / (1/T₁ + 1/T₂) = 1 / (1/${T1} + 1/${T2})`;
 
+    // 2) Fraction using T1*T2 / (T1 + T2)
     const num = T1 * T2;
     const den = T1 + T2;
     fracLine.textContent =
-      `Step 2: t = 1 / (1/${T1} + 1/${T2}) = 1/${T1} + 1/${T2}⁻¹ = (T₁T₂)/(T₁+T₂) = ${T1}×${T2} / (${T1}+${T2}) = ${num}/${den} hours`;
+      `= (T₁×T₂) / (T₁+T₂) = (${T1}×${T2}) / (${T1}+${T2}) = ${num}/${den} hours`;
 
+    // 3) Reduce fraction
     const g = gcd(num, den);
     const simpleN = num / g;
     const simpleD = den / g;
-    reducedLine.textContent =
-      `Step 3: Reduce fraction: ${num}/${den} = ${simpleN}/${simpleD} hours`;
+    reducedLine.textContent = `= ${simpleN}/${simpleD} hours`;
 
+    // 4) Decimal form
     decimalLine.textContent =
-      `Decimal: t ≈ ${t.toFixed(4)} hours (≈ ${(t*60).toFixed(1)} minutes)`;
+      `≈ ${t.toFixed(4)} hours (≈ ${(t * 60).toFixed(1)} minutes)`;
 
+    // 5) Summary
     timeLine.textContent =
-      `Answer: about ${(t*60).toFixed(1)} minutes (exactly ${simpleN}/${simpleD} hours).`;
+      `Exact: ${simpleN}/${simpleD} hours (about ${(t * 60).toFixed(1)} minutes).`;
 
-    // Contributions: A does rA * t job, B does rB * t job
+    // Contributions to the job
     const contribAVal = rA * t; // fraction of job
     const contribBVal = rB * t;
 
     contribAText.textContent =
-      `A contribution: ${(contribAVal*100).toFixed(1)}% of job`;
+      `A contribution: ${(contribAVal * 100).toFixed(1)}% of job`;
     contribBText.textContent =
-      `B contribution: ${(contribBVal*100).toFixed(1)}% of job`;
+      `B contribution: ${(contribBVal * 100).toFixed(1)}% of job`;
 
     animateJobBar(contribAVal, contribBVal);
     drawGraph();
@@ -609,6 +614,7 @@
     return { t, fracNum: simpleN, fracDen: simpleD };
   }
 
+  // --- Check answer & quiz ---
   function checkAnswerAndShow() {
     const T1 = parseFloat(timeAInput.value);
     const T2 = parseFloat(timeBInput.value);
@@ -627,7 +633,7 @@
     const { t, fracNum, fracDen } = computeSolution(T1, T2);
 
     totalQuestions++;
-    // Simplify student fraction
+    // Simplify student's fraction
     const gS = gcd(ansNum, ansDen);
     const sNum = ansNum / gS;
     const sDen = ansDen / gS;
@@ -654,17 +660,17 @@
       quizFeedback.innerHTML =
         `Quiz: <span class="correct-text">Correct!</span> ` +
         `(Your: ${sNum}/${sDen}, Real: ${fracNum}/${fracDen}, ` +
-        `≈ ${(t*60).toFixed(1)} min)`;
+        `≈ ${(t * 60).toFixed(1)} min)`;
     } else {
       quizFeedback.innerHTML =
         `Quiz: <span class="wrong-text">Not quite.</span> ` +
         `(Your: ${sNum}/${sDen}, Real: ${fracNum}/${fracDen}, ` +
-        `≈ ${(t*60).toFixed(1)} min)`;
+        `≈ ${(t * 60).toFixed(1)} min)`;
     }
   }
 
+  // --- Random problem generator ---
   function generateRandomProblem() {
-    // Simple integers so fraction looks nice
     const options = [
       [3, 6],
       [4, 6],
@@ -677,7 +683,7 @@
       [5, 15],
       [7, 14]
     ];
-    const pair = options[Math.floor(Math.random()*options.length)];
+    const pair = options[Math.floor(Math.random() * options.length)];
     const T1 = pair[0];
     const T2 = pair[1];
 
@@ -686,25 +692,26 @@
     ansNumInput.value = '';
     ansDenInput.value = '';
 
-    rateLine.textContent = 'Step 1 (rates): —';
+    rateLine.textContent = 'Step 1 (formula with T₁,T₂): —';
     fracLine.textContent = 'Step 2 (fraction): —';
     reducedLine.textContent = 'Step 3 (reduced): —';
     decimalLine.textContent = 'Decimal: —';
-    timeLine.textContent = 'Meeting time: —';
+    timeLine.textContent = 'Answer: —';
     quizFeedback.textContent = 'Quiz: —';
 
-    // Reset bar & graph
     jobBarInner.style.width = '0%';
     jobPartA.style.width = '0%';
     jobPartB.style.width = '0%';
     contribAText.textContent = 'A contribution: —';
     contribBText.textContent = 'B contribution: —';
+
     lastT1 = null;
     lastT2 = null;
     lastT = null;
     drawGraph();
   }
 
+  // --- Speech ---
   function speakQuestion() {
     const T1 = parseFloat(timeAInput.value);
     const T2 = parseFloat(timeBInput.value);
@@ -731,6 +738,7 @@
     window.speechSynthesis.speak(utter);
   }
 
+  // --- Reset stats ---
   function resetStats() {
     totalQuestions = 0;
     correctAnswers = 0;
@@ -738,7 +746,7 @@
     quizFeedback.textContent = 'Quiz: —';
   }
 
-  // Events (pointerdown for iPhone)
+  // --- Events (pointerdown for iPhone tap) ---
   randomBtn.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     generateRandomProblem();
