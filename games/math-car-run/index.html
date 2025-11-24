@@ -46,6 +46,8 @@
     justify-content: space-between;
     align-items: center;
     font-size: 12px;
+    gap: 6px;
+    flex-wrap: wrap;
   }
 
   .quiz-stats span {
@@ -57,6 +59,32 @@
     border-radius: 999px;
     background: rgba(255,255,255,0.08);
     font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .answer-mode {
+    margin-top: 6px;
+    font-size: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .answer-mode .mode-label {
+    opacity: 0.85;
+  }
+
+  .answer-mode label {
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+  }
+
+  .answer-mode input[type="radio"] {
+    transform: scale(0.9);
   }
 
   label {
@@ -86,9 +114,21 @@
     margin-bottom: 0;
   }
 
+  .row-inline.small input {
+    width: 40%;
+    flex: 0 0 auto;
+  }
+
   .unit {
     font-size: 12px;
     opacity: 0.85;
+  }
+
+  .or-label {
+    font-size: 12px;
+    opacity: 0.8;
+    text-align: center;
+    margin: 2px 0;
   }
 
   .button-row {
@@ -100,7 +140,7 @@
 
   button {
     flex: 1;
-    min-width: 110px;
+    min-width: 100px;
     padding: 8px;
     font-size: 13px;
     border-radius: 999px;
@@ -267,7 +307,20 @@
         <span>✔: <span id="qCorrect">0</span></span>
         <span>Acc: <span id="accuracy">0%</span></span>
       </div>
-      <div class="badge">Answer in minutes (decimal)</div>
+      <div class="badge">Hours & minutes OR fraction (depending on mode)</div>
+    </div>
+
+    <!-- Mode toggle -->
+    <div class="answer-mode">
+      <span class="mode-label">Mode:</span>
+      <label>
+        <input type="radio" name="answerMode" value="both" checked>
+        Allow both
+      </label>
+      <label>
+        <input type="radio" name="answerMode" value="fraction">
+        Require fraction only
+      </label>
     </div>
 
     <!-- Inputs -->
@@ -280,11 +333,23 @@
     <label>Speed Car 2 (km/h):</label>
     <input id="speed2Input" type="number" step="0.1" placeholder="e.g. 80">
 
+    <!-- Answer as hours & minutes -->
     <label>Your answer (time until they meet):</label>
-    <div class="row-inline">
-      <input id="answerMinutesInput" type="number" step="0.1"
-             placeholder="in minutes (e.g. 51.4)">
+    <div class="row-inline small">
+      <input id="ansHoursInput" type="number" step="1" min="0" placeholder="hours">
+      <span class="unit">h</span>
+      <input id="ansMinutesInput" type="number" step="1" min="0" placeholder="minutes">
       <span class="unit">min</span>
+    </div>
+
+    <div class="or-label">— or —</div>
+
+    <!-- Or answer as fraction of an hour -->
+    <div class="row-inline small">
+      <input id="ansFracNumInput" type="number" step="1" min="1" placeholder="a">
+      <span class="unit">/</span>
+      <input id="ansFracDenInput" type="number" step="1" min="1" placeholder="b">
+      <span class="unit">hours</span>
     </div>
 
     <!-- Buttons -->
@@ -293,6 +358,7 @@
       <button id="checkBtn" class="primary">✅ Check & Show Steps</button>
     </div>
     <div class="button-row">
+      <button id="hintBtn">💡 Hint (show formula)</button>
       <button id="voiceBtn">🔊 Explain Question</button>
       <button id="graphToggleBtn">📈 Show Graph</button>
     </div>
@@ -331,8 +397,9 @@
   </div>
 
   <div class="hint-bottom">
-    iPhone: tap <b>Random Question</b>, guess in minutes, then tap <b>Check & Show Steps</b>.  
-    You’ll see fractions, animation, score, and optional graph.
+    Mode <b>Allow both</b>: hours & minutes or fraction answer is OK.  
+    Mode <b>Require fraction only</b>: only the fraction (a/b h) is checked.  
+    💡 Hint shows only <span class="highlight">t = distance / (v₁ + v₂)</span> (no numbers).
   </div>
 
 </div>
@@ -342,10 +409,15 @@
   const distanceInput = document.getElementById('distanceInput');
   const speed1Input = document.getElementById('speed1Input');
   const speed2Input = document.getElementById('speed2Input');
-  const answerMinutesInput = document.getElementById('answerMinutesInput');
+
+  const ansHoursInput = document.getElementById('ansHoursInput');
+  const ansMinutesInput = document.getElementById('ansMinutesInput');
+  const ansFracNumInput = document.getElementById('ansFracNumInput');
+  const ansFracDenInput = document.getElementById('ansFracDenInput');
 
   const randomBtn = document.getElementById('randomBtn');
   const checkBtn = document.getElementById('checkBtn');
+  const hintBtn = document.getElementById('hintBtn');
   const voiceBtn = document.getElementById('voiceBtn');
   const graphToggleBtn = document.getElementById('graphToggleBtn');
   const graphCard = document.getElementById('graphCard');
@@ -417,6 +489,11 @@
       return `${minutes.toFixed(1)} min`;
     }
     return `${hours} h ${minutes.toFixed(1)} min`;
+  }
+
+  function getAnswerMode() {
+    const el = document.querySelector('input[name="answerMode"]:checked');
+    return el ? el.value : 'both';
   }
 
   // === Simulation layout & animation ===
@@ -502,7 +579,7 @@
   }
 
   function drawGraph() {
-    if (graphCard.classList.contains('hidden')) return; // not visible
+    if (graphCard.classList.contains('hidden')) return;
 
     resizeGraphCanvas();
     const ctx = gctx;
@@ -675,48 +752,144 @@
     startSimulation();
     drawGraph();
 
-    return { tHours, tMinutes };
+    return { tHours, tMinutes, fracNum: simpleN, fracDen: simpleD };
   }
 
   function checkAnswerAndShow() {
     const distance = parseFloat(distanceInput.value);
     const v1 = parseFloat(speed1Input.value);
     const v2 = parseFloat(speed2Input.value);
-    const ans = parseFloat(answerMinutesInput.value);
 
     if (!(distance > 0 && v1 > 0 && v2 > 0)) {
       alert('Please enter positive numbers for distance and both speeds.');
       return;
     }
-    if (!(ans >= 0)) {
-      alert('Please enter your answer in minutes.');
+
+    const mode = getAnswerMode();
+
+    // Read student answers
+    const hVal = ansHoursInput.value.trim();
+    const mVal = ansMinutesInput.value.trim();
+    const fNumVal = ansFracNumInput.value.trim();
+    const fDenVal = ansFracDenInput.value.trim();
+
+    const hasHM = (hVal !== '' || mVal !== '');
+    const hasFrac = (fNumVal !== '' || fDenVal !== '');
+
+    if (mode === 'fraction' && !hasFrac) {
+      alert('Fraction-only mode: please answer as a fraction of an hour (a/b).');
       return;
     }
 
-    const { tMinutes } = computeAndShow(distance, v1, v2);
-    totalQuestions++;
-
-    const diff = Math.abs(ans - tMinutes);
-    const correct = diff <= 0.5; // within ±0.5 min is OK
-
-    if (correct) {
-      correctAnswers++;
-      quizFeedback.innerHTML =
-        `Quiz: <span class="correct-text">Correct!</span> ` +
-        `(Your: ${ans.toFixed(1)} min, Real: ${tMinutes.toFixed(1)} min)`;
-    } else {
-      quizFeedback.innerHTML =
-        `Quiz: <span class="wrong-text">Not quite.</span> ` +
-        `(Your: ${ans.toFixed(1)} min, Real: ${tMinutes.toFixed(1)} min, ` +
-        `difference: ${diff.toFixed(1)} min)`;
+    if (mode === 'both' && !hasHM && !hasFrac) {
+      alert('Please answer either with hours & minutes OR as a fraction of an hour.');
+      return;
     }
 
+    const { tHours, tMinutes, fracNum, fracDen } =
+      computeAndShow(distance, v1, v2);
+
+    totalQuestions++;
+
+    let isCorrect = false;
+    let hmCorrect = false;
+    let fracCorrect = false;
+
+    // Check hours & minutes (only if mode allows and user gave it)
+    if (mode === 'both' && hasHM) {
+      const h = hVal === '' ? 0 : parseFloat(hVal);
+      const m = mVal === '' ? 0 : parseFloat(mVal);
+
+      if (h >= 0 && m >= 0) {
+        const studentHours = h + m / 60;
+        const diffH = Math.abs(studentHours - tHours);
+        if (diffH <= (0.5 / 60)) { // 0.5 min tolerance
+          hmCorrect = true;
+          isCorrect = true;
+        }
+      }
+    }
+
+    // Check fraction answer (always used in fraction mode; optional in both mode)
+    if (hasFrac) {
+      const fn = parseFloat(fNumVal);
+      const fd = parseFloat(fDenVal);
+      if (fn > 0 && fd > 0) {
+        const gS = gcd(fn, fd);
+        const sNum = fn / gS;
+        const sDen = fd / gS;
+
+        if (Number.isFinite(fracNum) && Number.isFinite(fracDen) &&
+            fracNum > 0 && fracDen > 0) {
+          const gCorrect = gcd(fracNum, fracDen);
+          const cNum = fracNum / gCorrect;
+          const cDen = fracDen / gCorrect;
+          if (sNum === cNum && sDen === cDen) {
+            fracCorrect = true;
+            isCorrect = true;
+          } else {
+            const studentH = fn / fd;
+            const diff = Math.abs(studentH - tHours);
+            if (diff <= (0.5 / 60)) {
+              fracCorrect = true;
+              isCorrect = true;
+            }
+          }
+        } else {
+          const studentH = fn / fd;
+          const diff = Math.abs(studentH - tHours);
+          if (diff <= (0.5 / 60)) {
+            fracCorrect = true;
+            isCorrect = true;
+          }
+        }
+      }
+    }
+
+    // In fraction-only mode, ignore hours/minutes even if they happened to match
+    if (mode === 'fraction') {
+      isCorrect = fracCorrect;
+    }
+
+    if (isCorrect) {
+      correctAnswers++;
+    }
     updateQuizStats();
+
+    // Build feedback message
+    let feedback = '';
+    if (mode === 'both' && hasHM) {
+      const h = hVal === '' ? 0 : parseFloat(hVal);
+      const m = mVal === '' ? 0 : parseFloat(mVal);
+      feedback += `Your time: ${h} h ${m} min`;
+      if (hmCorrect) feedback += ' ✅';
+      else feedback += ' ❌';
+      feedback += '. ';
+    }
+    if (hasFrac) {
+      const fn = fNumVal === '' ? '?' : fNumVal;
+      const fd = fDenVal === '' ? '?' : fDenVal;
+      feedback += `Your fraction: ${fn}/${fd} h`;
+      if (fracCorrect) feedback += ' ✅';
+      else feedback += ' ❌';
+      feedback += '. ';
+    }
+
+    const base =
+      `Real time: ${tMinutes.toFixed(1)} min ≈ ` +
+      `${formatTimeFromHours(tHours)} = ${fracNum}/${fracDen} h`;
+
+    if (isCorrect) {
+      quizFeedback.innerHTML =
+        `<span class="correct-text">Correct!</span> ${feedback}${base}`;
+    } else {
+      quizFeedback.innerHTML =
+        `<span class="wrong-text">Not quite.</span> ${feedback}${base}`;
+    }
   }
 
   // === Random problem generator ===
   function generateRandomProblem() {
-    // Simple nice range: 40–200 km, 40–120 km/h, time ≈ 0.3–3 h
     let d, v1, v2, t;
     while (true) {
       d = 40 + Math.floor(Math.random() * 17) * 10;      // 40–200
@@ -729,7 +902,11 @@
     distanceInput.value = d.toString();
     speed1Input.value = v1.toString();
     speed2Input.value = v2.toString();
-    answerMinutesInput.value = '';
+
+    ansHoursInput.value = '';
+    ansMinutesInput.value = '';
+    ansFracNumInput.value = '';
+    ansFracDenInput.value = '';
 
     fractionLine.textContent = 'Fraction: —';
     reducedFractionLine.textContent = 'Reduced: —';
@@ -741,6 +918,25 @@
     stopAnimation();
     layoutPositions();
     drawGraph();
+  }
+
+  // === Hint: show only symbolic formula ===
+  function showHint() {
+    const distance = parseFloat(distanceInput.value);
+    const v1 = parseFloat(speed1Input.value);
+    const v2 = parseFloat(speed2Input.value);
+
+    if (!(distance > 0 && v1 > 0 && v2 > 0)) {
+      alert('Please enter the distance and both speeds first (so the context makes sense).');
+      return;
+    }
+
+    // Only show symbolic formula, no numbers, no answer
+    fractionLine.innerHTML =
+      `Hint: <span class="highlight">t = distance / (v₁ + v₂)</span>`;
+    reducedFractionLine.textContent =
+      'Try to plug in the numbers yourself. Do not compute the final answer yet.';
+    // Keep decimal/time/position as they are (or still "—") until Check is pressed
   }
 
   // === Voice explanation ===
@@ -764,7 +960,9 @@
       `The distance between A and B is ${distance} kilometers. ` +
       `Car one goes from A to B at ${v1} kilometers per hour. ` +
       `Car two goes from B to A at ${v2} kilometers per hour. ` +
-      `How many minutes will it take until they meet?`;
+      `How long will it take until they meet? ` +
+      `You can answer using hours and minutes, or as a fraction of an hour, ` +
+      `depending on the mode. Remember, the formula is t equals distance divided by v one plus v two.`;
 
     window.speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(text);
@@ -773,7 +971,7 @@
     window.speechSynthesis.speak(utter);
   }
 
-  // === Event wiring ===
+  // === Event wiring (pointerdown for iPhone) ===
   randomBtn.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     generateRandomProblem();
@@ -782,6 +980,11 @@
   checkBtn.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     checkAnswerAndShow();
+  });
+
+  hintBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    showHint();
   });
 
   voiceBtn.addEventListener('pointerdown', (e) => {
