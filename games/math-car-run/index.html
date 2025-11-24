@@ -2,30 +2,61 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Two Cars Fraction Math Lab</title>
+<title>Two Cars – Fraction Quiz Lab</title>
 <meta name="viewport"
       content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <style>
-  body {
+  html, body {
     margin: 0;
     padding: 0;
-    background: #10131A;
+    width: 100%;
+    height: 100%;
+    background: #050510;
     color: #ffffff;
     font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    overflow: hidden;
   }
 
-  h1 { margin: 10px; font-size: 22px; }
+  h1 {
+    margin: 10px;
+    font-size: 20px;
+    text-align: center;
+  }
 
   .wrapper {
-    width: 95%;
-    max-width: 430px;
-    background: #1D2433;
-    padding: 14px;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 8px 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .card {
+    background: #141927;
     border-radius: 12px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.4);
+    padding: 10px;
+    box-shadow: 0 0 12px rgba(0,0,0,0.4);
+  }
+
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+  }
+
+  .quiz-stats span {
+    margin-right: 8px;
+  }
+
+  .badge {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.08);
+    font-size: 11px;
   }
 
   label {
@@ -36,128 +67,745 @@
 
   input {
     width: 100%;
-    padding: 8px;
+    padding: 7px;
     margin-top: 4px;
-    margin-bottom: 10px;
+    margin-bottom: 6px;
     border-radius: 8px;
     border: none;
     font-size: 15px;
+  }
+
+  .row-inline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .row-inline input {
+    flex: 1;
+    margin-bottom: 0;
+  }
+
+  .unit {
+    font-size: 12px;
+    opacity: 0.85;
+  }
+
+  .button-row {
+    margin-top: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
   }
 
   button {
-    width: 100%;
-    padding: 10px;
-    margin-top: 8px;
-    font-size: 17px;
-    background: #007aff;
+    flex: 1;
+    min-width: 110px;
+    padding: 8px;
+    font-size: 13px;
+    border-radius: 999px;
     border: none;
-    color: white;
-    border-radius: 10px;
-    font-weight: bold;
+    font-weight: 600;
+    color: #fff;
+    background: #1f2436;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.4);
   }
 
-  .box {
-    margin-top: 12px;
-    padding: 10px;
-    background: #121822;
-    border-radius: 8px;
-    font-size: 15px;
+  button.primary {
+    background: #0a84ff;
+    box-shadow: 0 3px 10px rgba(10,132,255,0.7);
+  }
+
+  button:active {
+    transform: translateY(1px) scale(0.97);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+  }
+
+  .results {
+    font-size: 14px;
     line-height: 1.4em;
   }
 
+  .result-line {
+    margin: 2px 0;
+  }
+
   .highlight {
-    color: #FFDD44;
-    font-weight: bold;
+    color: #ffdd44;
+    font-weight: 600;
+  }
+
+  .correct-text { color: #30d158; font-weight: 600; }
+  .wrong-text   { color: #ff453a; font-weight: 600; }
+
+  /* Simulation */
+  .sim-card {
+    margin-top: 2px;
+  }
+
+  .sim-title, .graph-title {
+    font-size: 12px;
+    opacity: 0.85;
+    margin-bottom: 4px;
+    text-align: center;
+  }
+
+  .sim-area {
+    position: relative;
+    height: 110px;
+    border-radius: 10px;
+    background: linear-gradient(#1c1c2e 0, #1c1c2e 50%, #111 50%, #111 100%);
+    box-shadow: 0 0 10px rgba(0,0,0,0.7);
+    overflow: hidden;
+  }
+
+  .road {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 35px;
+    height: 36px;
+    background: #333;
+    border-radius: 18px;
+    box-shadow: inset 0 0 6px rgba(0,0,0,0.8);
+  }
+
+  .road-line {
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    top: 15px;
+    height: 5px;
+    background-image: linear-gradient(90deg,
+      #ddd 0, #ddd 26px,
+      transparent 26px, transparent 40px);
+    background-size: 40px 5px;
+    opacity: 0.9;
+  }
+
+  .car {
+    position: absolute;
+    bottom: 48px;
+    width: 26px;
+    height: 16px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    color: #000;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.6);
+  }
+
+  .car1 { background: #ffcc00; }
+  .car2 { background: #ff453a; }
+
+  .car-label {
+    position: absolute;
+    bottom: 68px;
+    font-size: 11px;
+    color: #fff;
+    opacity: 0.9;
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+
+  .meet-marker {
+    position: absolute;
+    bottom: 37px;
+    width: 2px;
+    height: 42px;
+    background: #0a84ff;
+    display: none;
+  }
+
+  .meet-text {
+    position: absolute;
+    bottom: 84px;
+    font-size: 11px;
+    color: #0a84ff;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    display: none;
+  }
+
+  /* Graph */
+  .graph-card {
+    margin-top: 4px;
+  }
+
+  #graphCanvas {
+    width: 100%;
+    height: 140px;
+    background: #05060a;
+    border-radius: 8px;
+  }
+
+  .hidden {
+    display: none;
+  }
+
+  .hint-bottom {
+    font-size: 11px;
+    text-align: center;
+    opacity: 0.8;
+    margin-top: 4px;
   }
 </style>
 </head>
 <body>
 
-<h1>🚗 Two Cars – Fraction Method</h1>
+<h1>🚗 Two Cars – Fraction Quiz Lab</h1>
 
 <div class="wrapper">
-  <label>Distance A → B (km):</label>
-  <input id="distanceInput" type="number" step="0.1">
 
-  <label>Speed Car 1 (km/h):</label>
-  <input id="speed1Input" type="number">
+  <!-- Top info + stats -->
+  <div class="card">
+    <div class="top-bar">
+      <div class="quiz-stats">
+        <span>Q: <span id="qCount">0</span></span>
+        <span>✔: <span id="qCorrect">0</span></span>
+        <span>Acc: <span id="accuracy">0%</span></span>
+      </div>
+      <div class="badge">Answer in minutes (decimal)</div>
+    </div>
 
-  <label>Speed Car 2 (km/h):</label>
-  <input id="speed2Input" type="number">
+    <!-- Inputs -->
+    <label>Distance A → B (km):</label>
+    <input id="distanceInput" type="number" step="0.1" placeholder="e.g. 120">
 
-  <button id="startBtn">Calculate Meeting Time</button>
+    <label>Speed Car 1 (km/h):</label>
+    <input id="speed1Input" type="number" step="0.1" placeholder="e.g. 60">
 
-  <div class="box">
-    <div id="fractionLine">Fraction: —</div>
-    <div id="reducedFractionLine">Reduced: —</div>
-    <div id="decimalLine">Decimal: —</div>
-    <div id="timeLine">Meeting time: —</div>
-    <div id="positionLine">Position: —</div>
+    <label>Speed Car 2 (km/h):</label>
+    <input id="speed2Input" type="number" step="0.1" placeholder="e.g. 80">
+
+    <label>Your answer (time until they meet):</label>
+    <div class="row-inline">
+      <input id="answerMinutesInput" type="number" step="0.1"
+             placeholder="in minutes (e.g. 51.4)">
+      <span class="unit">min</span>
+    </div>
+
+    <!-- Buttons -->
+    <div class="button-row">
+      <button id="randomBtn">🎲 Random Question</button>
+      <button id="checkBtn" class="primary">✅ Check & Show Steps</button>
+    </div>
+    <div class="button-row">
+      <button id="voiceBtn">🔊 Explain Question</button>
+      <button id="graphToggleBtn">📈 Show Graph</button>
+    </div>
   </div>
+
+  <!-- Results -->
+  <div class="card results">
+    <div class="result-line" id="fractionLine">Fraction: —</div>
+    <div class="result-line" id="reducedFractionLine">Reduced: —</div>
+    <div class="result-line" id="decimalLine">Decimal: —</div>
+    <div class="result-line" id="timeLine">Meeting time: —</div>
+    <div class="result-line" id="positionLine">Position: —</div>
+    <div class="result-line" id="quizFeedback">Quiz: —</div>
+  </div>
+
+  <!-- Simulation -->
+  <div class="card sim-card">
+    <div class="sim-title">Simulation – not to scale (cars move until they meet)</div>
+    <div class="sim-area" id="simArea">
+      <div class="road">
+        <div class="road-line"></div>
+      </div>
+      <div class="car car1" id="car1">1</div>
+      <div class="car car2" id="car2">2</div>
+      <div class="car-label" id="label1">Car 1 (A→B)</div>
+      <div class="car-label" id="label2">Car 2 (B→A)</div>
+      <div class="meet-marker" id="meetMarker"></div>
+      <div class="meet-text" id="meetText">Meet here</div>
+    </div>
+  </div>
+
+  <!-- Graph -->
+  <div class="card graph-card hidden" id="graphCard">
+    <div class="graph-title">Distance–time graph (distance from A in km)</div>
+    <canvas id="graphCanvas"></canvas>
+  </div>
+
+  <div class="hint-bottom">
+    iPhone: tap <b>Random Question</b>, guess in minutes, then tap <b>Check & Show Steps</b>.  
+    You’ll see fractions, animation, score, and optional graph.
+  </div>
+
 </div>
 
 <script>
-const distanceInput = document.getElementById('distanceInput');
-const speed1Input = document.getElementById('speed1Input');
-const speed2Input = document.getElementById('speed2Input');
-const startBtn = document.getElementById('startBtn');
+  // === DOM references ===
+  const distanceInput = document.getElementById('distanceInput');
+  const speed1Input = document.getElementById('speed1Input');
+  const speed2Input = document.getElementById('speed2Input');
+  const answerMinutesInput = document.getElementById('answerMinutesInput');
 
-const fractionLine = document.getElementById('fractionLine');
-const reducedFractionLine = document.getElementById('reducedFractionLine');
-const decimalLine = document.getElementById('decimalLine');
-const timeLine = document.getElementById('timeLine');
-const positionLine = document.getElementById('positionLine');
+  const randomBtn = document.getElementById('randomBtn');
+  const checkBtn = document.getElementById('checkBtn');
+  const voiceBtn = document.getElementById('voiceBtn');
+  const graphToggleBtn = document.getElementById('graphToggleBtn');
+  const graphCard = document.getElementById('graphCard');
 
-function gcd(a, b) {
-  a = Math.abs(a);
-  b = Math.abs(b);
-  while (b !== 0) {
-    const t = b;
-    b = a % b;
-    a = t;
+  const fractionLine = document.getElementById('fractionLine');
+  const reducedFractionLine = document.getElementById('reducedFractionLine');
+  const decimalLine = document.getElementById('decimalLine');
+  const timeLine = document.getElementById('timeLine');
+  const positionLine = document.getElementById('positionLine');
+  const quizFeedback = document.getElementById('quizFeedback');
+
+  const qCountSpan = document.getElementById('qCount');
+  const qCorrectSpan = document.getElementById('qCorrect');
+  const accuracySpan = document.getElementById('accuracy');
+
+  const simArea = document.getElementById('simArea');
+  const car1El = document.getElementById('car1');
+  const car2El = document.getElementById('car2');
+  const label1El = document.getElementById('label1');
+  const label2El = document.getElementById('label2');
+  const meetMarkerEl = document.getElementById('meetMarker');
+  const meetTextEl = document.getElementById('meetText');
+
+  const graphCanvas = document.getElementById('graphCanvas');
+  const gctx = graphCanvas.getContext('2d');
+
+  // === State ===
+  let totalQuestions = 0;
+  let correctAnswers = 0;
+
+  let lastDistance = null;
+  let lastSpeed1 = null;
+  let lastSpeed2 = null;
+  let lastTHours = null;
+  let lastD1 = null;
+
+  // Animation state
+  let animReq = null;
+  let simStartTime = 0;
+  const simDuration = 6000; // ms
+  let roadLeft = 0;
+  let roadRight = 0;
+  let meetingX = 0;
+
+  // === Helpers ===
+  function gcd(a, b) {
+    a = Math.abs(a);
+    b = Math.abs(b);
+    while (b !== 0) {
+      const t = b;
+      b = a % b;
+      a = t;
+    }
+    return a || 1;
   }
-  return a || 1;
-}
 
-startBtn.addEventListener("pointerdown", (e) => {
-  e.preventDefault();
-  const distance = parseFloat(distanceInput.value);
-  const v1 = parseFloat(speed1Input.value);
-  const v2 = parseFloat(speed2Input.value);
-
-  if (!(distance > 0 && v1 > 0 && v2 > 0)) {
-    alert("Please enter positive numbers.");
-    return;
+  function updateQuizStats() {
+    qCountSpan.textContent = totalQuestions;
+    qCorrectSpan.textContent = correctAnswers;
+    const acc = totalQuestions > 0 ? (100 * correctAnswers / totalQuestions) : 0;
+    accuracySpan.textContent = acc.toFixed(0) + '%';
   }
 
-  const sumSpeed = v1 + v2;
+  function formatTimeFromHours(tHours) {
+    const totalMinutes = tHours * 60;
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    if (hours <= 0) {
+      return `${minutes.toFixed(1)} min`;
+    }
+    return `${hours} h ${minutes.toFixed(1)} min`;
+  }
 
-  // Show fraction steps
-  fractionLine.innerHTML =
-    `t = distance / (v₁ + v₂) = ${distance} / (${v1} + ${v2}) = ` +
-    `<span class="highlight">${distance}/${sumSpeed}</span>`;
+  // === Simulation layout & animation ===
+  function stopAnimation() {
+    if (animReq !== null) {
+      cancelAnimationFrame(animReq);
+      animReq = null;
+    }
+  }
 
-  const g = gcd(distance, sumSpeed);
-  const simpleN = distance / g;
-  const simpleD = sumSpeed / g;
+  function layoutPositions() {
+    const road = simArea.querySelector('.road');
+    const roadRect = road.getBoundingClientRect();
+    const simRect = simArea.getBoundingClientRect();
 
-  reducedFractionLine.innerHTML =
-    `Reduced: ${distance}/${sumSpeed} = ` +
-    `<span class="highlight">${simpleN}/${simpleD}</span> hours`;
+    roadLeft = roadRect.left - simRect.left;
+    roadRight = roadRect.right - simRect.left;
 
-  const tHours = distance / sumSpeed;
-  decimalLine.innerHTML =
-    `Decimal: ${tHours.toFixed(4)} hours`;
+    const startX1 = roadLeft;
+    const startX2 = roadRight;
 
-  const min = tHours * 60;
-  timeLine.innerHTML =
-    `Meeting time: <span class="highlight">${min.toFixed(1)} min</span>`;
+    car1El.style.left = `${startX1 - car1El.offsetWidth / 2}px`;
+    car2El.style.left = `${startX2 - car2El.offsetWidth / 2}px`;
 
-  const d1 = v1 * tHours;
-  const d2 = distance - d1;
-  positionLine.innerHTML =
-    `Car1: ${d1.toFixed(2)} km | Car2: ${d2.toFixed(2)} km`;
-});
+    label1El.style.left = `${startX1}px`;
+    label2El.style.left = `${startX2}px`;
+
+    meetMarkerEl.style.display = 'none';
+    meetTextEl.style.display = 'none';
+  }
+
+  function startSimulation() {
+    if (!(lastDistance > 0 && lastSpeed1 > 0 && lastSpeed2 > 0 &&
+          lastTHours > 0 && lastD1 >= 0)) return;
+
+    stopAnimation();
+    layoutPositions();
+
+    const roadLengthPx = roadRight - roadLeft;
+    const startX1 = roadLeft;
+    const startX2 = roadRight;
+
+    const ratio = lastDistance > 0 ? lastD1 / lastDistance : 0.5;
+    const clampedRatio = Math.max(0, Math.min(1, ratio));
+
+    meetingX = roadLeft + clampedRatio * roadLengthPx;
+
+    meetMarkerEl.style.left = `${meetingX - 1}px`;
+    meetTextEl.style.left = `${meetingX}px`;
+    meetMarkerEl.style.display = 'block';
+    meetTextEl.style.display = 'block';
+
+    simStartTime = performance.now();
+
+    function step(now) {
+      const elapsed = now - simStartTime;
+      const alpha = Math.min(1, elapsed / simDuration);
+
+      const x1 = startX1 + (meetingX - startX1) * alpha;
+      const x2 = startX2 + (meetingX - startX2) * alpha;
+
+      car1El.style.left = `${x1 - car1El.offsetWidth / 2}px`;
+      car2El.style.left = `${x2 - car2El.offsetWidth / 2}px`;
+
+      label1El.style.left = `${x1}px`;
+      label2El.style.left = `${x2}px`;
+
+      if (alpha < 1) {
+        animReq = requestAnimationFrame(step);
+      } else {
+        animReq = null;
+      }
+    }
+
+    animReq = requestAnimationFrame(step);
+  }
+
+  // === Graph ===
+  function resizeGraphCanvas() {
+    const rect = graphCanvas.getBoundingClientRect();
+    graphCanvas.width = rect.width;
+    graphCanvas.height = rect.height;
+  }
+
+  function drawGraph() {
+    if (graphCard.classList.contains('hidden')) return; // not visible
+
+    resizeGraphCanvas();
+    const ctx = gctx;
+    const w = graphCanvas.width;
+    const h = graphCanvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    if (!(lastDistance > 0 && lastTHours > 0)) {
+      ctx.fillStyle = '#666';
+      ctx.font = '12px -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Solve a problem to see the graph.', w / 2, h / 2);
+      return;
+    }
+
+    const marginLeft = 34;
+    const marginRight = 10;
+    const marginTop = 10;
+    const marginBottom = 22;
+    const innerW = w - marginLeft - marginRight;
+    const innerH = h - marginTop - marginBottom;
+
+    const maxT = lastTHours;
+    const maxD = lastDistance;
+
+    function xFromT(t) {
+      return marginLeft + (t / maxT) * innerW;
+    }
+    function yFromD(d) {
+      return h - marginBottom - (d / maxD) * innerH;
+    }
+
+    // Axes
+    ctx.strokeStyle = '#888';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(marginLeft, h - marginBottom);
+    ctx.lineTo(w - marginRight, h - marginBottom);
+    ctx.moveTo(marginLeft, h - marginBottom);
+    ctx.lineTo(marginLeft, marginTop);
+    ctx.stroke();
+
+    ctx.fillStyle = '#aaa';
+    ctx.font = '10px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('time (h)', (w + marginLeft - marginRight) / 2, h - 6);
+
+    ctx.save();
+    ctx.translate(10, (h - marginBottom + marginTop) / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = 'center';
+    ctx.fillText('distance (km)', 0, 0);
+    ctx.restore();
+
+    // Ticks
+    ctx.fillStyle = '#777';
+    const tSteps = 4;
+    ctx.textAlign = 'center';
+    for (let i = 0; i <= tSteps; i++) {
+      const t = (maxT * i) / tSteps;
+      const x = xFromT(t);
+      const y = h - marginBottom;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x, y + 3);
+      ctx.strokeStyle = '#555';
+      ctx.stroke();
+      ctx.fillText(t.toFixed(2), x, y + 12);
+    }
+
+    const dSteps = 4;
+    ctx.textAlign = 'right';
+    for (let i = 0; i <= dSteps; i++) {
+      const d = (maxD * i) / dSteps;
+      const x = marginLeft;
+      const y = yFromD(d);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x - 3, y);
+      ctx.strokeStyle = '#555';
+      ctx.stroke();
+      ctx.fillText(d.toFixed(0), x - 4, y + 3);
+    }
+
+    const v1 = lastSpeed1;
+    const v2 = lastSpeed2;
+    const T = lastTHours;
+
+    // Car 1 line
+    ctx.strokeStyle = '#ffcc00';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i <= 60; i++) {
+      const t = (T * i) / 60;
+      const d = v1 * t;
+      const x = xFromT(t);
+      const y = yFromD(d);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // Car 2 line
+    ctx.strokeStyle = '#ff453a';
+    ctx.beginPath();
+    for (let i = 0; i <= 60; i++) {
+      const t = (T * i) / 60;
+      const d = lastDistance - v2 * t;
+      const x = xFromT(t);
+      const y = yFromD(d);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // Meeting point
+    const meetX = xFromT(T);
+    const meetY = yFromD(lastD1);
+    ctx.fillStyle = '#0a84ff';
+    ctx.beginPath();
+    ctx.arc(meetX, meetY, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Legend
+    ctx.fillStyle = '#ffcc00';
+    ctx.textAlign = 'left';
+    ctx.fillText('Car 1 (A→B)', marginLeft + 6, marginTop + 10);
+    ctx.fillStyle = '#ff453a';
+    ctx.fillText('Car 2 (B→A)', marginLeft + 6, marginTop + 22);
+  }
+
+  // === Core math & display ===
+  function computeAndShow(distance, v1, v2) {
+    const sumSpeed = v1 + v2;
+    const tHours = distance / sumSpeed;
+    const tMinutes = tHours * 60;
+
+    // Fraction steps
+    fractionLine.innerHTML =
+      `t = distance / (v₁ + v₂) = ${distance} / (${v1} + ${v2}) = ` +
+      `<span class="highlight">${distance}/${sumSpeed}</span>`;
+
+    const g = gcd(distance, sumSpeed);
+    const simpleN = distance / g;
+    const simpleD = sumSpeed / g;
+
+    reducedFractionLine.innerHTML =
+      `Reduced: ${distance}/${sumSpeed} = ` +
+      `<span class="highlight">${simpleN}/${simpleD}</span> hours`;
+
+    decimalLine.innerHTML =
+      `Decimal: t = ${tHours.toFixed(4)} hours`;
+
+    timeLine.innerHTML =
+      `Meeting time: <span class="highlight">${tMinutes.toFixed(1)} min</span> ` +
+      `(${formatTimeFromHours(tHours)})`;
+
+    const d1 = v1 * tHours;
+    const d2 = distance - d1;
+    positionLine.innerHTML =
+      `Position: Car1 → ${d1.toFixed(2)} km, Car2 → ${d2.toFixed(2)} km`;
+
+    // Save for sim & graph
+    lastDistance = distance;
+    lastSpeed1 = v1;
+    lastSpeed2 = v2;
+    lastTHours = tHours;
+    lastD1 = d1;
+
+    startSimulation();
+    drawGraph();
+
+    return { tHours, tMinutes };
+  }
+
+  function checkAnswerAndShow() {
+    const distance = parseFloat(distanceInput.value);
+    const v1 = parseFloat(speed1Input.value);
+    const v2 = parseFloat(speed2Input.value);
+    const ans = parseFloat(answerMinutesInput.value);
+
+    if (!(distance > 0 && v1 > 0 && v2 > 0)) {
+      alert('Please enter positive numbers for distance and both speeds.');
+      return;
+    }
+    if (!(ans >= 0)) {
+      alert('Please enter your answer in minutes.');
+      return;
+    }
+
+    const { tMinutes } = computeAndShow(distance, v1, v2);
+    totalQuestions++;
+
+    const diff = Math.abs(ans - tMinutes);
+    const correct = diff <= 0.5; // within ±0.5 min is OK
+
+    if (correct) {
+      correctAnswers++;
+      quizFeedback.innerHTML =
+        `Quiz: <span class="correct-text">Correct!</span> ` +
+        `(Your: ${ans.toFixed(1)} min, Real: ${tMinutes.toFixed(1)} min)`;
+    } else {
+      quizFeedback.innerHTML =
+        `Quiz: <span class="wrong-text">Not quite.</span> ` +
+        `(Your: ${ans.toFixed(1)} min, Real: ${tMinutes.toFixed(1)} min, ` +
+        `difference: ${diff.toFixed(1)} min)`;
+    }
+
+    updateQuizStats();
+  }
+
+  // === Random problem generator ===
+  function generateRandomProblem() {
+    // Simple nice range: 40–200 km, 40–120 km/h, time ≈ 0.3–3 h
+    let d, v1, v2, t;
+    while (true) {
+      d = 40 + Math.floor(Math.random() * 17) * 10;      // 40–200
+      v1 = 40 + Math.floor(Math.random() * 9) * 10;      // 40–120
+      v2 = 40 + Math.floor(Math.random() * 9) * 10;
+      t = d / (v1 + v2); // hours
+      if (t >= 0.3 && t <= 3) break;
+    }
+
+    distanceInput.value = d.toString();
+    speed1Input.value = v1.toString();
+    speed2Input.value = v2.toString();
+    answerMinutesInput.value = '';
+
+    fractionLine.textContent = 'Fraction: —';
+    reducedFractionLine.textContent = 'Reduced: —';
+    decimalLine.textContent = 'Decimal: —';
+    timeLine.textContent = 'Meeting time: —';
+    positionLine.textContent = 'Position: —';
+    quizFeedback.textContent = 'Quiz: —';
+
+    stopAnimation();
+    layoutPositions();
+    drawGraph();
+  }
+
+  // === Voice explanation ===
+  function speakQuestion() {
+    const distance = parseFloat(distanceInput.value);
+    const v1 = parseFloat(speed1Input.value);
+    const v2 = parseFloat(speed2Input.value);
+
+    if (!(distance > 0 && v1 > 0 && v2 > 0)) {
+      alert('Please enter the distance and both speeds first.');
+      return;
+    }
+
+    if (!('speechSynthesis' in window)) {
+      alert('Speech is not supported in this browser.');
+      return;
+    }
+
+    const text =
+      `Two cars are driving towards each other. ` +
+      `The distance between A and B is ${distance} kilometers. ` +
+      `Car one goes from A to B at ${v1} kilometers per hour. ` +
+      `Car two goes from B to A at ${v2} kilometers per hour. ` +
+      `How many minutes will it take until they meet?`;
+
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'en-US';
+    utter.rate = 1;
+    window.speechSynthesis.speak(utter);
+  }
+
+  // === Event wiring ===
+  randomBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    generateRandomProblem();
+  });
+
+  checkBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    checkAnswerAndShow();
+  });
+
+  voiceBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    speakQuestion();
+  });
+
+  graphToggleBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    const hidden = graphCard.classList.toggle('hidden');
+    graphToggleBtn.textContent = hidden ? '📈 Show Graph' : '📉 Hide Graph';
+    drawGraph();
+  });
+
+  window.addEventListener('load', () => {
+    layoutPositions();
+    updateQuizStats();
+    drawGraph();
+  });
+
+  window.addEventListener('resize', () => {
+    layoutPositions();
+    drawGraph();
+  });
 </script>
 
 </body>
