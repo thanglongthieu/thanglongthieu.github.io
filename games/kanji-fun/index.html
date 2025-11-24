@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>Kanji Fun & Car Jump Game</title>
+  <title>Kanji Fun & Car Slide Game</title>
   <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <style>
@@ -165,7 +165,7 @@
       min-height: 18px;
     }
 
-    /* Car mode */
+    /* Car slide mode */
     #carMode {
       flex: 1;
       display: none;
@@ -176,7 +176,7 @@
 
     #carCanvas {
       width: 100%;
-      height: 200px;
+      height: 220px;
       background: #141428;
       border-radius: 10px;
       border: 1px solid #444;
@@ -220,8 +220,8 @@
 <body>
   <div class="app">
     <div class="header">
-      <div class="title">Kanji Fun Quiz & Car Jump</div>
-      <div class="sub">レベルをえらんで、タップクイズ or 車ジャンプクイズで遊ぼう！</div>
+      <div class="title">Kanji Fun Quiz & 車スライドゲーム</div>
+      <div class="sub">よみ＋意味に合う漢字を、車でキャッチしよう！</div>
 
       <div class="top-bar">
         <div class="level-area">
@@ -241,7 +241,7 @@
 
       <div class="mode-buttons">
         <button id="modeQuizBtn" class="mode-btn active">カードクイズ</button>
-        <button id="modeCarBtn" class="mode-btn">車ジャンプ</button>
+        <button id="modeCarBtn" class="mode-btn">車スライド</button>
       </div>
 
       <div class="question-box">
@@ -262,12 +262,13 @@
         <div id="quizFeedback"></div>
       </div>
 
-      <!-- Car Jump mode -->
+      <!-- Car Slide mode -->
       <div id="carMode">
         <canvas id="carCanvas"></canvas>
         <div class="car-hint">
-          読み＋意味に合う漢字に「ぶつかる」と正解！<br />
-          まちがった漢字は「タップしてジャンプ」でさけよう。
+          よみと意味に合う漢字が上から落ちてくるよ。<br />
+          キャンバスの「列」をタップして車を左右にスライド、<br />
+          正しい漢字をひろって、まちがいはさけよう！
         </div>
       </div>
     </div>
@@ -275,7 +276,8 @@
     <div class="bottom-controls">
       <button id="startBtn">スタート / リスタート</button>
       <div class="bottom-hint">
-        iPhone: 画面タップでジャンプ（車モード） / ボタンタップで答え（カードクイズ）。
+        車モード：上のキャンバスの列をタップして左右にスライド。<br>
+        カードクイズ：正しい漢字ボタンをタップ。
       </div>
     </div>
   </div>
@@ -331,7 +333,8 @@
         { kanji: '説', reading: 'せつ / と(く)', meaning: 'explain / theory' },
         { kanji: '開', reading: 'ひら(く) / かい', meaning: 'open' },
         { kanji: '閉', reading: 'と(じる) / へい', meaning: 'close' },
-        { kanji: '問題', reading: 'もんだい', meaning: 'problem / question' }
+        { kanji: '問', reading: 'もん', meaning: 'question' },
+        { kanji: '題', reading: 'だい', meaning: 'title / topic' }
       ],
       // Simple N5 subset
       n5: [
@@ -352,32 +355,31 @@
       ]
     };
 
-    // ---- Helpers / shared state ----
-    const levelSelect = document.getElementById('levelSelect');
-    const timeSpan = document.getElementById('time');
-    const scoreSpan = document.getElementById('score');
-    const readingText = document.getElementById('readingText');
-    const meaningText = document.getElementById('meaningText');
-    const startBtn = document.getElementById('startBtn');
-    const modeQuizBtn = document.getElementById('modeQuizBtn');
-    const modeCarBtn = document.getElementById('modeCarBtn');
+    // ---- Shared helpers/state ----
+    const levelSelect   = document.getElementById('levelSelect');
+    const timeSpan      = document.getElementById('time');
+    const scoreSpan     = document.getElementById('score');
+    const readingText   = document.getElementById('readingText');
+    const meaningText   = document.getElementById('meaningText');
+    const startBtn      = document.getElementById('startBtn');
+    const modeQuizBtn   = document.getElementById('modeQuizBtn');
+    const modeCarBtn    = document.getElementById('modeCarBtn');
 
-    const quizModeDiv = document.getElementById('quizMode');
-    const carModeDiv = document.getElementById('carMode');
+    const quizModeDiv   = document.getElementById('quizMode');
+    const carModeDiv    = document.getElementById('carMode');
 
-    const quizFeedback = document.getElementById('quizFeedback');
+    const quizFeedback  = document.getElementById('quizFeedback');
     const choiceButtons = Array.from(document.querySelectorAll('.choice-btn'));
 
-    const carCanvas = document.getElementById('carCanvas');
-    const carCtx = carCanvas.getContext('2d');
+    const carCanvas     = document.getElementById('carCanvas');
+    const carCtx        = carCanvas.getContext('2d');
 
-    let currentMode = 'quiz'; // 'quiz' or 'car'
-    let gameRunning = false;
-    let timerId = null;
-    let timeLeft = 60;
-    let score = 0;
-
-    let currentQuestion = null; // {kanji, reading, meaning, choices[]}
+    let currentMode   = 'quiz'; // 'quiz' or 'car'
+    let gameRunning   = false;
+    let timerId       = null;
+    let timeLeft      = 60;
+    let score         = 0;
+    let currentQuestion = null;
 
     function getCurrentSet() {
       return kanjiSets[levelSelect.value] || kanjiSets.g12;
@@ -401,7 +403,7 @@
       }
 
       const choiceArray = Array.from(choices);
-      // Simple shuffle
+      // shuffle
       for (let i = choiceArray.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [choiceArray[i], choiceArray[j]] = [choiceArray[j], choiceArray[i]];
@@ -430,7 +432,7 @@
       meaningText.textContent = '「スタート」でゲーム開始';
     }
 
-    // ---- Quiz Mode (tap buttons) ----
+    // ---- Quiz Mode ----
     function setupQuizQuestion() {
       const q = makeQuestion();
       if (!q) return;
@@ -438,8 +440,8 @@
 
       readingText.textContent = q.reading;
       meaningText.textContent = q.meaning;
-
       quizFeedback.textContent = '';
+
       choiceButtons.forEach((btn, idx) => {
         btn.textContent = q.choices[idx] || '';
         btn.classList.remove('correct-show', 'wrong-show');
@@ -482,18 +484,16 @@
       }, { passive: false });
     });
 
-    // ---- Car Jump Mode ----
-    let carWidth = 40;
-    let carHeight = 24;
-    let carX = 50;
-    let carY = 0;
-    let carVy = 0;
-    let gravity = 900;  // px/s^2
-    let jumpStrength = -420; // px/s
-    let groundY = 0;
+    // ---- Car Slide Mode (falling kanji from top) ----
+    const LANES = 3;
+    let laneWidth = 0;
+    let carLane   = 1;  // 0..LANES-1
+    let carY      = 0;
+    let carW      = 40;
+    let carH      = 24;
 
-    let obstacles = []; // {x,y,w,h,kanji,isCorrect}
-    let carSpeed = 180; // px/s base
+    let obstacles = []; // { lane, y, size, kanji, isCorrect, caught }
+    let fallSpeed = 130; // px/s
     let lastCarTime = 0;
     let questionHandled = false;
 
@@ -501,7 +501,10 @@
       const rect = carCanvas.getBoundingClientRect();
       carCanvas.width = rect.width;
       carCanvas.height = rect.height;
-      groundY = carCanvas.height - 40;
+      laneWidth = carCanvas.width / LANES;
+      carY = carCanvas.height - 40;
+      carW = Math.min(50, laneWidth * 0.6);
+      carH = 24;
     }
     window.addEventListener('resize', resizeCarCanvas);
     resizeCarCanvas();
@@ -510,72 +513,75 @@
       const q = makeQuestion();
       if (!q) return;
       currentQuestion = q;
+
       readingText.textContent = q.reading;
       meaningText.textContent = q.meaning;
 
-      // create obstacles with the choices
       obstacles = [];
-      const baseX = carCanvas.width + 40;
-      const gap = 130;
-      const w = 60;
-      const h = 40;
-      let x = baseX;
-
-      q.choices.forEach(k => {
-        obstacles.push({
-          x,
-          y: groundY - h,
-          w,
-          h,
-          kanji: k,
-          isCorrect: (k === q.kanji)
-        });
-        x += gap;
-      });
-
+      fallSpeed = 130; // reset a bit for each question?
       questionHandled = false;
+
+      // pick lane for correct kanji
+      const correctLane = Math.floor(Math.random() * LANES);
+      const size = 40;
+
+      const set = getCurrentSet();
+
+      for (let lane = 0; lane < LANES; lane++) {
+        let kanji;
+        let isCorrect = false;
+        if (lane === correctLane) {
+          kanji = q.kanji;
+          isCorrect = true;
+        } else {
+          // random wrong kanji from set
+          let candidate;
+          do {
+            candidate = randomFromArray(set).kanji;
+          } while (candidate === q.kanji);
+          kanji = candidate;
+        }
+        const yStart = -size - Math.random() * 80; // slightly stagger
+        obstacles.push({
+          lane,
+          y: yStart,
+          size,
+          kanji,
+          isCorrect,
+          caught: false
+        });
+      }
     }
 
     function resetCarState() {
       resizeCarCanvas();
-      carX = 60;
-      carY = groundY - carHeight;
-      carVy = 0;
-      carSpeed = 180;
+      carLane = 1;
+      fallSpeed = 130;
       lastCarTime = performance.now();
       setupCarQuestion();
     }
 
-    function carJump() {
+    function handleCarTap(evt) {
       if (!gameRunning || currentMode !== 'car') return;
-      // Only jump when "on ground"
-      if (carY >= groundY - carHeight - 1) {
-        carVy = jumpStrength;
+      const rect = carCanvas.getBoundingClientRect();
+      let x;
+      if (evt.touches && evt.touches.length > 0) {
+        x = evt.touches[0].clientX;
+      } else {
+        x = evt.clientX;
+      }
+      const relX = x - rect.left;
+      const tappedLane = Math.floor(relX / laneWidth);
+      if (tappedLane >= 0 && tappedLane < LANES) {
+        carLane = tappedLane;
       }
     }
 
-    carCanvas.addEventListener('mousedown', carJump);
+    carCanvas.addEventListener('mousedown', handleCarTap);
     carCanvas.addEventListener('touchstart', e => {
       e.preventDefault();
-      carJump();
+      handleCarTap(e);
     }, { passive: false });
-
-    // Also allow whole screen tap to jump in car mode
-    document.body.addEventListener('touchstart', e => {
-      if (currentMode === 'car' && gameRunning) {
-        // avoid double-calling from canvas event
-        if (e.target !== carCanvas) {
-          e.preventDefault();
-          carJump();
-        }
-      }
-    }, { passive: false });
-
-    document.body.addEventListener('mousedown', e => {
-      if (currentMode === 'car' && gameRunning && e.target !== carCanvas) {
-        carJump();
-      }
-    });
 
     function carLoop(timestamp) {
       if (!gameRunning || currentMode !== 'car') return;
@@ -583,103 +589,117 @@
       const dt = (timestamp - lastCarTime) / 1000;
       lastCarTime = timestamp;
 
-      // Increase speed slowly over time
-      carSpeed += dt * 5;
+      fallSpeed += dt * 10; // slowly faster
 
-      // Update physics
-      carVy += gravity * dt;
-      carY += carVy * dt;
-
-      if (carY > groundY - carHeight) {
-        carY = groundY - carHeight;
-        carVy = 0;
-      }
-
-      // Move obstacles
+      // update obstacles
       obstacles.forEach(o => {
-        o.x -= carSpeed * dt;
+        o.y += fallSpeed * dt;
       });
 
-      // If all obstacles passed, new question
-      if (obstacles.length > 0 && obstacles.every(o => o.x + o.w < 0)) {
-        setupCarQuestion();
-      }
+      // collision & miss check
+      const carBottomY = carY + carH;
 
-      // Collision
-      if (!questionHandled) {
-        for (const o of obstacles) {
-          const carLeft = carX;
-          const carRight = carX + carWidth;
-          const carTop = carY;
-          const carBottom = carY + carHeight;
+      for (const o of obstacles) {
+        // miss: correct falls past bottom and not caught
+        if (o.isCorrect && !o.caught && o.y - o.size > carCanvas.height) {
+          // missed the correct one
+          endGame('car', '正しい漢字をとりのがしました。');
+          return;
+        }
 
-          const obsLeft = o.x;
-          const obsRight = o.x + o.w;
-          const obsTop = o.y;
-          const obsBottom = o.y + o.h;
+        // collision area roughly at carY
+        const laneXCenter = laneWidth * o.lane + laneWidth / 2;
+        const obsLeft  = laneXCenter - o.size / 2;
+        const obsRight = laneXCenter + o.size / 2;
+        const obsTop   = o.y;
+        const obsBot   = o.y + o.size;
 
-          const overlap = carLeft < obsRight &&
-                          carRight > obsLeft &&
-                          carTop < obsBottom &&
-                          carBottom > obsTop;
+        const carLeft  = laneWidth * carLane + (laneWidth - carW) / 2;
+        const carRight = carLeft + carW;
+        const carTop   = carY;
 
-          if (overlap) {
-            questionHandled = true;
-            if (o.isCorrect) {
-              // Correct collision
-              score++;
-              scoreSpan.textContent = score;
-              // Load next question right away
-              setupCarQuestion();
-            } else {
-              // Wrong collision -> game over
-              endGame('car');
-              return;
-            }
+        const overlap =
+          carLeft < obsRight &&
+          carRight > obsLeft &&
+          carTop < obsBot &&
+          carBottomY > obsTop;
+
+        if (overlap && !o.caught) {
+          o.caught = true;
+          if (o.isCorrect) {
+            // Correct catch
+            score++;
+            scoreSpan.textContent = score;
+            // next question
+            setupCarQuestion();
             break;
+          } else {
+            // Wrong catch -> game over
+            endGame('car', 'まちがった漢字をひろってしまいました。');
+            return;
           }
         }
       }
 
-      // Draw
+      // draw
       carCtx.clearRect(0, 0, carCanvas.width, carCanvas.height);
 
-      // background ground
-      carCtx.fillStyle = '#1a1a30';
-      carCtx.fillRect(0, groundY, carCanvas.width, carCanvas.height - groundY);
+      // draw lane background
+      carCtx.fillStyle = '#181832';
+      carCtx.fillRect(0, 0, carCanvas.width, carCanvas.height);
+
+      // lane lines
+      carCtx.strokeStyle = '#2a2a4a';
+      carCtx.lineWidth = 1;
+      for (let i = 1; i < LANES; i++) {
+        const x = laneWidth * i;
+        carCtx.beginPath();
+        carCtx.moveTo(x, 0);
+        carCtx.lineTo(x, carCanvas.height);
+        carCtx.stroke();
+      }
 
       // car
+      const carX = laneWidth * carLane + (laneWidth - carW) / 2;
       carCtx.fillStyle = '#0a84ff';
-      carCtx.fillRect(carX, carY, carWidth, carHeight);
+      carCtx.fillRect(carX, carY, carW, carH);
       // wheels
       carCtx.fillStyle = '#000';
-      carCtx.fillRect(carX + 5, carY + carHeight, 10, 6);
-      carCtx.fillRect(carX + carWidth - 15, carY + carHeight, 10, 6);
+      carCtx.fillRect(carX + 5, carY + carH, 10, 6);
+      carCtx.fillRect(carX + carW - 15, carY + carH, 10, 6);
 
-      // obstacles with kanji
-      carCtx.fillStyle = '#ff9f0a';
+      // falling kanji
       carCtx.textAlign = 'center';
       carCtx.textBaseline = 'middle';
       carCtx.font = '20px -apple-system, sans-serif';
 
       obstacles.forEach(o => {
-        carCtx.fillStyle = '#ff9f0a';
-        carCtx.fillRect(o.x, o.y, o.w, o.h);
+        const laneCenter = laneWidth * o.lane + laneWidth / 2;
+        carCtx.fillStyle = '#ffcc00';
+        carCtx.fillRect(
+          laneCenter - o.size / 2,
+          o.y,
+          o.size,
+          o.size
+        );
         carCtx.fillStyle = '#000';
-        carCtx.fillText(o.kanji, o.x + o.w / 2, o.y + o.h / 2);
+        carCtx.fillText(
+          o.kanji,
+          laneCenter,
+          o.y + o.size / 2
+        );
       });
 
       requestAnimationFrame(carLoop);
     }
 
-    // ---- Game control (timer, mode, start/end) ----
+    // ---- Game control ----
     function startGame() {
       resetCommonState();
       gameRunning = true;
       timeSpan.textContent = timeLeft;
       scoreSpan.textContent = score;
 
-      // Timer
       timerId = setInterval(() => {
         timeLeft--;
         timeSpan.textContent = timeLeft;
@@ -690,16 +710,16 @@
 
       if (currentMode === 'quiz') {
         setupQuizQuestion();
-      } else if (currentMode === 'car') {
+      } else {
         resetCarState();
-        requestAnimationFrame(timestamp => {
-          lastCarTime = timestamp;
-          carLoop(timestamp);
+        requestAnimationFrame(ts => {
+          lastCarTime = ts;
+          carLoop(ts);
         });
       }
     }
 
-    function endGame(mode) {
+    function endGame(mode, msgExtra) {
       if (!gameRunning) return;
       gameRunning = false;
       if (timerId) {
@@ -709,13 +729,17 @@
       if (mode === 'quiz') {
         choiceButtons.forEach(btn => btn.disabled = true);
         quizFeedback.textContent = `おわり！ スコア: ${score}`;
+        alert(`ゲーム終了！ スコア: ${score}`);
+      } else {
+        const text = msgExtra
+          ? `ゲーム終了！ スコア: ${score}\n${msgExtra}`
+          : `ゲーム終了！ スコア: ${score}`;
+        alert(text);
       }
-      alert(`ゲーム終了！ スコア: ${score}`);
     }
 
     function activateMode(newMode) {
       if (currentMode === newMode) return;
-      // stop current game
       gameRunning = false;
       if (timerId) {
         clearInterval(timerId);
@@ -724,13 +748,13 @@
       timeLeft = 60;
       timeSpan.textContent = timeLeft;
 
-      // UI toggle
       currentMode = newMode;
       if (newMode === 'quiz') {
         quizModeDiv.style.display = 'flex';
         carModeDiv.style.display = 'none';
         modeQuizBtn.classList.add('active');
         modeCarBtn.classList.remove('active');
+
         quizFeedback.textContent = '';
         choiceButtons.forEach(btn => {
           btn.textContent = '';
@@ -743,6 +767,7 @@
         modeQuizBtn.classList.remove('active');
         modeCarBtn.classList.add('active');
       }
+
       readingText.textContent = '—';
       meaningText.textContent = '「スタート」でゲーム開始';
     }
@@ -756,7 +781,7 @@
       startGame();
     }, { passive: false });
 
-    // Initial state
+    // initial state
     choiceButtons.forEach(btn => btn.disabled = true);
   </script>
 </body>
