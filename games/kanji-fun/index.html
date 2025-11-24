@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>Kanji Fun Game</title>
+  <title>Kanji Fun & Car Jump Game</title>
   <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <style>
@@ -14,10 +14,9 @@
       background: #050510;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color: #fff;
-      overflow: hidden; /* no scroll on iPhone */
+      overflow: hidden; /* prevent scroll on iPhone */
       -webkit-user-select: none;
       user-select: none;
-      touch-action: none;
     }
 
     .app {
@@ -35,12 +34,12 @@
     }
 
     .title {
-      font-size: 22px;
-      margin-bottom: 4px;
+      font-size: 20px;
+      margin-bottom: 2px;
     }
 
     .sub {
-      font-size: 13px;
+      font-size: 12px;
       opacity: 0.8;
     }
 
@@ -50,10 +49,11 @@
       justify-content: space-between;
       align-items: center;
       font-size: 13px;
-      gap: 8px;
+      gap: 10px;
+      flex-wrap: wrap;
     }
 
-    .top-left {
+    .level-area {
       display: flex;
       flex-direction: column;
       align-items: flex-start;
@@ -73,38 +73,62 @@
     }
 
     .stats span {
-      margin-left: 8px;
+      margin-left: 6px;
     }
 
-    .quiz-area {
+    .mode-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 4px;
+      flex-wrap: wrap;
+    }
+
+    .mode-btn {
+      padding: 4px 10px;
+      font-size: 12px;
+      border-radius: 999px;
+      border: none;
+      background: #333a55;
+      color: #fff;
+    }
+
+    .mode-btn.active {
+      background: #0a84ff;
+    }
+
+    .question-box {
+      text-align: center;
+      margin-top: 4px;
+    }
+
+    #readingText {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    #meaningText {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .main-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      overflow: hidden;
+    }
+
+    /* Quiz mode */
+    #quizMode {
       flex: 1;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: stretch;
       gap: 8px;
-    }
-
-    .hint-text {
-      text-align: center;
-      font-size: 14px;
-      opacity: 0.85;
-      line-height: 1.4;
-      min-height: 36px;
-    }
-
-    .reading {
-      font-size: 24px;
-      font-weight: 600;
-      text-align: center;
-      margin-top: 4px;
-    }
-
-    .meaning {
-      font-size: 16px;
-      text-align: center;
-      opacity: 0.9;
-      min-height: 22px;
     }
 
     .choices {
@@ -121,11 +145,10 @@
       border: none;
       background: #222a40;
       color: #fff;
-      transition: transform 0.08s ease, background-color 0.15s ease;
     }
 
     .choice-btn:active {
-      transform: scale(0.94);
+      transform: scale(0.95);
     }
 
     .choice-btn.correct-show {
@@ -136,100 +159,58 @@
       background: #b3261e;
     }
 
-    .feedback {
+    #quizFeedback {
       text-align: center;
       font-size: 14px;
-      min-height: 20px;
+      min-height: 18px;
     }
 
-    .feedback.flash-good {
-      animation: flashGood 0.4s;
-    }
-
-    .feedback.flash-bad {
-      animation: flashBad 0.4s;
-    }
-
-    @keyframes flashGood {
-      0%   { color: #00ff9d; transform: scale(1); }
-      50%  { color: #ffffff; transform: scale(1.06); }
-      100% { color: #00ff9d; transform: scale(1); }
-    }
-
-    @keyframes flashBad {
-      0%   { color: #ff4d4f; transform: scale(1); }
-      50%  { color: #ffffff; transform: scale(0.94); }
-      100% { color: #ff4d4f; transform: scale(1); }
-    }
-
-    .draw-area {
-      border-radius: 10px;
-      border: 1px solid #444;
-      padding: 6px;
-      background: #111;
-      display: flex;
+    /* Car mode */
+    #carMode {
+      flex: 1;
+      display: none;
       flex-direction: column;
       gap: 4px;
+      align-items: stretch;
     }
 
-    .draw-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 13px;
-    }
-
-    .draw-kanji {
-      font-size: 32px;
-      padding: 0 4px;
-    }
-
-    #drawCanvas {
+    #carCanvas {
       width: 100%;
-      height: 120px;
-      background: #fff;
-      border-radius: 6px;
+      height: 200px;
+      background: #141428;
+      border-radius: 10px;
+      border: 1px solid #444;
       touch-action: none;
     }
 
-    .clear-btn {
-      padding: 4px 10px;
+    .car-hint {
       font-size: 12px;
-      border-radius: 999px;
-      border: none;
-      background: #ff9f0a;
-      color: #000;
-      transition: transform 0.08s ease;
+      text-align: center;
+      opacity: 0.8;
     }
 
-    .clear-btn:active {
-      transform: scale(0.94);
-    }
-
-    .controls {
+    .bottom-controls {
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 6px;
+      margin-bottom: 4px;
     }
 
-    .start-btn {
-      padding: 8px 18px;
+    #startBtn {
+      padding: 8px 20px;
       font-size: 16px;
       border-radius: 999px;
       border: none;
       background: #0a84ff;
       color: #fff;
-      transition: transform 0.1s ease, box-shadow 0.1s ease;
-      box-shadow: 0 4px 10px rgba(10,132,255,0.5);
     }
 
-    .start-btn:active {
-      transform: translateY(1px) scale(0.97);
-      box-shadow: 0 2px 5px rgba(10,132,255,0.4);
+    #startBtn:active {
+      transform: scale(0.96);
     }
 
-    .hint-bottom {
+    .bottom-hint {
       font-size: 12px;
       text-align: center;
       opacity: 0.8;
@@ -239,68 +220,70 @@
 <body>
   <div class="app">
     <div class="header">
-      <div class="title">Kanji Fun Game ✍️</div>
-      <div class="sub">よみ ＋ いみ を見て、正しい漢字をタップしてね</div>
+      <div class="title">Kanji Fun Quiz & Car Jump</div>
+      <div class="sub">レベルをえらんで、タップクイズ or 車ジャンプクイズで遊ぼう！</div>
 
       <div class="top-bar">
-        <div class="top-left">
+        <div class="level-area">
           <span>レベル:</span>
           <select id="levelSelect">
-            <option value="easy">やさしい（小さい子向け）</option>
-            <option value="basic">基本（小学生〜）</option>
-            <option value="n5">JLPT N5レベル</option>
+            <option value="g12">小1〜2 やさしい</option>
+            <option value="g3">小3 漢字</option>
+            <option value="g4">小4 漢字</option>
+            <option value="n5">JLPT N5</option>
           </select>
         </div>
         <div class="stats">
           <span>⏱ <span id="time">60</span>s</span>
           <span>⭐ <span id="score">0</span></span>
-          <span>🔥 Streak: <span id="streak">0</span></span>
+        </div>
+      </div>
+
+      <div class="mode-buttons">
+        <button id="modeQuizBtn" class="mode-btn active">カードクイズ</button>
+        <button id="modeCarBtn" class="mode-btn">車ジャンプ</button>
+      </div>
+
+      <div class="question-box">
+        <div id="readingText">—</div>
+        <div id="meaningText">「スタート」でゲーム開始</div>
+      </div>
+    </div>
+
+    <div class="main-area">
+      <!-- Card Quiz mode -->
+      <div id="quizMode">
+        <div class="choices">
+          <button class="choice-btn" data-index="0"></button>
+          <button class="choice-btn" data-index="1"></button>
+          <button class="choice-btn" data-index="2"></button>
+          <button class="choice-btn" data-index="3"></button>
+        </div>
+        <div id="quizFeedback"></div>
+      </div>
+
+      <!-- Car Jump mode -->
+      <div id="carMode">
+        <canvas id="carCanvas"></canvas>
+        <div class="car-hint">
+          読み＋意味に合う漢字に「ぶつかる」と正解！<br />
+          まちがった漢字は「タップしてジャンプ」でさけよう。
         </div>
       </div>
     </div>
 
-    <div class="quiz-area">
-      <div class="hint-text" id="hintText">
-        「スタート」を押してゲーム開始！<br>
-        よみと意味を見て、正しい漢字を選ぼう。
-      </div>
-      <div class="reading" id="readingText">—</div>
-      <div class="meaning" id="meaningText">—</div>
-
-      <div class="choices">
-        <button class="choice-btn" data-index="0"></button>
-        <button class="choice-btn" data-index="1"></button>
-        <button class="choice-btn" data-index="2"></button>
-        <button class="choice-btn" data-index="3"></button>
-      </div>
-
-      <div class="feedback" id="feedback"></div>
-    </div>
-
-    <div class="draw-area">
-      <div class="draw-header">
-        <span>書くれんしゅう（指でなぞってね）</span>
-        <div>
-          お手本: <span id="modelKanji" class="draw-kanji">漢</span>
-          <button id="clearBtn" class="clear-btn">けす</button>
-        </div>
-      </div>
-      <canvas id="drawCanvas"></canvas>
-    </div>
-
-    <div class="controls">
-      <button id="startBtn" class="start-btn">スタート / リスタート</button>
-      <div class="hint-bottom">
-        iPhone：答えのボタンをタップ、下の白いところで漢字を書いてみよう。<br/>
-        スコアでランクが決まるよ！
+    <div class="bottom-controls">
+      <button id="startBtn">スタート / リスタート</button>
+      <div class="bottom-hint">
+        iPhone: 画面タップでジャンプ（車モード） / ボタンタップで答え（カードクイズ）。
       </div>
     </div>
   </div>
 
   <script>
-    // --- Kanji data sets (can extend later) ---
+    // ---- Kanji datasets ----
     const kanjiSets = {
-      easy: [
+      g12: [
         { kanji: '水', reading: 'みず', meaning: 'water' },
         { kanji: '火', reading: 'ひ', meaning: 'fire' },
         { kanji: '木', reading: 'き', meaning: 'tree' },
@@ -310,23 +293,47 @@
         { kanji: '口', reading: 'くち', meaning: 'mouth' },
         { kanji: '目', reading: 'め', meaning: 'eye' },
         { kanji: '耳', reading: 'みみ', meaning: 'ear' },
-        { kanji: '手', reading: 'て', meaning: 'hand' }
+        { kanji: '手', reading: 'て', meaning: 'hand' },
+        { kanji: '足', reading: 'あし', meaning: 'foot / leg' },
+        { kanji: '犬', reading: 'いぬ', meaning: 'dog' },
+        { kanji: '猫', reading: 'ねこ', meaning: 'cat' }
       ],
-      basic: [
-        { kanji: '日', reading: 'ひ / にち', meaning: 'day / sun' },
-        { kanji: '月', reading: 'つき / げつ', meaning: 'moon / month' },
-        { kanji: '田', reading: 'た', meaning: 'rice field' },
-        { kanji: '人', reading: 'ひと', meaning: 'person' },
-        { kanji: '大', reading: 'おお(きい)', meaning: 'big' },
-        { kanji: '小', reading: 'ちい(さい)', meaning: 'small' },
-        { kanji: '上', reading: 'うえ', meaning: 'up / above' },
-        { kanji: '下', reading: 'した', meaning: 'down / below' },
-        { kanji: '中', reading: 'なか', meaning: 'inside / middle' },
-        { kanji: '左', reading: 'ひだり', meaning: 'left' },
-        { kanji: '右', reading: 'みぎ', meaning: 'right' },
-        { kanji: '校', reading: 'こう', meaning: 'school' },
-        { kanji: '先', reading: 'さき / せん', meaning: 'ahead / previous' }
+      // Grade 3 example kanji
+      g3: [
+        { kanji: '海', reading: 'うみ', meaning: 'sea' },
+        { kanji: '空', reading: 'そら / くう', meaning: 'sky / empty' },
+        { kanji: '森', reading: 'もり', meaning: 'forest' },
+        { kanji: '草', reading: 'くさ', meaning: 'grass' },
+        { kanji: '家', reading: 'いえ / か', meaning: 'house' },
+        { kanji: '町', reading: 'まち', meaning: 'town' },
+        { kanji: '駅', reading: 'えき', meaning: 'station' },
+        { kanji: '歌', reading: 'うた / か', meaning: 'song' },
+        { kanji: '茶', reading: 'ちゃ', meaning: 'tea' },
+        { kanji: '牛', reading: 'うし', meaning: 'cow' },
+        { kanji: '馬', reading: 'うま', meaning: 'horse' },
+        { kanji: '魚', reading: 'さかな', meaning: 'fish' },
+        { kanji: '朝', reading: 'あさ', meaning: 'morning' },
+        { kanji: '昼', reading: 'ひる', meaning: 'noon / daytime' },
+        { kanji: '夜', reading: 'よる', meaning: 'night' }
       ],
+      // Grade 4 example kanji
+      g4: [
+        { kanji: '市', reading: 'し', meaning: 'city / market' },
+        { kanji: '区', reading: 'く', meaning: 'ward / district' },
+        { kanji: '県', reading: 'けん', meaning: 'prefecture' },
+        { kanji: '都', reading: 'と / みやこ', meaning: 'capital / metropolis' },
+        { kanji: '旅', reading: 'たび / りょ', meaning: 'trip / travel' },
+        { kanji: '荷', reading: 'に / か', meaning: 'luggage / load' },
+        { kanji: '港', reading: 'みなと / こう', meaning: 'harbor / port' },
+        { kanji: '庭', reading: 'にわ', meaning: 'garden' },
+        { kanji: '鉄', reading: 'てつ', meaning: 'iron / railway' },
+        { kanji: '運', reading: 'うん', meaning: 'carry / luck' },
+        { kanji: '説', reading: 'せつ / と(く)', meaning: 'explain / theory' },
+        { kanji: '開', reading: 'ひら(く) / かい', meaning: 'open' },
+        { kanji: '閉', reading: 'と(じる) / へい', meaning: 'close' },
+        { kanji: '問題', reading: 'もんだい', meaning: 'problem / question' }
+      ],
+      // Simple N5 subset
       n5: [
         { kanji: '学', reading: 'まな(ぶ) / がく', meaning: 'study / learning' },
         { kanji: '生', reading: 'せい / い(きる)', meaning: 'life / birth' },
@@ -339,298 +346,418 @@
         { kanji: '飲', reading: 'の(む)', meaning: 'drink' },
         { kanji: '話', reading: 'はな(す) / わ', meaning: 'talk / speak' },
         { kanji: '書', reading: 'か(く)', meaning: 'write' },
-        { kanji: '読', reading: 'よ(む)', meaning: 'read' }
+        { kanji: '読', reading: 'よ(む)', meaning: 'read' },
+        { kanji: '時', reading: 'とき / じ', meaning: 'time / hour' },
+        { kanji: '間', reading: 'あいだ / かん', meaning: 'interval / between' }
       ]
     };
 
-    // --- DOM elements ---
+    // ---- Helpers / shared state ----
     const levelSelect = document.getElementById('levelSelect');
     const timeSpan = document.getElementById('time');
     const scoreSpan = document.getElementById('score');
-    const streakSpan = document.getElementById('streak');
     const readingText = document.getElementById('readingText');
     const meaningText = document.getElementById('meaningText');
-    const feedback = document.getElementById('feedback');
-    const hintText = document.getElementById('hintText');
     const startBtn = document.getElementById('startBtn');
+    const modeQuizBtn = document.getElementById('modeQuizBtn');
+    const modeCarBtn = document.getElementById('modeCarBtn');
+
+    const quizModeDiv = document.getElementById('quizMode');
+    const carModeDiv = document.getElementById('carMode');
+
+    const quizFeedback = document.getElementById('quizFeedback');
     const choiceButtons = Array.from(document.querySelectorAll('.choice-btn'));
-    const modelKanji = document.getElementById('modelKanji');
 
-    const drawCanvas = document.getElementById('drawCanvas');
-    const clearBtn = document.getElementById('clearBtn');
-    const dctx = drawCanvas.getContext('2d');
+    const carCanvas = document.getElementById('carCanvas');
+    const carCtx = carCanvas.getContext('2d');
 
-    // --- Resize drawing canvas to container ---
-    function resizeDrawCanvas() {
-      const rect = drawCanvas.getBoundingClientRect();
-      drawCanvas.width = rect.width;
-      drawCanvas.height = rect.height;
-      clearDrawing();
-    }
-    window.addEventListener('resize', resizeDrawCanvas);
-    resizeDrawCanvas();
-
-    // --- Game state ---
-    let currentQuestion = null;
+    let currentMode = 'quiz'; // 'quiz' or 'car'
+    let gameRunning = false;
     let timerId = null;
     let timeLeft = 60;
     let score = 0;
-    let streak = 0;
-    let bestStreak = 0;
-    let gameRunning = false;
 
-    // --- Simple sound engine (Web Audio API) ---
-    let audioCtx = null;
-    function getAudioCtx() {
-      if (!audioCtx) {
-        const AC = window.AudioContext || window.webkitAudioContext;
-        if (AC) {
-          audioCtx = new AC();
-        }
-      }
-      return audioCtx;
-    }
+    let currentQuestion = null; // {kanji, reading, meaning, choices[]}
 
-    function playBeep(type) {
-      const ctx = getAudioCtx();
-      if (!ctx) return; // no audio support
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-
-      if (type === 'start') {
-        osc.frequency.value = 700;
-        gain.gain.value = 0.12;
-      } else if (type === 'correct') {
-        osc.frequency.value = 880;
-        gain.gain.value = 0.15;
-      } else if (type === 'wrong') {
-        osc.frequency.value = 200;
-        gain.gain.value = 0.18;
-      } else {
-        osc.frequency.value = 440;
-        gain.gain.value = 0.1;
-      }
-
-      osc.type = 'sine';
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      const now = ctx.currentTime;
-      osc.start(now);
-      osc.stop(now + 0.18);
-      gain.gain.setTargetAtTime(0, now + 0.05, 0.08);
-    }
-
-    // --- Helpers ---
     function getCurrentSet() {
-      return kanjiSets[levelSelect.value] || kanjiSets.easy;
+      return kanjiSets[levelSelect.value] || kanjiSets.g12;
     }
 
     function randomFromArray(arr) {
       return arr[Math.floor(Math.random() * arr.length)];
     }
 
-    function generateQuestion() {
+    function makeQuestion() {
       const set = getCurrentSet();
+      if (!set || set.length === 0) return null;
+
       const correct = randomFromArray(set);
-      currentQuestion = correct;
-
-      readingText.textContent = correct.reading;
-      meaningText.textContent = correct.meaning;
-      modelKanji.textContent = correct.kanji;
-
-      // Prepare kanji choices
       const allKanji = set.map(k => k.kanji);
       const choices = new Set();
       choices.add(correct.kanji);
 
-      while (choices.size < 4) {
+      while (choices.size < 4 && choices.size < allKanji.length) {
         choices.add(randomFromArray(allKanji));
       }
 
       const choiceArray = Array.from(choices);
-      // Shuffle
+      // Simple shuffle
       for (let i = choiceArray.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [choiceArray[i], choiceArray[j]] = [choiceArray[j], choiceArray[i]];
       }
 
-      choiceButtons.forEach((btn, idx) => {
-        btn.textContent = choiceArray[idx];
-        btn.classList.remove('correct-show', 'wrong-show');
-        btn.disabled = !gameRunning;
-      });
-
-      feedback.textContent = '';
-      feedback.classList.remove('flash-good', 'flash-bad');
-      hintText.textContent = 'よみと意味から正しい漢字をえらぼう！';
+      return {
+        kanji: correct.kanji,
+        reading: correct.reading,
+        meaning: correct.meaning,
+        choices: choiceArray
+      };
     }
 
-    function updateStreakDisplay() {
-      streakSpan.textContent = streak;
-    }
-
-    function startGame() {
-      gameRunning = true;
-      timeLeft = 60;
-      score = 0;
-      streak = 0;
-      updateStreakDisplay();
-      timeSpan.textContent = timeLeft;
-      scoreSpan.textContent = score;
-      feedback.textContent = '';
-      feedback.classList.remove('flash-good', 'flash-bad');
-      hintText.textContent = 'がんばって！ 60秒でできるだけたくさん正解しよう💪';
-
-      playBeep('start');
-
-      if (timerId) clearInterval(timerId);
-      timerId = setInterval(() => {
-        timeLeft--;
-        timeSpan.textContent = timeLeft;
-        if (timeLeft <= 0) {
-          endGame();
-        }
-      }, 1000);
-
-      generateQuestion();
-    }
-
-    function endGame() {
+    function resetCommonState() {
       gameRunning = false;
       if (timerId) {
         clearInterval(timerId);
         timerId = null;
       }
-      choiceButtons.forEach(btn => btn.disabled = true);
-
-      // rank by score
-      let rank = '';
-      if (score >= 25) {
-        rank = '神レベル！すごい👏';
-      } else if (score >= 15) {
-        rank = 'とてもいい！その調子✨';
-      } else if (score >= 8) {
-        rank = 'いい感じ！もっと練習しよう😊';
-      } else {
-        rank = 'まだこれから！少しずつ覚えよう💡';
-      }
-
-      feedback.textContent = `おわり！ スコア: ${score} / 連続正解最大: ${bestStreak}`;
-      alert(`ゲーム終了！\nスコア: ${score}\n連続正解最大: ${bestStreak}\n\nランク: ${rank}`);
-      hintText.textContent = 'もう一度やるときは「スタート」をタップしてね。';
+      timeLeft = 60;
+      timeSpan.textContent = timeLeft;
+      score = 0;
+      scoreSpan.textContent = score;
+      currentQuestion = null;
+      readingText.textContent = '—';
+      meaningText.textContent = '「スタート」でゲーム開始';
     }
 
-    function showFeedback(text, isCorrect) {
-      feedback.textContent = text;
-      feedback.classList.remove('flash-good', 'flash-bad');
-      // force reflow for animation reset
-      void feedback.offsetWidth;
-      feedback.classList.add(isCorrect ? 'flash-good' : 'flash-bad');
+    // ---- Quiz Mode (tap buttons) ----
+    function setupQuizQuestion() {
+      const q = makeQuestion();
+      if (!q) return;
+      currentQuestion = q;
+
+      readingText.textContent = q.reading;
+      meaningText.textContent = q.meaning;
+
+      quizFeedback.textContent = '';
+      choiceButtons.forEach((btn, idx) => {
+        btn.textContent = q.choices[idx] || '';
+        btn.classList.remove('correct-show', 'wrong-show');
+        btn.disabled = !gameRunning;
+      });
     }
 
-    function handleChoice(btn) {
-      if (!gameRunning || !currentQuestion) return;
-
+    function handleQuizChoice(btn) {
+      if (!gameRunning || currentMode !== 'quiz' || !currentQuestion) return;
       const chosen = btn.textContent;
+
       choiceButtons.forEach(b => b.classList.remove('correct-show', 'wrong-show'));
 
       if (chosen === currentQuestion.kanji) {
         score++;
         scoreSpan.textContent = score;
-        streak++;
-        if (streak > bestStreak) bestStreak = streak;
-        updateStreakDisplay();
+        quizFeedback.textContent = '✅ 正解！';
         btn.classList.add('correct-show');
-        showFeedback('✅ 正解！', true);
-        playBeep('correct');
       } else {
-        streak = 0;
-        updateStreakDisplay();
+        quizFeedback.textContent = `❌ ざんねん… 正解は「${currentQuestion.kanji}」`;
         btn.classList.add('wrong-show');
         const correctBtn = choiceButtons.find(
           b => b.textContent === currentQuestion.kanji
         );
         if (correctBtn) correctBtn.classList.add('correct-show');
-        showFeedback(`❌ ざんねん… 正解は「${currentQuestion.kanji}」`, false);
-        playBeep('wrong');
       }
 
-      // Next question after short delay
       setTimeout(() => {
-        if (gameRunning) generateQuestion();
-      }, 650);
+        if (gameRunning && currentMode === 'quiz') {
+          setupQuizQuestion();
+        }
+      }, 600);
     }
 
-    // --- Answer buttons (pointer events work on touch + mouse) ---
     choiceButtons.forEach(btn => {
-      btn.addEventListener('pointerdown', (e) => {
+      btn.addEventListener('click', () => handleQuizChoice(btn));
+      btn.addEventListener('touchstart', e => {
         e.preventDefault();
-        handleChoice(btn);
-      });
+        handleQuizChoice(btn);
+      }, { passive: false });
     });
 
-    // --- Start button (fixed, works on iPhone SE) ---
-    startBtn.addEventListener('pointerdown', (e) => {
+    // ---- Car Jump Mode ----
+    let carWidth = 40;
+    let carHeight = 24;
+    let carX = 50;
+    let carY = 0;
+    let carVy = 0;
+    let gravity = 900;  // px/s^2
+    let jumpStrength = -420; // px/s
+    let groundY = 0;
+
+    let obstacles = []; // {x,y,w,h,kanji,isCorrect}
+    let carSpeed = 180; // px/s base
+    let lastCarTime = 0;
+    let questionHandled = false;
+
+    function resizeCarCanvas() {
+      const rect = carCanvas.getBoundingClientRect();
+      carCanvas.width = rect.width;
+      carCanvas.height = rect.height;
+      groundY = carCanvas.height - 40;
+    }
+    window.addEventListener('resize', resizeCarCanvas);
+    resizeCarCanvas();
+
+    function setupCarQuestion() {
+      const q = makeQuestion();
+      if (!q) return;
+      currentQuestion = q;
+      readingText.textContent = q.reading;
+      meaningText.textContent = q.meaning;
+
+      // create obstacles with the choices
+      obstacles = [];
+      const baseX = carCanvas.width + 40;
+      const gap = 130;
+      const w = 60;
+      const h = 40;
+      let x = baseX;
+
+      q.choices.forEach(k => {
+        obstacles.push({
+          x,
+          y: groundY - h,
+          w,
+          h,
+          kanji: k,
+          isCorrect: (k === q.kanji)
+        });
+        x += gap;
+      });
+
+      questionHandled = false;
+    }
+
+    function resetCarState() {
+      resizeCarCanvas();
+      carX = 60;
+      carY = groundY - carHeight;
+      carVy = 0;
+      carSpeed = 180;
+      lastCarTime = performance.now();
+      setupCarQuestion();
+    }
+
+    function carJump() {
+      if (!gameRunning || currentMode !== 'car') return;
+      // Only jump when "on ground"
+      if (carY >= groundY - carHeight - 1) {
+        carVy = jumpStrength;
+      }
+    }
+
+    carCanvas.addEventListener('mousedown', carJump);
+    carCanvas.addEventListener('touchstart', e => {
+      e.preventDefault();
+      carJump();
+    }, { passive: false });
+
+    // Also allow whole screen tap to jump in car mode
+    document.body.addEventListener('touchstart', e => {
+      if (currentMode === 'car' && gameRunning) {
+        // avoid double-calling from canvas event
+        if (e.target !== carCanvas) {
+          e.preventDefault();
+          carJump();
+        }
+      }
+    }, { passive: false });
+
+    document.body.addEventListener('mousedown', e => {
+      if (currentMode === 'car' && gameRunning && e.target !== carCanvas) {
+        carJump();
+      }
+    });
+
+    function carLoop(timestamp) {
+      if (!gameRunning || currentMode !== 'car') return;
+
+      const dt = (timestamp - lastCarTime) / 1000;
+      lastCarTime = timestamp;
+
+      // Increase speed slowly over time
+      carSpeed += dt * 5;
+
+      // Update physics
+      carVy += gravity * dt;
+      carY += carVy * dt;
+
+      if (carY > groundY - carHeight) {
+        carY = groundY - carHeight;
+        carVy = 0;
+      }
+
+      // Move obstacles
+      obstacles.forEach(o => {
+        o.x -= carSpeed * dt;
+      });
+
+      // If all obstacles passed, new question
+      if (obstacles.length > 0 && obstacles.every(o => o.x + o.w < 0)) {
+        setupCarQuestion();
+      }
+
+      // Collision
+      if (!questionHandled) {
+        for (const o of obstacles) {
+          const carLeft = carX;
+          const carRight = carX + carWidth;
+          const carTop = carY;
+          const carBottom = carY + carHeight;
+
+          const obsLeft = o.x;
+          const obsRight = o.x + o.w;
+          const obsTop = o.y;
+          const obsBottom = o.y + o.h;
+
+          const overlap = carLeft < obsRight &&
+                          carRight > obsLeft &&
+                          carTop < obsBottom &&
+                          carBottom > obsTop;
+
+          if (overlap) {
+            questionHandled = true;
+            if (o.isCorrect) {
+              // Correct collision
+              score++;
+              scoreSpan.textContent = score;
+              // Load next question right away
+              setupCarQuestion();
+            } else {
+              // Wrong collision -> game over
+              endGame('car');
+              return;
+            }
+            break;
+          }
+        }
+      }
+
+      // Draw
+      carCtx.clearRect(0, 0, carCanvas.width, carCanvas.height);
+
+      // background ground
+      carCtx.fillStyle = '#1a1a30';
+      carCtx.fillRect(0, groundY, carCanvas.width, carCanvas.height - groundY);
+
+      // car
+      carCtx.fillStyle = '#0a84ff';
+      carCtx.fillRect(carX, carY, carWidth, carHeight);
+      // wheels
+      carCtx.fillStyle = '#000';
+      carCtx.fillRect(carX + 5, carY + carHeight, 10, 6);
+      carCtx.fillRect(carX + carWidth - 15, carY + carHeight, 10, 6);
+
+      // obstacles with kanji
+      carCtx.fillStyle = '#ff9f0a';
+      carCtx.textAlign = 'center';
+      carCtx.textBaseline = 'middle';
+      carCtx.font = '20px -apple-system, sans-serif';
+
+      obstacles.forEach(o => {
+        carCtx.fillStyle = '#ff9f0a';
+        carCtx.fillRect(o.x, o.y, o.w, o.h);
+        carCtx.fillStyle = '#000';
+        carCtx.fillText(o.kanji, o.x + o.w / 2, o.y + o.h / 2);
+      });
+
+      requestAnimationFrame(carLoop);
+    }
+
+    // ---- Game control (timer, mode, start/end) ----
+    function startGame() {
+      resetCommonState();
+      gameRunning = true;
+      timeSpan.textContent = timeLeft;
+      scoreSpan.textContent = score;
+
+      // Timer
+      timerId = setInterval(() => {
+        timeLeft--;
+        timeSpan.textContent = timeLeft;
+        if (timeLeft <= 0) {
+          endGame(currentMode);
+        }
+      }, 1000);
+
+      if (currentMode === 'quiz') {
+        setupQuizQuestion();
+      } else if (currentMode === 'car') {
+        resetCarState();
+        requestAnimationFrame(timestamp => {
+          lastCarTime = timestamp;
+          carLoop(timestamp);
+        });
+      }
+    }
+
+    function endGame(mode) {
+      if (!gameRunning) return;
+      gameRunning = false;
+      if (timerId) {
+        clearInterval(timerId);
+        timerId = null;
+      }
+      if (mode === 'quiz') {
+        choiceButtons.forEach(btn => btn.disabled = true);
+        quizFeedback.textContent = `おわり！ スコア: ${score}`;
+      }
+      alert(`ゲーム終了！ スコア: ${score}`);
+    }
+
+    function activateMode(newMode) {
+      if (currentMode === newMode) return;
+      // stop current game
+      gameRunning = false;
+      if (timerId) {
+        clearInterval(timerId);
+        timerId = null;
+      }
+      timeLeft = 60;
+      timeSpan.textContent = timeLeft;
+
+      // UI toggle
+      currentMode = newMode;
+      if (newMode === 'quiz') {
+        quizModeDiv.style.display = 'flex';
+        carModeDiv.style.display = 'none';
+        modeQuizBtn.classList.add('active');
+        modeCarBtn.classList.remove('active');
+        quizFeedback.textContent = '';
+        choiceButtons.forEach(btn => {
+          btn.textContent = '';
+          btn.disabled = true;
+          btn.classList.remove('correct-show', 'wrong-show');
+        });
+      } else {
+        quizModeDiv.style.display = 'none';
+        carModeDiv.style.display = 'flex';
+        modeQuizBtn.classList.remove('active');
+        modeCarBtn.classList.add('active');
+      }
+      readingText.textContent = '—';
+      meaningText.textContent = '「スタート」でゲーム開始';
+    }
+
+    modeQuizBtn.addEventListener('click', () => activateMode('quiz'));
+    modeCarBtn.addEventListener('click', () => activateMode('car'));
+
+    startBtn.addEventListener('click', startGame);
+    startBtn.addEventListener('touchstart', e => {
       e.preventDefault();
       startGame();
-    });
+    }, { passive: false });
 
-    // --- Mini writing practice (pointer drawing) ---
-    let drawing = false;
-
-    function getCanvasPos(evt) {
-      const rect = drawCanvas.getBoundingClientRect();
-      const x = evt.clientX - rect.left;
-      const y = evt.clientY - rect.top;
-      return { x, y };
-    }
-
-    function clearDrawing() {
-      dctx.fillStyle = '#ffffff';
-      dctx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
-      dctx.lineJoin = 'round';
-      dctx.lineCap = 'round';
-      dctx.lineWidth = 4;
-      dctx.strokeStyle = '#000000';
-    }
-
-    function startDraw(evt) {
-      evt.preventDefault();
-      drawing = true;
-      const pos = getCanvasPos(evt);
-      dctx.beginPath();
-      dctx.moveTo(pos.x, pos.y);
-    }
-
-    function moveDraw(evt) {
-      if (!drawing) return;
-      evt.preventDefault();
-      const pos = getCanvasPos(evt);
-      dctx.lineTo(pos.x, pos.y);
-      dctx.stroke();
-    }
-
-    function endDraw(evt) {
-      if (!drawing) return;
-      evt && evt.preventDefault();
-      drawing = false;
-      dctx.closePath();
-    }
-
-    drawCanvas.addEventListener('pointerdown', startDraw);
-    drawCanvas.addEventListener('pointermove', moveDraw);
-    drawCanvas.addEventListener('pointerup', endDraw);
-    drawCanvas.addEventListener('pointercancel', endDraw);
-    drawCanvas.addEventListener('pointerleave', endDraw);
-
-    clearBtn.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      clearDrawing();
-    });
-
-    // Initial: disable answer buttons until game starts
-    choiceButtons.forEach(b => b.disabled = true);
+    // Initial state
+    choiceButtons.forEach(btn => btn.disabled = true);
   </script>
 </body>
 </html>
