@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Two Cars – Fraction Quiz Lab</title>
+<title>Two Cars – Simple Random Demo</title>
 <meta name="viewport"
       content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <style>
@@ -17,16 +17,11 @@
     overflow: hidden;
   }
 
-  h1 {
-    margin: 10px;
-    font-size: 20px;
-    text-align: center;
-  }
-
-  .wrapper {
+  .app {
     box-sizing: border-box;
     width: 100%;
     max-width: 520px;
+    height: 100%;
     margin: 0 auto;
     padding: 8px 10px 12px;
     display: flex;
@@ -34,104 +29,35 @@
     gap: 8px;
   }
 
+  .title {
+    text-align: center;
+    font-size: 18px;
+    margin-bottom: 4px;
+  }
+
+  .subtitle {
+    text-align: center;
+    font-size: 12px;
+    opacity: 0.8;
+  }
+
   .card {
     background: #141927;
     border-radius: 12px;
-    padding: 10px;
-    box-shadow: 0 0 12px rgba(0,0,0,0.4);
+    padding: 8px 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.4);
   }
 
-  .top-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 12px;
-    gap: 6px;
-    flex-wrap: wrap;
+  .question {
+    font-size: 13px;
+    line-height: 1.4em;
   }
 
-  .quiz-stats span {
-    margin-right: 8px;
-  }
-
-  .badge {
-    padding: 2px 8px;
-    border-radius: 999px;
-    background: rgba(255,255,255,0.08);
-    font-size: 11px;
-    white-space: nowrap;
-  }
-
-  .answer-mode {
-    margin-top: 6px;
-    font-size: 12px;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .answer-mode .mode-label {
-    opacity: 0.85;
-  }
-
-  .answer-mode label {
-    margin: 0;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 12px;
-  }
-
-  .answer-mode input[type="radio"] {
-    transform: scale(0.9);
-  }
-
-  label {
-    font-size: 14px;
-    margin-top: 6px;
-    display: block;
-  }
-
-  input {
-    width: 100%;
-    padding: 7px;
-    margin-top: 4px;
-    margin-bottom: 6px;
-    border-radius: 8px;
-    border: none;
-    font-size: 15px;
-  }
-
-  .row-inline {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .row-inline input {
-    flex: 1;
-    margin-bottom: 0;
-  }
-
-  .row-inline.small input {
-    width: 40%;
-    flex: 0 0 auto;
-  }
-
-  .unit {
-    font-size: 12px;
-    opacity: 0.85;
-  }
-
-  .or-label {
-    font-size: 12px;
-    opacity: 0.8;
-    text-align: center;
+  .question-line {
     margin: 2px 0;
   }
 
-  .button-row {
+  .buttons {
     margin-top: 6px;
     display: flex;
     flex-wrap: wrap;
@@ -140,7 +66,7 @@
 
   button {
     flex: 1;
-    min-width: 100px;
+    min-width: 110px;
     padding: 8px;
     font-size: 13px;
     border-radius: 999px;
@@ -162,7 +88,7 @@
   }
 
   .results {
-    font-size: 14px;
+    font-size: 13px;
     line-height: 1.4em;
   }
 
@@ -175,12 +101,14 @@
     font-weight: 600;
   }
 
-  .correct-text { color: #30d158; font-weight: 600; }
-  .wrong-text   { color: #ff453a; font-weight: 600; }
+  .small {
+    font-size: 12px;
+    opacity: 0.9;
+  }
 
   /* Simulation */
   .sim-card {
-    margin-top: 2px;
+    flex: 0 0 auto;
   }
 
   .sim-title, .graph-title {
@@ -271,7 +199,7 @@
 
   /* Graph */
   .graph-card {
-    margin-top: 4px;
+    flex: 1;
   }
 
   #graphCanvas {
@@ -295,88 +223,37 @@
 </head>
 <body>
 
-<h1>🚗 Two Cars – Fraction Quiz Lab</h1>
+<div class="app">
+  <div>
+    <div class="title">🚗 Two Cars – Simple Random Demo</div>
+    <div class="subtitle">Tap “New Question” to see a new problem and its solution.</div>
+  </div>
 
-<div class="wrapper">
-
-  <!-- Top info + stats -->
+  <!-- Question + solution -->
   <div class="card">
-    <div class="top-bar">
-      <div class="quiz-stats">
-        <span>Q: <span id="qCount">0</span></span>
-        <span>✔: <span id="qCorrect">0</span></span>
-        <span>Acc: <span id="accuracy">0%</span></span>
-      </div>
-      <div class="badge">Hours & minutes OR fraction (depending on mode)</div>
+    <div class="question">
+      <div class="question-line" id="qText1">Distance A → B: —</div>
+      <div class="question-line" id="qText2">Car 1: —</div>
+      <div class="question-line" id="qText3">Car 2: —</div>
     </div>
 
-    <!-- Mode toggle -->
-    <div class="answer-mode">
-      <span class="mode-label">Mode:</span>
-      <label>
-        <input type="radio" name="answerMode" value="both" checked>
-        Allow both
-      </label>
-      <label>
-        <input type="radio" name="answerMode" value="fraction">
-        Require fraction only
-      </label>
-    </div>
-
-    <!-- Inputs -->
-    <label>Distance A → B (km):</label>
-    <input id="distanceInput" type="number" step="0.1" placeholder="e.g. 120">
-
-    <label>Speed Car 1 (km/h):</label>
-    <input id="speed1Input" type="number" step="0.1" placeholder="e.g. 60">
-
-    <label>Speed Car 2 (km/h):</label>
-    <input id="speed2Input" type="number" step="0.1" placeholder="e.g. 80">
-
-    <!-- Answer as hours & minutes -->
-    <label>Your answer (time until they meet):</label>
-    <div class="row-inline small">
-      <input id="ansHoursInput" type="number" step="1" min="0" placeholder="hours">
-      <span class="unit">h</span>
-      <input id="ansMinutesInput" type="number" step="1" min="0" placeholder="minutes">
-      <span class="unit">min</span>
-    </div>
-
-    <div class="or-label">— or —</div>
-
-    <!-- Or answer as fraction of an hour -->
-    <div class="row-inline small">
-      <input id="ansFracNumInput" type="number" step="1" min="1" placeholder="a">
-      <span class="unit">/</span>
-      <input id="ansFracDenInput" type="number" step="1" min="1" placeholder="b">
-      <span class="unit">hours</span>
-    </div>
-
-    <!-- Buttons -->
-    <div class="button-row">
-      <button id="randomBtn">🎲 Random Question</button>
-      <button id="checkBtn" class="primary">✅ Check & Show Steps</button>
-    </div>
-    <div class="button-row">
-      <button id="hintBtn">💡 Hint (show formula)</button>
-      <button id="voiceBtn">🔊 Explain Question</button>
+    <div class="buttons">
+      <button id="newQBtn" class="primary">🎲 New Question</button>
+      <button id="hintBtn">💡 Hint (formula)</button>
       <button id="graphToggleBtn">📈 Show Graph</button>
     </div>
   </div>
 
-  <!-- Results -->
   <div class="card results">
-    <div class="result-line" id="fractionLine">Fraction: —</div>
-    <div class="result-line" id="reducedFractionLine">Reduced: —</div>
-    <div class="result-line" id="decimalLine">Decimal: —</div>
-    <div class="result-line" id="timeLine">Meeting time: —</div>
-    <div class="result-line" id="positionLine">Position: —</div>
-    <div class="result-line" id="quizFeedback">Quiz: —</div>
+    <div class="result-line" id="fractionLine"  >Fraction: —</div>
+    <div class="result-line" id="decimalLine"   >Decimal: —</div>
+    <div class="result-line" id="timeLine"      >Meeting time: —</div>
+    <div class="result-line small" id="positionLine">Position: —</div>
   </div>
 
   <!-- Simulation -->
   <div class="card sim-card">
-    <div class="sim-title">Simulation – not to scale (cars move until they meet)</div>
+    <div class="sim-title">Simulation – cars move until they meet (not to scale)</div>
     <div class="sim-area" id="simArea">
       <div class="road">
         <div class="road-line"></div>
@@ -397,41 +274,25 @@
   </div>
 
   <div class="hint-bottom">
-    Mode <b>Allow both</b>: hours & minutes or fraction answer is OK.  
-    Mode <b>Require fraction only</b>: only the fraction (a/b h) is checked.  
-    💡 Hint shows only <span class="highlight">t = distance / (v₁ + v₂)</span> (no numbers).
+    Uses formula <span class="highlight">t = distance / (v₁ + v₂)</span>.  
+    Answer shown as <b>hours</b>, <b>minutes</b>, and a simple <b>decimal</b>.
   </div>
-
 </div>
 
 <script>
-  // === DOM references ===
-  const distanceInput = document.getElementById('distanceInput');
-  const speed1Input = document.getElementById('speed1Input');
-  const speed2Input = document.getElementById('speed2Input');
+  // DOM
+  const qText1 = document.getElementById('qText1');
+  const qText2 = document.getElementById('qText2');
+  const qText3 = document.getElementById('qText3');
 
-  const ansHoursInput = document.getElementById('ansHoursInput');
-  const ansMinutesInput = document.getElementById('ansMinutesInput');
-  const ansFracNumInput = document.getElementById('ansFracNumInput');
-  const ansFracDenInput = document.getElementById('ansFracDenInput');
-
-  const randomBtn = document.getElementById('randomBtn');
-  const checkBtn = document.getElementById('checkBtn');
+  const newQBtn = document.getElementById('newQBtn');
   const hintBtn = document.getElementById('hintBtn');
-  const voiceBtn = document.getElementById('voiceBtn');
   const graphToggleBtn = document.getElementById('graphToggleBtn');
-  const graphCard = document.getElementById('graphCard');
 
   const fractionLine = document.getElementById('fractionLine');
-  const reducedFractionLine = document.getElementById('reducedFractionLine');
   const decimalLine = document.getElementById('decimalLine');
   const timeLine = document.getElementById('timeLine');
   const positionLine = document.getElementById('positionLine');
-  const quizFeedback = document.getElementById('quizFeedback');
-
-  const qCountSpan = document.getElementById('qCount');
-  const qCorrectSpan = document.getElementById('qCorrect');
-  const accuracySpan = document.getElementById('accuracy');
 
   const simArea = document.getElementById('simArea');
   const car1El = document.getElementById('car1');
@@ -441,46 +302,26 @@
   const meetMarkerEl = document.getElementById('meetMarker');
   const meetTextEl = document.getElementById('meetText');
 
+  const graphCard = document.getElementById('graphCard');
   const graphCanvas = document.getElementById('graphCanvas');
   const gctx = graphCanvas.getContext('2d');
 
-  // === State ===
-  let totalQuestions = 0;
-  let correctAnswers = 0;
-
+  // State
   let lastDistance = null;
   let lastSpeed1 = null;
   let lastSpeed2 = null;
   let lastTHours = null;
   let lastD1 = null;
 
-  // Animation state
+  // Animation
   let animReq = null;
   let simStartTime = 0;
-  const simDuration = 6000; // ms
+  const simDuration = 5000; // ms
   let roadLeft = 0;
   let roadRight = 0;
   let meetingX = 0;
 
-  // === Helpers ===
-  function gcd(a, b) {
-    a = Math.abs(a);
-    b = Math.abs(b);
-    while (b !== 0) {
-      const t = b;
-      b = a % b;
-      a = t;
-    }
-    return a || 1;
-  }
-
-  function updateQuizStats() {
-    qCountSpan.textContent = totalQuestions;
-    qCorrectSpan.textContent = correctAnswers;
-    const acc = totalQuestions > 0 ? (100 * correctAnswers / totalQuestions) : 0;
-    accuracySpan.textContent = acc.toFixed(0) + '%';
-  }
-
+  // Helpers
   function formatTimeFromHours(tHours) {
     const totalMinutes = tHours * 60;
     const hours = Math.floor(totalMinutes / 60);
@@ -491,12 +332,6 @@
     return `${hours} h ${minutes.toFixed(1)} min`;
   }
 
-  function getAnswerMode() {
-    const el = document.querySelector('input[name="answerMode"]:checked');
-    return el ? el.value : 'both';
-  }
-
-  // === Simulation layout & animation ===
   function stopAnimation() {
     if (animReq !== null) {
       cancelAnimationFrame(animReq);
@@ -571,7 +406,6 @@
     animReq = requestAnimationFrame(step);
   }
 
-  // === Graph ===
   function resizeGraphCanvas() {
     const rect = graphCanvas.getBoundingClientRect();
     graphCanvas.width = rect.width;
@@ -591,7 +425,7 @@
       ctx.fillStyle = '#666';
       ctx.font = '12px -apple-system, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('Solve a problem to see the graph.', w / 2, h / 2);
+      ctx.fillText('Tap "New Question" to see the graph.', w / 2, h / 2);
       return;
     }
 
@@ -711,39 +545,44 @@
     ctx.fillText('Car 2 (B→A)', marginLeft + 6, marginTop + 22);
   }
 
-  // === Core math & display ===
-  function computeAndShow(distance, v1, v2) {
-    const sumSpeed = v1 + v2;
-    const tHours = distance / sumSpeed;
+  // Generate random question and show solution
+  function generateRandomQuestion() {
+    let d, v1, v2, t;
+    while (true) {
+      d = 40 + Math.floor(Math.random() * 17) * 10;      // 40–200 km
+      v1 = 40 + Math.floor(Math.random() * 9) * 10;      // 40–120 km/h
+      v2 = 40 + Math.floor(Math.random() * 9) * 10;
+      t = d / (v1 + v2); // hours
+      if (t >= 0.3 && t <= 3) break;
+    }
+
+    // Question text
+    qText1.textContent = `Distance A → B: ${d} km`;
+    qText2.textContent = `Car 1: ${v1} km/h (A → B)`;
+    qText3.textContent = `Car 2: ${v2} km/h (B → A)`;
+
+    // Solution
+    const tHours = d / (v1 + v2);
     const tMinutes = tHours * 60;
 
-    // Fraction steps
     fractionLine.innerHTML =
-      `t = distance / (v₁ + v₂) = ${distance} / (${v1} + ${v2}) = ` +
-      `<span class="highlight">${distance}/${sumSpeed}</span>`;
-
-    const g = gcd(distance, sumSpeed);
-    const simpleN = distance / g;
-    const simpleD = sumSpeed / g;
-
-    reducedFractionLine.innerHTML =
-      `Reduced: ${distance}/${sumSpeed} = ` +
-      `<span class="highlight">${simpleN}/${simpleD}</span> hours`;
+      `Fraction: <span class="highlight">t = ${d} / (${v1} + ${v2}) = ` +
+      `${d}/${v1 + v2}</span> hours`;
 
     decimalLine.innerHTML =
-      `Decimal: t = ${tHours.toFixed(4)} hours`;
+      `Decimal: t ≈ <span class="highlight">${tHours.toFixed(4)} h</span>`;
 
     timeLine.innerHTML =
-      `Meeting time: <span class="highlight">${tMinutes.toFixed(1)} min</span> ` +
-      `(${formatTimeFromHours(tHours)})`;
+      `Meeting time ≈ <span class="highlight">${formatTimeFromHours(tHours)}</span> ` +
+      `(≈ ${tMinutes.toFixed(1)} min)`;
 
     const d1 = v1 * tHours;
-    const d2 = distance - d1;
-    positionLine.innerHTML =
-      `Position: Car1 → ${d1.toFixed(2)} km, Car2 → ${d2.toFixed(2)} km`;
+    const d2 = d - d1;
+    positionLine.textContent =
+      `Car 1 travels ≈ ${d1.toFixed(1)} km from A, Car 2 ≈ ${d2.toFixed(1)} km from B.`;
 
-    // Save for sim & graph
-    lastDistance = distance;
+    // Save for animation & graph
+    lastDistance = d;
     lastSpeed1 = v1;
     lastSpeed2 = v2;
     lastTHours = tHours;
@@ -751,245 +590,26 @@
 
     startSimulation();
     drawGraph();
-
-    return { tHours, tMinutes, fracNum: simpleN, fracDen: simpleD };
   }
 
-  function checkAnswerAndShow() {
-    const distance = parseFloat(distanceInput.value);
-    const v1 = parseFloat(speed1Input.value);
-    const v2 = parseFloat(speed2Input.value);
-
-    if (!(distance > 0 && v1 > 0 && v2 > 0)) {
-      alert('Please enter positive numbers for distance and both speeds.');
-      return;
-    }
-
-    const mode = getAnswerMode();
-
-    // Read student answers
-    const hVal = ansHoursInput.value.trim();
-    const mVal = ansMinutesInput.value.trim();
-    const fNumVal = ansFracNumInput.value.trim();
-    const fDenVal = ansFracDenInput.value.trim();
-
-    const hasHM = (hVal !== '' || mVal !== '');
-    const hasFrac = (fNumVal !== '' || fDenVal !== '');
-
-    if (mode === 'fraction' && !hasFrac) {
-      alert('Fraction-only mode: please answer as a fraction of an hour (a/b).');
-      return;
-    }
-
-    if (mode === 'both' && !hasHM && !hasFrac) {
-      alert('Please answer either with hours & minutes OR as a fraction of an hour.');
-      return;
-    }
-
-    const { tHours, tMinutes, fracNum, fracDen } =
-      computeAndShow(distance, v1, v2);
-
-    totalQuestions++;
-
-    let isCorrect = false;
-    let hmCorrect = false;
-    let fracCorrect = false;
-
-    // Check hours & minutes (only if mode allows and user gave it)
-    if (mode === 'both' && hasHM) {
-      const h = hVal === '' ? 0 : parseFloat(hVal);
-      const m = mVal === '' ? 0 : parseFloat(mVal);
-
-      if (h >= 0 && m >= 0) {
-        const studentHours = h + m / 60;
-        const diffH = Math.abs(studentHours - tHours);
-        if (diffH <= (0.5 / 60)) { // 0.5 min tolerance
-          hmCorrect = true;
-          isCorrect = true;
-        }
-      }
-    }
-
-    // Check fraction answer (always used in fraction mode; optional in both mode)
-    if (hasFrac) {
-      const fn = parseFloat(fNumVal);
-      const fd = parseFloat(fDenVal);
-      if (fn > 0 && fd > 0) {
-        const gS = gcd(fn, fd);
-        const sNum = fn / gS;
-        const sDen = fd / gS;
-
-        if (Number.isFinite(fracNum) && Number.isFinite(fracDen) &&
-            fracNum > 0 && fracDen > 0) {
-          const gCorrect = gcd(fracNum, fracDen);
-          const cNum = fracNum / gCorrect;
-          const cDen = fracDen / gCorrect;
-          if (sNum === cNum && sDen === cDen) {
-            fracCorrect = true;
-            isCorrect = true;
-          } else {
-            const studentH = fn / fd;
-            const diff = Math.abs(studentH - tHours);
-            if (diff <= (0.5 / 60)) {
-              fracCorrect = true;
-              isCorrect = true;
-            }
-          }
-        } else {
-          const studentH = fn / fd;
-          const diff = Math.abs(studentH - tHours);
-          if (diff <= (0.5 / 60)) {
-            fracCorrect = true;
-            isCorrect = true;
-          }
-        }
-      }
-    }
-
-    // In fraction-only mode, ignore hours/minutes even if they happened to match
-    if (mode === 'fraction') {
-      isCorrect = fracCorrect;
-    }
-
-    if (isCorrect) {
-      correctAnswers++;
-    }
-    updateQuizStats();
-
-    // Build feedback message
-    let feedback = '';
-    if (mode === 'both' && hasHM) {
-      const h = hVal === '' ? 0 : parseFloat(hVal);
-      const m = mVal === '' ? 0 : parseFloat(mVal);
-      feedback += `Your time: ${h} h ${m} min`;
-      if (hmCorrect) feedback += ' ✅';
-      else feedback += ' ❌';
-      feedback += '. ';
-    }
-    if (hasFrac) {
-      const fn = fNumVal === '' ? '?' : fNumVal;
-      const fd = fDenVal === '' ? '?' : fDenVal;
-      feedback += `Your fraction: ${fn}/${fd} h`;
-      if (fracCorrect) feedback += ' ✅';
-      else feedback += ' ❌';
-      feedback += '. ';
-    }
-
-    const base =
-      `Real time: ${tMinutes.toFixed(1)} min ≈ ` +
-      `${formatTimeFromHours(tHours)} = ${fracNum}/${fracDen} h`;
-
-    if (isCorrect) {
-      quizFeedback.innerHTML =
-        `<span class="correct-text">Correct!</span> ${feedback}${base}`;
-    } else {
-      quizFeedback.innerHTML =
-        `<span class="wrong-text">Not quite.</span> ${feedback}${base}`;
-    }
-  }
-
-  // === Random problem generator ===
-  function generateRandomProblem() {
-    let d, v1, v2, t;
-    while (true) {
-      d = 40 + Math.floor(Math.random() * 17) * 10;      // 40–200
-      v1 = 40 + Math.floor(Math.random() * 9) * 10;      // 40–120
-      v2 = 40 + Math.floor(Math.random() * 9) * 10;
-      t = d / (v1 + v2); // hours
-      if (t >= 0.3 && t <= 3) break;
-    }
-
-    distanceInput.value = d.toString();
-    speed1Input.value = v1.toString();
-    speed2Input.value = v2.toString();
-
-    ansHoursInput.value = '';
-    ansMinutesInput.value = '';
-    ansFracNumInput.value = '';
-    ansFracDenInput.value = '';
-
-    fractionLine.textContent = 'Fraction: —';
-    reducedFractionLine.textContent = 'Reduced: —';
+  // Hint: only show generic formula
+  function showHint() {
+    fractionLine.innerHTML =
+      `Hint: <span class="highlight">t = distance / (v₁ + v₂)</span>`;
     decimalLine.textContent = 'Decimal: —';
     timeLine.textContent = 'Meeting time: —';
     positionLine.textContent = 'Position: —';
-    quizFeedback.textContent = 'Quiz: —';
-
-    stopAnimation();
-    layoutPositions();
-    drawGraph();
   }
 
-  // === Hint: show only symbolic formula ===
-  function showHint() {
-    const distance = parseFloat(distanceInput.value);
-    const v1 = parseFloat(speed1Input.value);
-    const v2 = parseFloat(speed2Input.value);
-
-    if (!(distance > 0 && v1 > 0 && v2 > 0)) {
-      alert('Please enter the distance and both speeds first (so the context makes sense).');
-      return;
-    }
-
-    // Only show symbolic formula, no numbers, no answer
-    fractionLine.innerHTML =
-      `Hint: <span class="highlight">t = distance / (v₁ + v₂)</span>`;
-    reducedFractionLine.textContent =
-      'Try to plug in the numbers yourself. Do not compute the final answer yet.';
-    // Keep decimal/time/position as they are (or still "—") until Check is pressed
-  }
-
-  // === Voice explanation ===
-  function speakQuestion() {
-    const distance = parseFloat(distanceInput.value);
-    const v1 = parseFloat(speed1Input.value);
-    const v2 = parseFloat(speed2Input.value);
-
-    if (!(distance > 0 && v1 > 0 && v2 > 0)) {
-      alert('Please enter the distance and both speeds first.');
-      return;
-    }
-
-    if (!('speechSynthesis' in window)) {
-      alert('Speech is not supported in this browser.');
-      return;
-    }
-
-    const text =
-      `Two cars are driving towards each other. ` +
-      `The distance between A and B is ${distance} kilometers. ` +
-      `Car one goes from A to B at ${v1} kilometers per hour. ` +
-      `Car two goes from B to A at ${v2} kilometers per hour. ` +
-      `How long will it take until they meet? ` +
-      `You can answer using hours and minutes, or as a fraction of an hour, ` +
-      `depending on the mode. Remember, the formula is t equals distance divided by v one plus v two.`;
-
-    window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = 'en-US';
-    utter.rate = 1;
-    window.speechSynthesis.speak(utter);
-  }
-
-  // === Event wiring (pointerdown for iPhone) ===
-  randomBtn.addEventListener('pointerdown', (e) => {
+  // Events
+  newQBtn.addEventListener('pointerdown', (e) => {
     e.preventDefault();
-    generateRandomProblem();
-  });
-
-  checkBtn.addEventListener('pointerdown', (e) => {
-    e.preventDefault();
-    checkAnswerAndShow();
+    generateRandomQuestion();
   });
 
   hintBtn.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     showHint();
-  });
-
-  voiceBtn.addEventListener('pointerdown', (e) => {
-    e.preventDefault();
-    speakQuestion();
   });
 
   graphToggleBtn.addEventListener('pointerdown', (e) => {
@@ -1001,8 +621,7 @@
 
   window.addEventListener('load', () => {
     layoutPositions();
-    updateQuizStats();
-    drawGraph();
+    generateRandomQuestion(); // show one immediately
   });
 
   window.addEventListener('resize', () => {
