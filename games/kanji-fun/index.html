@@ -14,7 +14,7 @@
       background: #050510;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color: #fff;
-      overflow: hidden; /* prevent scroll on iPhone */
+      overflow: hidden;
       -webkit-user-select: none;
       user-select: none;
     }
@@ -234,11 +234,13 @@
             <option value="n5">JLPT N5</option>
           </select>
 
-          <span>スピード:</span>
+          <span>スピード (ドロップLv):</span>
           <select id="speedSelect">
-            <option value="easy">🐢 ゆっくり</option>
-            <option value="normal" selected>🚶 ふつう</option>
-            <option value="hard">🚀 はやい</option>
+            <option value="lv1">Lv1 🐢 とてもゆっくり</option>
+            <option value="lv2" selected>Lv2 🚶 ゆっくり</option>
+            <option value="lv3">Lv3 😀 ふつう</option>
+            <option value="lv4">Lv4 ⚡ はやい</option>
+            <option value="lv5">Lv5 💀 めちゃはやい</option>
           </select>
         </div>
         <div class="stats">
@@ -291,15 +293,36 @@
   </div>
 
   <script>
-    // ---- Kanji datasets ----
+    // ---- Kanji datasets (more kanji for each grade) ----
     const kanjiSets = {
       g12: [
+        { kanji: '一', reading: 'いち', meaning: 'one' },
+        { kanji: '二', reading: 'に', meaning: 'two' },
+        { kanji: '三', reading: 'さん', meaning: 'three' },
+        { kanji: '四', reading: 'よん / し', meaning: 'four' },
+        { kanji: '五', reading: 'ご', meaning: 'five' },
+        { kanji: '六', reading: 'ろく', meaning: 'six' },
+        { kanji: '七', reading: 'なな / しち', meaning: 'seven' },
+        { kanji: '八', reading: 'はち', meaning: 'eight' },
+        { kanji: '九', reading: 'きゅう', meaning: 'nine' },
+        { kanji: '十', reading: 'じゅう', meaning: 'ten' },
+
+        { kanji: '大', reading: 'おお(きい)', meaning: 'big' },
+        { kanji: '小', reading: 'ちい(さい)', meaning: 'small' },
+        { kanji: '上', reading: 'うえ', meaning: 'up / above' },
+        { kanji: '下', reading: 'した', meaning: 'down / below' },
+        { kanji: '中', reading: 'なか', meaning: 'inside / middle' },
+
+        { kanji: '日', reading: 'ひ / にち', meaning: 'day / sun' },
+        { kanji: '月', reading: 'つき / げつ', meaning: 'moon / month' },
         { kanji: '水', reading: 'みず', meaning: 'water' },
         { kanji: '火', reading: 'ひ', meaning: 'fire' },
         { kanji: '木', reading: 'き', meaning: 'tree' },
+
         { kanji: '山', reading: 'やま', meaning: 'mountain' },
         { kanji: '川', reading: 'かわ', meaning: 'river' },
         { kanji: '雨', reading: 'あめ', meaning: 'rain' },
+        { kanji: '田', reading: 'た', meaning: 'rice field' },
         { kanji: '口', reading: 'くち', meaning: 'mouth' },
         { kanji: '目', reading: 'め', meaning: 'eye' },
         { kanji: '耳', reading: 'みみ', meaning: 'ear' },
@@ -310,53 +333,112 @@
       ],
       g3: [
         { kanji: '海', reading: 'うみ', meaning: 'sea' },
+        { kanji: '湖', reading: 'みずうみ', meaning: 'lake' },
         { kanji: '空', reading: 'そら / くう', meaning: 'sky / empty' },
+        { kanji: '星', reading: 'ほし', meaning: 'star' },
+        { kanji: '野', reading: 'の', meaning: 'field' },
+
         { kanji: '森', reading: 'もり', meaning: 'forest' },
+        { kanji: '林', reading: 'はやし', meaning: 'woods' },
         { kanji: '草', reading: 'くさ', meaning: 'grass' },
+        { kanji: '花', reading: 'はな', meaning: 'flower' },
+        { kanji: '鳥', reading: 'とり', meaning: 'bird' },
+
         { kanji: '家', reading: 'いえ / か', meaning: 'house' },
+        { kanji: '室', reading: 'しつ', meaning: 'room' },
         { kanji: '町', reading: 'まち', meaning: 'town' },
+        { kanji: '村', reading: 'むら', meaning: 'village' },
+        { kanji: '道', reading: 'みち / どう', meaning: 'road / way' },
+
         { kanji: '駅', reading: 'えき', meaning: 'station' },
+        { kanji: '車', reading: 'くるま', meaning: 'car' },
+        { kanji: '電', reading: 'でん', meaning: 'electricity' },
+        { kanji: '図', reading: 'ず', meaning: 'drawing / diagram' },
+        { kanji: '館', reading: 'かん', meaning: 'building / hall' },
+
         { kanji: '歌', reading: 'うた / か', meaning: 'song' },
+        { kanji: '楽', reading: 'たの(しい) / がく', meaning: 'fun / music' },
         { kanji: '茶', reading: 'ちゃ', meaning: 'tea' },
         { kanji: '牛', reading: 'うし', meaning: 'cow' },
         { kanji: '馬', reading: 'うま', meaning: 'horse' },
         { kanji: '魚', reading: 'さかな', meaning: 'fish' },
+
         { kanji: '朝', reading: 'あさ', meaning: 'morning' },
         { kanji: '昼', reading: 'ひる', meaning: 'noon / daytime' },
-        { kanji: '夜', reading: 'よる', meaning: 'night' }
+        { kanji: '夜', reading: 'よる', meaning: 'night' },
+        { kanji: '曜', reading: 'よう', meaning: 'day of week' }
       ],
       g4: [
         { kanji: '市', reading: 'し', meaning: 'city / market' },
         { kanji: '区', reading: 'く', meaning: 'ward / district' },
+        { kanji: '町', reading: 'まち', meaning: 'town' },
+        { kanji: '村', reading: 'むら', meaning: 'village' },
+
         { kanji: '県', reading: 'けん', meaning: 'prefecture' },
         { kanji: '都', reading: 'と / みやこ', meaning: 'capital / metropolis' },
+        { kanji: '京', reading: 'きょう', meaning: 'capital (Kyoto/Tokyo)' },
+
         { kanji: '旅', reading: 'たび / りょ', meaning: 'trip / travel' },
+        { kanji: '遊', reading: 'あそ(ぶ)', meaning: 'play' },
+        { kanji: '泳', reading: 'およ(ぐ)', meaning: 'swim' },
+
         { kanji: '荷', reading: 'に / か', meaning: 'luggage / load' },
         { kanji: '港', reading: 'みなと / こう', meaning: 'harbor / port' },
+        { kanji: '発', reading: 'はつ / ほつ', meaning: 'departure / emit' },
+
         { kanji: '庭', reading: 'にわ', meaning: 'garden' },
+        { kanji: '橋', reading: 'はし', meaning: 'bridge' },
+        { kanji: '建', reading: 'た(てる)', meaning: 'build' },
+
         { kanji: '鉄', reading: 'てつ', meaning: 'iron / railway' },
         { kanji: '運', reading: 'うん', meaning: 'carry / luck' },
+        { kanji: '急', reading: 'きゅう', meaning: 'rapid / urgent' },
+
         { kanji: '説', reading: 'せつ / と(く)', meaning: 'explain / theory' },
+        { kanji: '問', reading: 'もん', meaning: 'question' },
+        { kanji: '題', reading: 'だい', meaning: 'title / topic' },
+        { kanji: '答', reading: 'こた(え)', meaning: 'answer' },
+
         { kanji: '開', reading: 'ひら(く) / かい', meaning: 'open' },
         { kanji: '閉', reading: 'と(じる) / へい', meaning: 'close' },
-        { kanji: '問', reading: 'もん', meaning: 'question' },
-        { kanji: '題', reading: 'だい', meaning: 'title / topic' }
+        { kanji: '始', reading: 'はじ(める)', meaning: 'start' },
+        { kanji: '終', reading: 'お(わる)', meaning: 'end' }
       ],
       n5: [
         { kanji: '学', reading: 'まな(ぶ) / がく', meaning: 'study / learning' },
         { kanji: '生', reading: 'せい / い(きる)', meaning: 'life / birth' },
         { kanji: '先', reading: 'さき / せん', meaning: 'ahead / previous' },
         { kanji: '校', reading: 'こう', meaning: 'school' },
+        { kanji: '高', reading: 'たか(い)', meaning: 'tall / high' },
+
         { kanji: '行', reading: 'い(く) / こう', meaning: 'go / act' },
         { kanji: '来', reading: 'く(る) / らい', meaning: 'come' },
+        { kanji: '帰', reading: 'かえ(る)', meaning: 'return' },
+
         { kanji: '見', reading: 'み(る) / けん', meaning: 'see / look' },
-        { kanji: '食', reading: 'た(べる) / しょく', meaning: 'eat / food' },
-        { kanji: '飲', reading: 'の(む)', meaning: 'drink' },
+        { kanji: '聞', reading: 'き(く) / ぶん', meaning: 'hear / listen' },
+        { kanji: '言', reading: 'い(う)', meaning: 'say' },
         { kanji: '話', reading: 'はな(す) / わ', meaning: 'talk / speak' },
+
         { kanji: '書', reading: 'か(く)', meaning: 'write' },
         { kanji: '読', reading: 'よ(む)', meaning: 'read' },
+        { kanji: '食', reading: 'た(べる) / しょく', meaning: 'eat / food' },
+        { kanji: '飲', reading: 'の(む)', meaning: 'drink' },
+
+        { kanji: '買', reading: 'か(う)', meaning: 'buy' },
+        { kanji: '売', reading: 'う(る)', meaning: 'sell' },
+        { kanji: '店', reading: 'みせ / てん', meaning: 'shop' },
+
         { kanji: '時', reading: 'とき / じ', meaning: 'time / hour' },
-        { kanji: '間', reading: 'あいだ / かん', meaning: 'interval / between' }
+        { kanji: '分', reading: 'ふん / ぶん', meaning: 'minute / part' },
+        { kanji: '今', reading: 'いま / こん', meaning: 'now' },
+        { kanji: '前', reading: 'まえ', meaning: 'before / front' },
+        { kanji: '後', reading: 'あと / ご', meaning: 'after / behind' },
+
+        { kanji: '何', reading: 'なに / なん', meaning: 'what' },
+        { kanji: '国', reading: 'くに / こく', meaning: 'country' },
+        { kanji: '人', reading: 'ひと / にん', meaning: 'person' },
+        { kanji: '友', reading: 'とも', meaning: 'friend' }
       ]
     };
 
@@ -500,16 +582,17 @@
 
     let obstacles = []; // { lane, y, size, kanji, isCorrect, caught }
 
-    // speed levels
+    // drop speed levels
     const speedConfig = {
-      easy:   { start: 60,  accel: 3 },
-      normal: { start: 90,  accel: 6 },
-      hard:   { start: 130, accel: 10 }
+      lv1: { start: 50,  accel: 2 },   // very slow
+      lv2: { start: 70,  accel: 3.5 }, // slow
+      lv3: { start: 95,  accel: 6 },   // normal
+      lv4: { start: 130, accel: 10 },  // fast
+      lv5: { start: 170, accel: 15 }   // crazy
     };
 
-    let fallSpeed = speedConfig.normal.start;
+    let fallSpeed = speedConfig.lv3.start;
     let lastCarTime = 0;
-    let questionHandled = false;
 
     function resizeCarCanvas() {
       const rect = carCanvas.getBoundingClientRect();
@@ -532,11 +615,10 @@
       meaningText.textContent = q.meaning;
 
       obstacles = [];
-      questionHandled = false;
 
-      // set fallSpeed based on difficulty
-      const spdKey = speedSelect.value || 'normal';
-      const cfg = speedConfig[spdKey] || speedConfig.normal;
+      // set fallSpeed based on speedSelect
+      const spdKey = speedSelect.value || 'lv3';
+      const cfg = speedConfig[spdKey] || speedConfig.lv3;
       fallSpeed = cfg.start;
 
       const correctLane = Math.floor(Math.random() * LANES);
@@ -603,8 +685,8 @@
       const dt = (timestamp - lastCarTime) / 1000;
       lastCarTime = timestamp;
 
-      const spdKey = speedSelect.value || 'normal';
-      const cfg = speedConfig[spdKey] || speedConfig.normal;
+      const spdKey = speedSelect.value || 'lv3';
+      const cfg = speedConfig[spdKey] || speedConfig.lv3;
       fallSpeed += dt * cfg.accel;
 
       obstacles.forEach(o => {
