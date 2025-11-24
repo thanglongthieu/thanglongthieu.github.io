@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>Kanji Fun & Car Slide Game</title>
+  <title>Kanji Fun & 車スライドゲーム</title>
   <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <style>
@@ -65,6 +65,7 @@
       padding: 3px 6px;
       border-radius: 6px;
       border: none;
+      margin-bottom: 2px;
     }
 
     .stats {
@@ -232,6 +233,13 @@
             <option value="g4">小4 漢字</option>
             <option value="n5">JLPT N5</option>
           </select>
+
+          <span>スピード:</span>
+          <select id="speedSelect">
+            <option value="easy">🐢 ゆっくり</option>
+            <option value="normal" selected>🚶 ふつう</option>
+            <option value="hard">🚀 はやい</option>
+          </select>
         </div>
         <div class="stats">
           <span>⏱ <span id="time">60</span>s</span>
@@ -300,7 +308,6 @@
         { kanji: '犬', reading: 'いぬ', meaning: 'dog' },
         { kanji: '猫', reading: 'ねこ', meaning: 'cat' }
       ],
-      // Grade 3 example kanji
       g3: [
         { kanji: '海', reading: 'うみ', meaning: 'sea' },
         { kanji: '空', reading: 'そら / くう', meaning: 'sky / empty' },
@@ -318,7 +325,6 @@
         { kanji: '昼', reading: 'ひる', meaning: 'noon / daytime' },
         { kanji: '夜', reading: 'よる', meaning: 'night' }
       ],
-      // Grade 4 example kanji
       g4: [
         { kanji: '市', reading: 'し', meaning: 'city / market' },
         { kanji: '区', reading: 'く', meaning: 'ward / district' },
@@ -336,7 +342,6 @@
         { kanji: '問', reading: 'もん', meaning: 'question' },
         { kanji: '題', reading: 'だい', meaning: 'title / topic' }
       ],
-      // Simple N5 subset
       n5: [
         { kanji: '学', reading: 'まな(ぶ) / がく', meaning: 'study / learning' },
         { kanji: '生', reading: 'せい / い(きる)', meaning: 'life / birth' },
@@ -357,6 +362,7 @@
 
     // ---- Shared helpers/state ----
     const levelSelect   = document.getElementById('levelSelect');
+    const speedSelect   = document.getElementById('speedSelect');
     const timeSpan      = document.getElementById('time');
     const scoreSpan     = document.getElementById('score');
     const readingText   = document.getElementById('readingText');
@@ -484,7 +490,7 @@
       }, { passive: false });
     });
 
-    // ---- Car Slide Mode (falling kanji from top) ----
+    // ---- Car Slide Mode (falling kanji, 3 lanes) ----
     const LANES = 3;
     let laneWidth = 0;
     let carLane   = 1;  // 0..LANES-1
@@ -493,7 +499,15 @@
     let carH      = 24;
 
     let obstacles = []; // { lane, y, size, kanji, isCorrect, caught }
-    let fallSpeed = 130; // px/s
+
+    // speed levels
+    const speedConfig = {
+      easy:   { start: 60,  accel: 3 },
+      normal: { start: 90,  accel: 6 },
+      hard:   { start: 130, accel: 10 }
+    };
+
+    let fallSpeed = speedConfig.normal.start;
     let lastCarTime = 0;
     let questionHandled = false;
 
@@ -518,13 +532,15 @@
       meaningText.textContent = q.meaning;
 
       obstacles = [];
-      fallSpeed = 130; // reset a bit for each question?
       questionHandled = false;
 
-      // pick lane for correct kanji
+      // set fallSpeed based on difficulty
+      const spdKey = speedSelect.value || 'normal';
+      const cfg = speedConfig[spdKey] || speedConfig.normal;
+      fallSpeed = cfg.start;
+
       const correctLane = Math.floor(Math.random() * LANES);
       const size = 40;
-
       const set = getCurrentSet();
 
       for (let lane = 0; lane < LANES; lane++) {
@@ -534,14 +550,13 @@
           kanji = q.kanji;
           isCorrect = true;
         } else {
-          // random wrong kanji from set
           let candidate;
           do {
             candidate = randomFromArray(set).kanji;
           } while (candidate === q.kanji);
           kanji = candidate;
         }
-        const yStart = -size - Math.random() * 80; // slightly stagger
+        const yStart = -size - Math.random() * 80;
         obstacles.push({
           lane,
           y: yStart,
@@ -556,7 +571,6 @@
     function resetCarState() {
       resizeCarCanvas();
       carLane = 1;
-      fallSpeed = 130;
       lastCarTime = performance.now();
       setupCarQuestion();
     }
@@ -589,25 +603,22 @@
       const dt = (timestamp - lastCarTime) / 1000;
       lastCarTime = timestamp;
 
-      fallSpeed += dt * 10; // slowly faster
+      const spdKey = speedSelect.value || 'normal';
+      const cfg = speedConfig[spdKey] || speedConfig.normal;
+      fallSpeed += dt * cfg.accel;
 
-      // update obstacles
       obstacles.forEach(o => {
         o.y += fallSpeed * dt;
       });
 
-      // collision & miss check
       const carBottomY = carY + carH;
 
       for (const o of obstacles) {
-        // miss: correct falls past bottom and not caught
         if (o.isCorrect && !o.caught && o.y - o.size > carCanvas.height) {
-          // missed the correct one
           endGame('car', '正しい漢字をとりのがしました。');
           return;
         }
 
-        // collision area roughly at carY
         const laneXCenter = laneWidth * o.lane + laneWidth / 2;
         const obsLeft  = laneXCenter - o.size / 2;
         const obsRight = laneXCenter + o.size / 2;
@@ -627,14 +638,11 @@
         if (overlap && !o.caught) {
           o.caught = true;
           if (o.isCorrect) {
-            // Correct catch
             score++;
             scoreSpan.textContent = score;
-            // next question
             setupCarQuestion();
             break;
           } else {
-            // Wrong catch -> game over
             endGame('car', 'まちがった漢字をひろってしまいました。');
             return;
           }
@@ -644,11 +652,9 @@
       // draw
       carCtx.clearRect(0, 0, carCanvas.width, carCanvas.height);
 
-      // draw lane background
       carCtx.fillStyle = '#181832';
       carCtx.fillRect(0, 0, carCanvas.width, carCanvas.height);
 
-      // lane lines
       carCtx.strokeStyle = '#2a2a4a';
       carCtx.lineWidth = 1;
       for (let i = 1; i < LANES; i++) {
@@ -659,16 +665,13 @@
         carCtx.stroke();
       }
 
-      // car
       const carX = laneWidth * carLane + (laneWidth - carW) / 2;
       carCtx.fillStyle = '#0a84ff';
       carCtx.fillRect(carX, carY, carW, carH);
-      // wheels
       carCtx.fillStyle = '#000';
       carCtx.fillRect(carX + 5, carY + carH, 10, 6);
       carCtx.fillRect(carX + carW - 15, carY + carH, 10, 6);
 
-      // falling kanji
       carCtx.textAlign = 'center';
       carCtx.textBaseline = 'middle';
       carCtx.font = '20px -apple-system, sans-serif';
