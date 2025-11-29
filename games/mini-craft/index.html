@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>MiniCraft – Fullscreen iPhone Landscape</title>
+  <title>MiniCraft – Fullscreen + More Mobs + Zoom</title>
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
@@ -188,16 +188,17 @@
       gap: 6px;
     }
     .touch-action-btn {
-      width: 80px;
-      height: 40px;
+      min-width: 80px;
+      height: 34px;
       display: flex;
       align-items: center;
       justify-content: center;
       border-radius: 6px;
       background: #37474f;
       border: 1px solid #607d8b;
-      font-size: 12px;
+      font-size: 11px;
       user-select: none;
+      padding: 0 4px;
     }
     .touch-action-btn:active {
       background: #546e7a;
@@ -244,6 +245,8 @@
       <div class="touch-action-btn" data-action="place">Place</div>
       <div class="touch-action-btn" data-action="remove">Remove</div>
       <div class="touch-action-btn" data-action="hit">Hit</div>
+      <div class="touch-action-btn" data-action="zoomIn">Zoom +</div>
+      <div class="touch-action-btn" data-action="zoomOut">Zoom −</div>
     </div>
   </div>
 
@@ -257,8 +260,8 @@
       <div id="inventoryList"></div>
     </div>
     <div id="help">
-      PC: WASD/Arrows move, Space = Place, X = Remove, Z = Hit mob, 1=Wall, 2/3/4 = quick furniture.  
-      Mobile: Rotate to landscape → D-pad + Place / Remove / Hit.
+      PC: WASD/Arrows move, Space = Place, X = Remove, Z = Hit, +/= Zoom In, − Zoom Out, 1=Wall, 2/3/4 = quick furniture.  
+      Mobile: Landscape → D-pad + Place / Remove / Hit / Zoom.
     </div>
     <div id="saveLoadButtons">
       <button id="saveBtn">💾 Save World</button>
@@ -270,8 +273,12 @@
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
 
-    const TILE_SIZE = 32;
-    let VIEW_W = 25; // will be recalculated
+    // ZOOM: tile size can change
+    let TILE_SIZE = 32;
+    const MIN_TILE_SIZE = 16;
+    const MAX_TILE_SIZE = 64;
+
+    let VIEW_W = 25; // recalculated from canvas + TILE_SIZE
     let VIEW_H = 15;
 
     // Big world
@@ -411,7 +418,7 @@
     };
 
     let selectedBlockId = WALL_ID;
-    const SAVE_KEY = "minicraft_biomes_portals_houses_mobHP_fullscreen_v1";
+    const SAVE_KEY = "minicraft_biomes_portals_houses_mobHP_zoom_v1";
 
     // -------- MOBS (with HP) --------
     const mobs = [];
@@ -460,7 +467,7 @@
 
     function initMobs() {
       mobs.length = 0;
-      const mobCount = 15;
+      const mobCount = 40; // MORE MOBS
       for (let i = 0; i < mobCount; i++) {
         addRandomMob(i);
       }
@@ -503,7 +510,7 @@
         const py = (mob.y - cameraY) * TILE_SIZE;
         const mobType = MOB_TYPES[mob.typeIndex] || MOB_TYPES[0];
 
-        ctx.font = "22px system-ui";
+        ctx.font = Math.floor(TILE_SIZE * 0.7) + "px system-ui";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(mobType.emoji, px + TILE_SIZE / 2, py + TILE_SIZE / 2 + 2);
@@ -749,9 +756,21 @@
 
     window.addEventListener("resize", resizeCanvas);
     window.addEventListener("orientationchange", () => {
-      // give iOS a moment to settle toolbar size
       setTimeout(resizeCanvas, 400);
     });
+
+    // -------- ZOOM --------
+    function changeZoom(direction) {
+      const oldSize = TILE_SIZE;
+      if (direction > 0) {
+        TILE_SIZE = Math.min(MAX_TILE_SIZE, TILE_SIZE + 8);
+      } else {
+        TILE_SIZE = Math.max(MIN_TILE_SIZE, TILE_SIZE - 8);
+      }
+      if (TILE_SIZE === oldSize) return;
+      updateViewSize();
+      updateCamera();
+    }
 
     // -------- WALKABILITY --------
     function isWalkableBase(x, y) {
@@ -813,7 +832,7 @@
         ctx.strokeRect(px + 4, py + 4, TILE_SIZE - 8, TILE_SIZE - 8);
 
         if (block.emoji) {
-          ctx.font = "18px system-ui";
+          ctx.font = Math.floor(TILE_SIZE * 0.6) + "px system-ui";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           ctx.fillStyle = "#ffffff";
@@ -831,14 +850,14 @@
       const py = screenY * TILE_SIZE;
 
       ctx.fillStyle = "#2196f3";
-      ctx.fillRect(px + 8, py + 6, TILE_SIZE - 16, TILE_SIZE - 10);
+      ctx.fillRect(px + TILE_SIZE * 0.25, py + TILE_SIZE * 0.2, TILE_SIZE * 0.5, TILE_SIZE * 0.5);
 
       ctx.fillStyle = "#ffcc80";
-      ctx.fillRect(px + 10, py, TILE_SIZE - 20, TILE_SIZE / 2 - 2);
+      ctx.fillRect(px + TILE_SIZE * 0.3, py + TILE_SIZE * 0.02, TILE_SIZE * 0.4, TILE_SIZE * 0.45);
 
       ctx.fillStyle = "#000";
-      ctx.fillRect(px + 13, py + 6, 2, 2);
-      ctx.fillRect(px + TILE_SIZE - 15, py + 6, 2, 2);
+      ctx.fillRect(px + TILE_SIZE * 0.35, py + TILE_SIZE * 0.18, TILE_SIZE * 0.07, TILE_SIZE * 0.07);
+      ctx.fillRect(px + TILE_SIZE * 0.58, py + TILE_SIZE * 0.18, TILE_SIZE * 0.07, TILE_SIZE * 0.07);
 
       const cx = px + TILE_SIZE / 2;
       const cy = py + TILE_SIZE / 2;
@@ -846,7 +865,7 @@
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(cx, cy);
-      ctx.lineTo(cx + player.dirX * 10, cy + player.dirY * 10);
+      ctx.lineTo(cx + player.dirX * (TILE_SIZE * 0.3), cy + player.dirY * (TILE_SIZE * 0.3));
       ctx.stroke();
     }
 
@@ -1075,6 +1094,13 @@
         case "z":
           hitMob();
           break;
+        case "+":
+        case "=":
+          changeZoom(1);
+          break;
+        case "-":
+          changeZoom(-1);
+          break;
         case "1":
           setSelectedBlock(WALL_ID);
           break;
@@ -1141,6 +1167,8 @@
         if (action === "place") placeBlock();
         if (action === "remove") removeBlock();
         if (action === "hit") hitMob();
+        if (action === "zoomIn") changeZoom(1);
+        if (action === "zoomOut") changeZoom(-1);
       });
     });
 
@@ -1160,7 +1188,7 @@
     createInventorySlots();
     setSelectedBlock(WALL_ID);
     filterInventory();
-    resizeCanvas();   // set canvas size & VIEW_W/H before generating world
+    resizeCanvas();   // set canvas size & VIEW_W/H
     initWorld();
     render();
     setInterval(updateMobs, 300);
