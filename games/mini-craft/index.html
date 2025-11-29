@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>MiniCraft – 200+ Furnitures + Unique Icons</title>
+  <title>MiniCraft – 200+ Furnitures + Mobs</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <style>
     html, body {
@@ -266,30 +266,27 @@
     const WORLD_W = Math.floor(canvas.width / TILE_SIZE);
     const WORLD_H = Math.floor(canvas.height / TILE_SIZE);
 
-    // ---------- BIG EMOJI POOL (used to give each item a unique icon) ----------
+    // ---------- BIG EMOJI POOL ----------
     const emojiPool = [
       "🛏️","🪑","🛋️","💡","🪴","📺","📚","💻","🧊","🧰","👕","🧶","🚰","🍳","🎹",
       "🍽️","☕","🍷","📦","🧺","🧴","🧼","🧻","🪥","🚿","🧽","🕯️","🧸","🎮","🎧",
-      "📀","📻","📠","🏮","🪟","🚪","🧱","🧱","🧱","🧱","🎲","♟️","🎯","🏆","🎤",
-      "🎼","🎨","🖼️","🧵","🪡","🧷","🧺","📌","📎","🗂️","🗄️","🪜","🧯","🧹","🪣",
-      "🪜","🧺","🧺","🏺","⏰","⌛","⏳","🧭","💎","🔑","🔒","🔓","🧪","🧫","🧬",
-      "🧴","🧂","🍯","🥫","🍪","🍰","🍓","🍊","🍎","🍇","🍌","🍉","🍍","🥝","🥑",
-      "🍕","🍔","🌭","🍟","🥪","🌮","🍙","🍣","🍤","🍜","🍛","🍚","🥘","🍲","🧂",
+      "📀","📻","📠","🏮","🪟","🚪","🧱","🎲","♟️","🎯","🏆","🎤",
+      "🎼","🎨","🖼️","🧵","🪡","🧷","📌","📎","🗂️","🗄️","🪜","🧯","🧹","🪣",
+      "🏺","⏰","⌛","⏳","🧭","💎","🔑","🔒","🔓","🧪","🧫","🧬",
+      "🍯","🥫","🍪","🍰","🍓","🍊","🍎","🍇","🍌","🍉","🍍","🥝","🥑",
+      "🍕","🍔","🌭","🍟","🥪","🌮","🍙","🍣","🍤","🍜","🍛","🍚","🥘","🍲",
       "🌸","🌼","🌻","🌵","🌴","🌳","🎋","🎍","🍀","🍁","🍂","🍃","🐟","🐠","🐡",
-      "🐱","🐶","🐰","🐹","🦊","🐻","🐼","🐨","🐯","🦁","🐮","🐷","🐸","🐵","🐧",
-      "🦆","🦅","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🦋","🐞","🐢","🐍","🦎","🦂",
       "💠","🔷","🔶","🔺","🔻","⚪","⚫","🔘","🔲","🔳","🟥","🟧","🟨","🟩","🟦",
       "🟪","⬜","⬛","◼️","◻️","▫️","▪️","✳️","✴️","❇️","⭐","🌟","✨","💫","🔥",
-      "💡","🔔","📘","📙","📗","📕","📒","📓","📔","📚","📎","📏","📐","✂️","🖊️"
+      "🔔","📘","📙","📗","📕","📒","📓","📔","📚","📏","📐","✂️","🖊️"
     ];
-    // Enough variety; if blocks > emojis, some may repeat but most will look unique.
 
     // -------- BLOCK DEFINITIONS (200+ furniture) --------
     const BLOCKS = [
       { id: 0, key: "empty", name: "Empty", emoji: "", solid: false }
     ];
 
-    // add wood wall (border, solid, fixed emoji)
+    // add wood wall (border, solid)
     const WALL_ID = BLOCKS.length;
     BLOCKS.push({
       id: WALL_ID,
@@ -325,24 +322,21 @@
       "Corner", "Deluxe", "Simple", "Fancy", "Industrial"
     ];
 
-    // Generate lots of furniture entries
     for (let i = 0; i < furnitureBases.length; i++) {
       for (let j = 0; j < styleNames.length; j++) {
         const base = furnitureBases[i];
         const style = styleNames[j];
         const id = BLOCKS.length;
-        // choose unique-ish emoji from pool
         const emoji = emojiPool[id % emojiPool.length] || "□";
         BLOCKS.push({
           id,
           key: `${base.baseKey}_${style.toLowerCase()}`,
           name: `${style} ${base.baseName}`,
           emoji: emoji,
-          solid: false   // furniture is walkable
+          solid: false
         });
       }
     }
-    // BLOCKS: 1 (empty) + 1 (wall) + 225 furniture = 227 entries
 
     function findBlockId(keyStartsWith) {
       const lower = keyStartsWith.toLowerCase();
@@ -362,7 +356,104 @@
 
     let world = [];
     let selectedBlockId = WALL_ID;
-    const SAVE_KEY = "minicraftFurnitureWorld_v4";
+    const SAVE_KEY = "minicraftFurnitureWorld_withMobs";
+
+    // -------- MOBS (movable animals) --------
+    const mobs = [];
+    const MOB_TYPES = [
+      { name: "Cow",    emoji: "🐄" },
+      { name: "Pig",    emoji: "🐖" },
+      { name: "Sheep",  emoji: "🐑" },
+      { name: "Chicken",emoji: "🐔" },
+      { name: "Cat",    emoji: "🐱" },
+      { name: "Dog",    emoji: "🐶" },
+      { name: "Fox",    emoji: "🦊" },
+      { name: "Panda",  emoji: "🐼" },
+      { name: "Rabbit", emoji: "🐰" },
+      { name: "Parrot", emoji: "🦜" }
+    ];
+
+    function isMobAt(x, y) {
+      return mobs.some(m => m.x === x && m.y === y);
+    }
+
+    function addRandomMob(typeIndex) {
+      let tries = 0;
+      while (tries < 200) {
+        const x = 2 + Math.floor(Math.random() * (WORLD_W - 4));
+        const y = 2 + Math.floor(Math.random() * (WORLD_H - 4));
+        if (!isWalkableBase(x, y)) { tries++; continue; }
+        if (isMobAt(x, y)) { tries++; continue; }
+        if (x === player.x && y === player.y) { tries++; continue; }
+        mobs.push({
+          x,
+          y,
+          typeIndex: typeIndex % MOB_TYPES.length,
+          dirX: 0,
+          dirY: 0
+        });
+        return;
+      }
+    }
+
+    function initMobs() {
+      mobs.length = 0;
+      const mobCount = 12;
+      for (let i = 0; i < mobCount; i++) {
+        addRandomMob(i);
+      }
+    }
+
+    // basic walkability ignoring mobs
+    function isWalkableBase(x, y) {
+      if (x < 0 || y < 0 || x >= WORLD_W || y >= WORLD_H) return false;
+      const tileId = world[y][x];
+      const block = BLOCKS[tileId] || BLOCKS[0];
+      return !block.solid;
+    }
+
+    function updateMobs() {
+      for (const mob of mobs) {
+        // sometimes change direction
+        if (Math.random() < 0.4 || (mob.dirX === 0 && mob.dirY === 0)) {
+          const dirs = [
+            {dx: 1, dy: 0},
+            {dx: -1, dy: 0},
+            {dx: 0, dy: 1},
+            {dx: 0, dy: -1},
+            {dx: 0, dy: 0}
+          ];
+          const choice = dirs[Math.floor(Math.random() * dirs.length)];
+          mob.dirX = choice.dx;
+          mob.dirY = choice.dy;
+        }
+
+        if (mob.dirX === 0 && mob.dirY === 0) continue;
+
+        const nx = mob.x + mob.dirX;
+        const ny = mob.y + mob.dirY;
+
+        if (!isWalkableBase(nx, ny)) continue;
+        if (isMobAt(nx, ny)) continue;
+        if (nx === player.x && ny === player.y) continue;
+
+        mob.x = nx;
+        mob.y = ny;
+      }
+    }
+
+    function drawMobs() {
+      for (const mob of mobs) {
+        const px = mob.x * TILE_SIZE;
+        const py = mob.y * TILE_SIZE;
+        const mobType = MOB_TYPES[mob.typeIndex] || MOB_TYPES[0];
+
+        ctx.font = "22px system-ui";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(mobType.emoji, px + TILE_SIZE / 2, py + TILE_SIZE / 2 + 2);
+      }
+    }
 
     function initWorld() {
       world = [];
@@ -405,6 +496,8 @@
       player.y = hy + Math.floor(hh / 2);
       player.dirX = 0;
       player.dirY = -1;
+
+      initMobs();
     }
 
     // -------- DRAWING --------
@@ -412,7 +505,6 @@
       const px = x * TILE_SIZE;
       const py = y * TILE_SIZE;
 
-      // grass
       ctx.fillStyle = (x + y) % 2 === 0 ? "#5da15d" : "#579957";
       ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
 
@@ -475,6 +567,9 @@
         }
       }
 
+      // draw mobs between tiles and player
+      drawMobs();
+
       const tx = player.x + player.dirX;
       const ty = player.y + player.dirY;
       if (tx >= 0 && ty >= 0 && tx < WORLD_W && ty < WORLD_H) {
@@ -489,10 +584,9 @@
 
     // -------- LOGIC --------
     function isWalkable(x, y) {
-      if (x < 0 || y < 0 || x >= WORLD_W || y >= WORLD_H) return false;
-      const tileId = world[y][x];
-      const block = BLOCKS[tileId] || BLOCKS[0];
-      return !block.solid;
+      if (!isWalkableBase(x, y)) return false;
+      if (isMobAt(x, y)) return false;
+      return true;
     }
 
     function movePlayer(dx, dy) {
@@ -513,6 +607,7 @@
       if (tx < 0 || ty < 0 || tx >= WORLD_W || ty >= WORLD_H) return;
       if (tx === 0 || ty === 0 || tx === WORLD_W - 1 || ty === WORLD_H - 1) return;
       if (tx === player.x && ty === player.y) return;
+      if (isMobAt(tx, ty)) return; // don't place on mobs
       world[ty][tx] = selectedBlockId;
     }
 
@@ -528,7 +623,8 @@
     function saveWorld() {
       const data = {
         world,
-        player: { ...player }
+        player: { ...player },
+        mobs: mobs.map(m => ({ ...m }))
       };
       try {
         localStorage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -559,6 +655,12 @@
           player.y = data.player.y ?? player.y;
           player.dirX = data.player.dirX ?? player.dirX;
           player.dirY = data.player.dirY ?? player.dirY;
+        }
+        mobs.length = 0;
+        if (Array.isArray(data.mobs)) {
+          for (const m of data.mobs) {
+            mobs.push({ ...m });
+          }
         }
         alert("World loaded!");
       } catch (e) {
@@ -736,6 +838,8 @@
     setSelectedBlock(WALL_ID);
     filterInventory();
     render();
+    // mobs move every 300ms
+    setInterval(updateMobs, 300);
   </script>
 </body>
 </html>
