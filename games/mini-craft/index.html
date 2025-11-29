@@ -2,147 +2,139 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Mini-Craft Style Game</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mini-Craft Style Game (Phaser 3)</title>
+  <!-- iPhone 対応用の viewport -->
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+  />
+  <!-- PWA 風フルスクリーン用（ホーム画面から起動したとき） -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
   <style>
     html, body {
       margin: 0;
       padding: 0;
-      overflow: hidden;
-      background: #20232a;
+      width: 100%;
+      height: 100%;
+      overflow: hidden; /* スクロール禁止 */
+      background: #111;
       color: #fff;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
         sans-serif;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -webkit-text-size-adjust: 100%;
     }
 
-    #gameCanvas {
-      display: block;
-      background: #6ec6ff;
-    }
-
-    .ui {
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      padding: 8px 12px;
-      background: rgba(0, 0, 0, 0.5);
-      border-radius: 8px;
-      font-size: 12px;
-      line-height: 1.4;
-    }
-
-    .ui strong {
-      color: #ffeb3b;
-    }
-
-    .toolbar {
-      margin-top: 6px;
-      display: flex;
-      gap: 4px;
-    }
-
-    .slot {
-      width: 30px;
-      height: 30px;
-      border-radius: 4px;
-      border: 2px solid #aaa;
+    /* iPhone のセーフエリア対応（ノッチの部分） */
+    body {
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
       box-sizing: border-box;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      cursor: pointer;
     }
 
-    .slot.selected {
-      border-color: #ffeb3b;
-      box-shadow: 0 0 6px #ffeb3b;
+    #game {
+      width: 100%;
+      height: 100%;
+      touch-action: none; /* 画面スクロールジェスチャー抑制 */
     }
   </style>
 </head>
 <body>
-  <canvas id="gameCanvas"></canvas>
+  <div id="game"></div>
 
-  <div class="ui">
-    <div><strong>Mini-Craft Style</strong></div>
-    <div>Move: WASD / Arrow keys</div>
-    <div>Jump: W / ↑ / Space</div>
-    <div>Break block: Left Click</div>
-    <div>Place block: Right Click or Shift + Left Click</div>
-    <div>Change block type: 1 (Grass), 2 (Dirt), 3 (Stone)</div>
-
-    <div class="toolbar">
-      <div class="slot selected" data-block="1" title="Grass">1</div>
-      <div class="slot" data-block="2" title="Dirt">2</div>
-      <div class="slot" data-block="3" title="Stone">3</div>
-    </div>
-  </div>
+  <!-- Phaser 3 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
 
   <script>
-    // ===== BASIC SETUP =====
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }
-    window.addEventListener("resize", resizeCanvas);
-    resizeCanvas();
-
+    // ====== CONSTANTS ======
     const TILE_SIZE = 32;
-    const WORLD_WIDTH = 80;
+    const WORLD_WIDTH = 100;
     const WORLD_HEIGHT = 40;
 
-    // 0 = 空, 1 = 草, 2 = 土, 3 = 石
-    const BLOCK_COLORS = {
-      0: null,
-      1: "#4caf50",
-      2: "#8d6e63",
-      3: "#9e9e9e",
+    const BLOCK = {
+      AIR: 0,
+      GRASS: 1,
+      DIRT: 2,
+      STONE: 3,
+      WOOD: 4,
+      WATER: 5,
     };
 
-    // ===== WORLD GENERATION =====
-    const world = [];
+    const BLOCK_COLORS = {
+      [BLOCK.AIR]: null,
+      [BLOCK.GRASS]: 0x4caf50,
+      [BLOCK.DIRT]: 0x8d6e63,
+      [BLOCK.STONE]: 0x9e9e9e,
+      [BLOCK.WOOD]: 0x795548,
+      [BLOCK.WATER]: 0x2196f3,
+    };
 
+    const BLOCK_NAMES = {
+      [BLOCK.GRASS]: "Grass",
+      [BLOCK.DIRT]: "Dirt",
+      [BLOCK.STONE]: "Stone",
+      [BLOCK.WOOD]: "Wood",
+      [BLOCK.WATER]: "Water",
+    };
+
+    let world = [];
+
+    // ====== WORLD GENERATION ======
     function generateWorld() {
+      world = [];
       for (let y = 0; y < WORLD_HEIGHT; y++) {
         world[y] = [];
         for (let x = 0; x < WORLD_WIDTH; x++) {
-          // 地面の高さ
-          const groundLevel = 20 + Math.floor(Math.sin(x / 5) * 2);
+          const groundLevel = 20 + Math.floor(Math.sin(x / 6) * 3);
+
           if (y > groundLevel + 4) {
-            world[y][x] = 3; // stone
+            world[y][x] = BLOCK.STONE;
           } else if (y > groundLevel) {
-            world[y][x] = 2; // dirt
+            world[y][x] = BLOCK.DIRT;
           } else if (y === groundLevel) {
-            world[y][x] = 1; // grass
+            world[y][x] = BLOCK.GRASS;
           } else {
-            world[y][x] = 0; // air
+            world[y][x] = BLOCK.AIR;
           }
         }
       }
 
-      // ちょっとだけ木っぽいものを追加
-      for (let i = 5; i < WORLD_WIDTH; i += 15) {
-        const baseY = 18;
-        if (baseY >= 0 && baseY < WORLD_HEIGHT) {
-          for (let t = 0; t < 4; t++) {
-            if (baseY - t >= 0) world[baseY - t][i] = 3; // trunk
+      // Simple lakes
+      for (let lx = 15; lx < 30; lx++) {
+        const gy = 22;
+        for (let y = gy; y < gy + 3; y++) {
+          if (y >= 0 && y < WORLD_HEIGHT) {
+            world[y][lx] = BLOCK.WATER;
           }
-          for (let dy = -5; dy <= -2; dy++) {
-            for (let dx = -2; dx <= 2; dx++) {
-              const xx = i + dx;
-              const yy = baseY + dy;
-              if (
-                xx >= 0 &&
-                xx < WORLD_WIDTH &&
-                yy >= 0 &&
-                yy < WORLD_HEIGHT
-              ) {
-                if (Math.abs(dx) + Math.abs(dy + 3) <= 4) {
-                  world[yy][xx] = 1; // leaves (grass color)
-                }
+        }
+      }
+
+      // Simple trees
+      for (let i = 5; i < WORLD_WIDTH; i += 18) {
+        const trunkX = i;
+        const baseY = 19;
+        for (let t = 0; t < 4; t++) {
+          if (baseY - t >= 0 && baseY - t < WORLD_HEIGHT) {
+            world[baseY - t][trunkX] = BLOCK.WOOD;
+          }
+        }
+        for (let dy = -5; dy <= -2; dy++) {
+          for (let dx = -3; dx <= 3; dx++) {
+            const xx = trunkX + dx;
+            const yy = baseY + dy;
+            if (
+              xx >= 0 &&
+              xx < WORLD_WIDTH &&
+              yy >= 0 &&
+              yy < WORLD_HEIGHT
+            ) {
+              if (Math.abs(dx) + Math.abs(dy + 3) <= 4) {
+                world[yy][xx] = BLOCK.GRASS;
               }
             }
           }
@@ -150,139 +142,27 @@
       }
     }
 
-    generateWorld();
-
-    // ===== PLAYER =====
-    const player = {
-      x: 5,
-      y: 5,
-      width: 0.6, // タイル比
-      height: 0.9,
-      vx: 0,
-      vy: 0,
-      speed: 5,
-      jumpPower: 10,
-      onGround: false,
-    };
-
-    // ==== CAMERA ====
-    const camera = {
-      x: 0,
-      y: 0,
-    };
-
-    function updateCamera() {
-      const halfWidth = canvas.width / 2 / TILE_SIZE;
-      const halfHeight = canvas.height / 2 / TILE_SIZE;
-
-      camera.x = player.x - halfWidth;
-      camera.y = player.y - halfHeight;
-
-      camera.x = Math.max(0, Math.min(camera.x, WORLD_WIDTH - 2 * halfWidth));
-      camera.y = Math.max(0, Math.min(camera.y, WORLD_HEIGHT - 2 * halfHeight));
-    }
-
-    // ===== INPUT =====
-    const keys = {};
-    window.addEventListener("keydown", (e) => {
-      keys[e.key.toLowerCase()] = true;
-
-      // Number keys for block
-      if (e.key === "1" || e.key === "2" || e.key === "3") {
-        selectedBlock = parseInt(e.key, 10);
-        updateToolbarSelection();
-      }
-    });
-    window.addEventListener("keyup", (e) => {
-      keys[e.key.toLowerCase()] = false;
-    });
-
-    // ===== MOUSE / BLOCK EDIT =====
-    let mouseX = 0;
-    let mouseY = 0;
-    let selectedBlock = 1;
-
-    canvas.addEventListener("mousemove", (e) => {
-      const rect = canvas.getBoundingClientRect();
-      mouseX = e.clientX - rect.left;
-      mouseY = e.clientY - rect.top;
-    });
-
-    canvas.addEventListener("contextmenu", (e) => {
-      e.preventDefault(); // disable right-click menu
-    });
-
-    canvas.addEventListener("mousedown", (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-
-      const worldX = Math.floor(camera.x + mx / TILE_SIZE);
-      const worldY = Math.floor(camera.y + my / TILE_SIZE);
-
-      if (
-        worldX < 0 ||
-        worldX >= WORLD_WIDTH ||
-        worldY < 0 ||
-        worldY >= WORLD_HEIGHT
-      ) {
-        return;
-      }
-
-      const isRightClick = e.button === 2;
-      const isShiftLeft =
-        e.button === 0 && (e.shiftKey || keys["shift"]);
-
-      if (isRightClick || isShiftLeft) {
-        // PLACE BLOCK
-        // プレイヤーと重なる場所には置かない
-        if (!isCollidingWithPlayer(worldX, worldY)) {
-          world[worldY][worldX] = selectedBlock;
-        }
-      } else if (e.button === 0) {
-        // LEFT CLICK = BREAK
-        world[worldY][worldX] = 0;
-      }
-    });
-
-    // Toolbar click
-    document.querySelectorAll(".slot").forEach((slot) => {
-      slot.addEventListener("click", () => {
-        selectedBlock = parseInt(slot.dataset.block, 10);
-        updateToolbarSelection();
-      });
-    });
-
-    function updateToolbarSelection() {
-      document.querySelectorAll(".slot").forEach((slot) => {
-        const val = parseInt(slot.dataset.block, 10);
-        slot.classList.toggle("selected", val === selectedBlock);
-      });
-    }
-
-    // ===== PHYSICS & COLLISION =====
-    const GRAVITY = 25;
-    const FRICTION = 0.8;
-    const MAX_FALL_SPEED = 30;
-    const MAX_DELTA = 0.05; // avoid crazy dt
-
+    // ====== COLLISION HELPERS ======
     function tileAt(x, y) {
       if (x < 0 || x >= WORLD_WIDTH || y < 0 || y >= WORLD_HEIGHT) {
-        return 3; // treat outside as solid
+        return BLOCK.STONE; // outside = solid
       }
       return world[y][x];
     }
 
     function isSolid(x, y) {
-      return tileAt(x, y) !== 0;
+      const t = tileAt(x, y);
+      if (t === BLOCK.AIR) return false;
+      if (t === BLOCK.WATER) return false; // water is passable
+      return true;
     }
 
     function rectCollidesWithWorld(px, py, pw, ph) {
-      // Check tiles around
       const left = Math.floor(px);
       const right = Math.floor(px + pw);
       const top = Math.floor(py);
       const bottom = Math.floor(py + ph);
+
       for (let y = top; y <= bottom; y++) {
         for (let x = left; x <= right; x++) {
           if (isSolid(x, y)) return true;
@@ -291,11 +171,12 @@
       return false;
     }
 
-    function isCollidingWithPlayer(tx, ty) {
+    function isCollidingWithPlayer(player, tx, ty) {
       const px = player.x;
       const py = player.y;
       const pw = player.width;
       const ph = player.height;
+
       const tileLeft = tx;
       const tileRight = tx + 1;
       const tileTop = ty;
@@ -314,150 +195,353 @@
       );
     }
 
-    let lastTime = performance.now();
-
-    function gameLoop(now) {
-      const dt = Math.min((now - lastTime) / 1000, MAX_DELTA);
-      lastTime = now;
-
-      update(dt);
-      draw();
-      requestAnimationFrame(gameLoop);
-    }
-
-    function update(dt) {
-      // Input -> velocity
-      let move = 0;
-      if (keys["a"] || keys["arrowleft"]) move -= 1;
-      if (keys["d"] || keys["arrowright"]) move += 1;
-
-      player.vx = move * player.speed;
-
-      // Jump
-      const jumpPressed =
-        keys["w"] || keys["arrowup"] || keys[" "] || keys["space"];
-      if (jumpPressed && player.onGround) {
-        player.vy = -player.jumpPower;
-        player.onGround = false;
+    // ====== SCENE CLASS ======
+    class MiniCraftScene extends Phaser.Scene {
+      constructor() {
+        super("MiniCraftScene");
       }
 
-      // Gravity
-      player.vy += GRAVITY * dt;
-      if (player.vy > MAX_FALL_SPEED) player.vy = MAX_FALL_SPEED;
+      init() {
+        this.player = {
+          x: 5,
+          y: 5,
+          width: 0.7,
+          height: 1.2,
+          vx: 0,
+          vy: 0,
+          speed: 9,
+          jumpPower: 14,
+          onGround: false,
+        };
 
-      // Horizontal move
-      let newX = player.x + player.vx * dt;
-      if (!rectCollidesWithWorld(newX, player.y, player.width, player.height)) {
-        player.x = newX;
-      } else {
-        // stop at wall
-        while (
+        this.selectedBlock = BLOCK.GRASS;
+        this.timeOfDay = 0; // 0..1
+      }
+
+      preload() {}
+
+      create() {
+        generateWorld();
+
+        this.graphics = this.add.graphics();
+
+        // HUD
+        this.hudText = this.add
+          .text(10, 10, "", {
+            fontSize: "14px",
+            fill: "#ffffff",
+          })
+          .setScrollFactor(0);
+
+        this.helpText = this.add
+          .text(
+            10,
+            30,
+            "Move: A/D or ←/→ | Jump: W/↑/Space | Break: Left Click | Place: Right Click or Shift+Click | Block: 1-5",
+            { fontSize: "12px", fill: "#ffeb3b", wordWrap: { width: 320 } }
+          )
+          .setScrollFactor(0);
+
+        // Day/Night overlay
+        this.dayOverlay = this.add
+          .rectangle(0, 0, this.scale.width, this.scale.height, 0x000020, 0)
+          .setOrigin(0, 0)
+          .setScrollFactor(0);
+
+        // Camera bounds
+        this.cameras.main.setBounds(
+          0,
+          0,
+          WORLD_WIDTH * TILE_SIZE,
+          WORLD_HEIGHT * TILE_SIZE
+        );
+
+        // Input
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.keys = this.input.keyboard.addKeys({
+          W: Phaser.Input.Keyboard.KeyCodes.W,
+          A: Phaser.Input.Keyboard.KeyCodes.A,
+          S: Phaser.Input.Keyboard.KeyCodes.S,
+          D: Phaser.Input.Keyboard.KeyCodes.D,
+          SPACE: Phaser.Input.Keyboard.KeyCodes.SPACE,
+          SHIFT: Phaser.Input.Keyboard.KeyCodes.SHIFT,
+        });
+
+        // Number keys for block selection
+        this.input.keyboard.on("keydown", (event) => {
+          switch (event.key) {
+            case "1":
+              this.selectedBlock = BLOCK.GRASS;
+              break;
+            case "2":
+              this.selectedBlock = BLOCK.DIRT;
+              break;
+            case "3":
+              this.selectedBlock = BLOCK.STONE;
+              break;
+            case "4":
+              this.selectedBlock = BLOCK.WOOD;
+              break;
+            case "5":
+              this.selectedBlock = BLOCK.WATER;
+              break;
+          }
+        });
+
+        // Mouse actions
+        this.input.on("pointerdown", (pointer) => {
+          const wx = Math.floor(pointer.worldX / TILE_SIZE);
+          const wy = Math.floor(pointer.worldY / TILE_SIZE);
+
+          if (
+            wx < 0 ||
+            wx >= WORLD_WIDTH ||
+            wy < 0 ||
+            wy >= WORLD_HEIGHT
+          ) {
+            return;
+          }
+
+          const right = pointer.rightButtonDown();
+          const shift = pointer.event && pointer.event.shiftKey;
+
+          if (right || shift) {
+            // Place block
+            if (!isCollidingWithPlayer(this.player, wx, wy)) {
+              world[wy][wx] = this.selectedBlock;
+            }
+          } else {
+            // Break block
+            world[wy][wx] = BLOCK.AIR;
+          }
+        });
+
+        // Resize overlay when game size changes
+        this.scale.on("resize", (gameSize) => {
+          this.dayOverlay.setSize(gameSize.width, gameSize.height);
+        });
+      }
+
+      update(time, delta) {
+        const dt = Math.min(delta / 1000, 0.05);
+        this.handleInput(dt);
+        this.updateCamera();
+        this.updateDayNight(dt);
+        this.drawScene();
+        this.updateHUD();
+      }
+
+      handleInput(dt) {
+        let move = 0;
+        if (this.keys.A.isDown || this.cursors.left.isDown) move -= 1;
+        if (this.keys.D.isDown || this.cursors.right.isDown) move += 1;
+
+        this.player.vx = move * this.player.speed;
+
+        const jumpPressed =
+          this.keys.W.isDown ||
+          this.cursors.up.isDown ||
+          this.keys.SPACE.isDown;
+
+        if (jumpPressed && this.player.onGround) {
+          this.player.vy = -this.player.jumpPower;
+          this.player.onGround = false;
+        }
+
+        // Gravity
+        const GRAVITY = 32;
+        const MAX_FALL_SPEED = 32;
+
+        this.player.vy += GRAVITY * dt;
+        if (this.player.vy > MAX_FALL_SPEED) {
+          this.player.vy = MAX_FALL_SPEED;
+        }
+
+        // Horizontal movement
+        let newX = this.player.x + this.player.vx * dt;
+        if (
           !rectCollidesWithWorld(
-            player.x + Math.sign(player.vx) * 0.01,
-            player.y,
-            player.width,
-            player.height
+            newX,
+            this.player.y,
+            this.player.width,
+            this.player.height
           )
         ) {
-          player.x += Math.sign(player.vx) * 0.01;
+          this.player.x = newX;
+        } else {
+          const sign = Math.sign(this.player.vx);
+          while (
+            !rectCollidesWithWorld(
+              this.player.x + sign * 0.01,
+              this.player.y,
+              this.player.width,
+              this.player.height
+            )
+          ) {
+            this.player.x += sign * 0.01;
+          }
+          this.player.vx = 0;
         }
-        player.vx = 0;
-      }
 
-      // Vertical move
-      let newY = player.y + player.vy * dt;
-      player.onGround = false;
-      if (!rectCollidesWithWorld(player.x, newY, player.width, player.height)) {
-        player.y = newY;
-      } else {
-        // landing or hitting ceiling
-        if (player.vy > 0) {
-          // landing on ground
-          player.onGround = true;
-        }
-        while (
+        // Vertical movement
+        let newY = this.player.y + this.player.vy * dt;
+        this.player.onGround = false;
+
+        if (
           !rectCollidesWithWorld(
-            player.x,
-            player.y + Math.sign(player.vy) * 0.01,
-            player.width,
-            player.height
+            this.player.x,
+            newY,
+            this.player.width,
+            this.player.height
           )
         ) {
-          player.y += Math.sign(player.vy) * 0.01;
-        }
-        player.vy = 0;
-      }
-
-      updateCamera();
-    }
-
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Sky gradient
-      const skyGradient = ctx.createLinearGradient(
-        0,
-        0,
-        0,
-        canvas.height
-      );
-      skyGradient.addColorStop(0, "#90caf9");
-      skyGradient.addColorStop(1, "#e1f5fe");
-      ctx.fillStyle = skyGradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Visible tile range
-      const startX = Math.floor(camera.x);
-      const endX = Math.ceil(camera.x + canvas.width / TILE_SIZE);
-      const startY = Math.floor(camera.y);
-      const endY = Math.ceil(camera.y + canvas.height / TILE_SIZE);
-
-      for (let y = startY; y < endY; y++) {
-        for (let x = startX; x < endX; x++) {
-          if (x < 0 || x >= WORLD_WIDTH || y < 0 || y >= WORLD_HEIGHT) continue;
-          const block = world[y][x];
-          if (block === 0) continue;
-          const screenX = (x - camera.x) * TILE_SIZE;
-          const screenY = (y - camera.y) * TILE_SIZE;
-
-          ctx.fillStyle = BLOCK_COLORS[block] || "#000";
-          ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE);
-          ctx.strokeStyle = "rgba(0,0,0,0.15)";
-          ctx.strokeRect(screenX, screenY, TILE_SIZE, TILE_SIZE);
+          this.player.y = newY;
+        } else {
+          if (this.player.vy > 0) {
+            this.player.onGround = true;
+          }
+          const sign = Math.sign(this.player.vy);
+          while (
+            !rectCollidesWithWorld(
+              this.player.x,
+              this.player.y + sign * 0.01,
+              this.player.width,
+              this.player.height
+            )
+          )
+          {
+            this.player.y += sign * 0.01;
+          }
+          this.player.vy = 0;
         }
       }
 
-      // Player
-      const playerScreenX = (player.x - camera.x) * TILE_SIZE;
-      const playerScreenY = (player.y - camera.y) * TILE_SIZE;
-      ctx.fillStyle = "#ffeb3b";
-      ctx.fillRect(
-        playerScreenX,
-        playerScreenY,
-        player.width * TILE_SIZE,
-        player.height * TILE_SIZE
-      );
-      ctx.strokeStyle = "#000";
-      ctx.strokeRect(
-        playerScreenX,
-        playerScreenY,
-        player.width * TILE_SIZE,
-        player.height * TILE_SIZE
-      );
+      updateCamera() {
+        const cam = this.cameras.main;
+        const centerX =
+          (this.player.x + this.player.width / 2) * TILE_SIZE;
+        const centerY =
+          (this.player.y + this.player.height / 2) * TILE_SIZE;
+        cam.centerOn(centerX, centerY);
+      }
 
-      // Cursor highlight tile
-      const worldX = Math.floor(camera.x + mouseX / TILE_SIZE);
-      const worldY = Math.floor(camera.y + mouseY / TILE_SIZE);
-      const cursorX = (worldX - camera.x) * TILE_SIZE;
-      const cursorY = (worldY - camera.y) * TILE_SIZE;
+      updateDayNight(dt) {
+        // 1 day cycle ~ 60 seconds
+        this.timeOfDay += dt / 60;
+        if (this.timeOfDay > 1) this.timeOfDay -= 1;
 
-      ctx.strokeStyle = "rgba(255,255,255,0.7)";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(cursorX, cursorY, TILE_SIZE, TILE_SIZE);
+        const nightStrength =
+          0.7 * (0.5 - 0.5 * Math.cos(this.timeOfDay * Math.PI * 2));
+        this.dayOverlay.setAlpha(nightStrength);
+      }
+
+      drawScene() {
+        const g = this.graphics;
+        g.clear();
+
+        const cam = this.cameras.main;
+        const view = cam.worldView;
+        const startX = Math.floor(view.x / TILE_SIZE) - 1;
+        const endX = Math.ceil((view.x + view.width) / TILE_SIZE) + 1;
+        const startY = Math.floor(view.y / TILE_SIZE) - 1;
+        const endY = Math.ceil((view.y + view.height) / TILE_SIZE) + 1;
+
+        // Draw tiles
+        for (let y = startY; y <= endY; y++) {
+          for (let x = startX; x <= endX; x++) {
+            if (
+              x < 0 ||
+              x >= WORLD_WIDTH ||
+              y < 0 ||
+              y >= WORLD_HEIGHT
+            ) {
+              continue;
+            }
+            const block = world[y][x];
+            if (block === BLOCK.AIR) continue;
+
+            const color = BLOCK_COLORS[block];
+            if (!color) continue;
+
+            const sx = x * TILE_SIZE;
+            const sy = y * TILE_SIZE;
+
+            g.fillStyle(color, 1);
+            g.fillRect(sx, sy, TILE_SIZE, TILE_SIZE);
+
+            g.lineStyle(1, 0x000000, 0.08);
+            g.strokeRect(sx, sy, TILE_SIZE, TILE_SIZE);
+          }
+        }
+
+        // Draw player
+        const px = this.player.x * TILE_SIZE;
+        const py = this.player.y * TILE_SIZE;
+        const pw = this.player.width * TILE_SIZE;
+        const ph = this.player.height * TILE_SIZE;
+
+        g.fillStyle(0xffeb3b, 1);
+        g.fillRect(px, py, pw, ph);
+        g.lineStyle(2, 0x000000, 1);
+        g.strokeRect(px, py, pw, ph);
+
+        // Cursor highlight
+        const pointer = this.input.activePointer;
+        const wx = Math.floor(pointer.worldX / TILE_SIZE);
+        const wy = Math.floor(pointer.worldY / TILE_SIZE);
+
+        if (
+          wx >= 0 &&
+          wx < WORLD_WIDTH &&
+          wy >= 0 &&
+          wy < WORLD_HEIGHT
+        ) {
+          const cx = wx * TILE_SIZE;
+          const cy = wy * TILE_SIZE;
+          g.lineStyle(2, 0xffffff, 0.9);
+          g.strokeRect(cx, cy, TILE_SIZE, TILE_SIZE);
+        }
+      }
+
+      updateHUD() {
+        const p = this.player;
+        this.hudText.setText(
+          `Block: ${BLOCK_NAMES[this.selectedBlock]} (1-5) | ` +
+          `Pos: (${p.x.toFixed(1)}, ${p.y.toFixed(1)}) | ` +
+          `OnGround: ${p.onGround ? "Yes" : "No"}`
+        );
+      }
     }
 
-    // Start game
-    requestAnimationFrame(gameLoop);
+    // ====== GAME CONFIG ======
+    const config = {
+      type: Phaser.AUTO,
+      parent: "game",
+      backgroundColor: "#87ceeb",
+      scene: MiniCraftScene,
+      pixelArt: true,
+      antialias: false,
+      scale: {
+        mode: Phaser.Scale.RESIZE,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        width: window.innerWidth,
+        height: window.innerHeight,
+      },
+    };
+
+    const game = new Phaser.Game(config);
+
+    // iPhone のアドレスバー表示変更や回転に追従してリサイズ
+    function resizeGame() {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      game.scale.resize(width, height);
+    }
+
+    window.addEventListener("resize", resizeGame);
+    window.addEventListener("orientationchange", () => {
+      setTimeout(resizeGame, 300); // 回転後に少し待ってから
+    });
   </script>
 </body>
 </html>
