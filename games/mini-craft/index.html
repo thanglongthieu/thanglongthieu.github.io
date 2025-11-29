@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>MiniCraft – 200+ Furnitures + Mobs</title>
+  <title>MiniCraft – Biomes, Portals, Houses, Mobs HP</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <style>
     html, body {
@@ -22,14 +22,16 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      position: relative;
     }
-    canvas {
+    canvas#gameCanvas {
       background: #66bb6a;
       image-rendering: pixelated;
       border: 2px solid #444;
       max-width: 100vw;
       max-height: calc(100vh - 230px);
       touch-action: none;
+      display: block;
     }
 
     /* TOP inventory + search + save/load */
@@ -236,6 +238,7 @@
     <div id="touchActions">
       <div class="touch-action-btn" data-action="place">Place</div>
       <div class="touch-action-btn" data-action="remove">Remove</div>
+      <div class="touch-action-btn" data-action="hit">Hit</div>
     </div>
   </div>
 
@@ -249,8 +252,8 @@
       <div id="inventoryList"></div>
     </div>
     <div id="help">
-      PC: WASD / Arrows to move, Space = Place, X = Remove, 1=Wall, 2/3/4 = common furniture.  
-      Mobile: Use D-pad & Place/Remove buttons.
+      PC: WASD/Arrows move, Space = Place, X = Remove, **Z = Hit mob**, 1=Wall, 2/3/4 = quick furniture.  
+      Mobile: D-pad + Place / Remove / Hit.
     </div>
     <div id="saveLoadButtons">
       <button id="saveBtn">💾 Save World</button>
@@ -263,8 +266,26 @@
     const ctx = canvas.getContext("2d");
 
     const TILE_SIZE = 32;
-    const WORLD_W = Math.floor(canvas.width / TILE_SIZE);
-    const WORLD_H = Math.floor(canvas.height / TILE_SIZE);
+    const VIEW_W = Math.floor(canvas.width / TILE_SIZE);
+    const VIEW_H = Math.floor(canvas.height / TILE_SIZE);
+
+    // Big world
+    const WORLD_W = 200;
+    const WORLD_H = 200;
+
+    // Camera (top-left world tile of the visible area)
+    let cameraX = 0;
+    let cameraY = 0;
+
+    // ---------- BIOMES ----------
+    const BIOME_PLAINS = 0;
+    const BIOME_DESERT = 1;
+    const BIOME_FOREST = 2;
+    const BIOME_SNOW   = 3;
+    const BIOME_WATER  = 4;
+
+    let worldBiome = [];
+    let worldBlocks = [];
 
     // ---------- BIG EMOJI POOL ----------
     const emojiPool = [
@@ -281,12 +302,12 @@
       "🔔","📘","📙","📗","📕","📒","📓","📔","📚","📏","📐","✂️","🖊️"
     ];
 
-    // -------- BLOCK DEFINITIONS (200+ furniture) --------
+    // -------- BLOCK DEFINITIONS (200+ furniture + special) --------
     const BLOCKS = [
       { id: 0, key: "empty", name: "Empty", emoji: "", solid: false }
     ];
 
-    // add wood wall (border, solid)
+    // base world wall (outer border)
     const WALL_ID = BLOCKS.length;
     BLOCKS.push({
       id: WALL_ID,
@@ -294,6 +315,36 @@
       name: "Wood Wall",
       emoji: "🧱",
       solid: true
+    });
+
+    // house walls
+    const HOUSE_WALL_ID = BLOCKS.length;
+    BLOCKS.push({
+      id: HOUSE_WALL_ID,
+      key: "house_wall",
+      name: "House Wall",
+      emoji: "🧱",
+      solid: true
+    });
+
+    // door (walkable)
+    const DOOR_ID = BLOCKS.length;
+    BLOCKS.push({
+      id: DOOR_ID,
+      key: "door",
+      name: "Door",
+      emoji: "🚪",
+      solid: false
+    });
+
+    // portal (walkable, teleports)
+    const PORTAL_ID = BLOCKS.length;
+    BLOCKS.push({
+      id: PORTAL_ID,
+      key: "portal",
+      name: "Portal",
+      emoji: "🌀",
+      solid: false
     });
 
     // base furniture types (15 kinds)
@@ -315,13 +366,13 @@
       { baseKey: "piano",     baseName: "Piano" }
     ];
 
-    // style names (15) -> 15 * 15 = 225 furniture types
     const styleNames = [
       "Oak", "Birch", "Spruce", "Dark", "Light",
       "Modern", "Classic", "Compact", "Wide", "Tall",
       "Corner", "Deluxe", "Simple", "Fancy", "Industrial"
     ];
 
+    // Generate furniture blocks with icons
     for (let i = 0; i < furnitureBases.length; i++) {
       for (let j = 0; j < styleNames.length; j++) {
         const base = furnitureBases[i];
@@ -346,7 +397,7 @@
       return WALL_ID;
     }
 
-    // -------- WORLD & PLAYER --------
+    // -------- PLAYER --------
     const player = {
       x: Math.floor(WORLD_W / 2),
       y: Math.floor(WORLD_H / 2),
@@ -354,11 +405,10 @@
       dirY: -1
     };
 
-    let world = [];
     let selectedBlockId = WALL_ID;
-    const SAVE_KEY = "minicraftFurnitureWorld_withMobs";
+    const SAVE_KEY = "minicraft_biomes_portals_houses_mobHP_v1";
 
-    // -------- MOBS (movable animals) --------
+    // -------- MOBS (with HP) --------
     const mobs = [];
     const MOB_TYPES = [
       { name: "Cow",    emoji: "🐄" },
@@ -372,14 +422,19 @@
       { name: "Rabbit", emoji: "🐰" },
       { name: "Parrot", emoji: "🦜" }
     ];
+    const DEFAULT_MOB_HP = 3;
 
     function isMobAt(x, y) {
       return mobs.some(m => m.x === x && m.y === y);
     }
 
+    function findMobIndexAt(x, y) {
+      return mobs.findIndex(m => m.x === x && m.y === y);
+    }
+
     function addRandomMob(typeIndex) {
       let tries = 0;
-      while (tries < 200) {
+      while (tries < 300) {
         const x = 2 + Math.floor(Math.random() * (WORLD_W - 4));
         const y = 2 + Math.floor(Math.random() * (WORLD_H - 4));
         if (!isWalkableBase(x, y)) { tries++; continue; }
@@ -390,7 +445,9 @@
           y,
           typeIndex: typeIndex % MOB_TYPES.length,
           dirX: 0,
-          dirY: 0
+          dirY: 0,
+          hp: DEFAULT_MOB_HP,
+          maxHp: DEFAULT_MOB_HP
         });
         return;
       }
@@ -398,23 +455,14 @@
 
     function initMobs() {
       mobs.length = 0;
-      const mobCount = 12;
+      const mobCount = 15;
       for (let i = 0; i < mobCount; i++) {
         addRandomMob(i);
       }
     }
 
-    // basic walkability ignoring mobs
-    function isWalkableBase(x, y) {
-      if (x < 0 || y < 0 || x >= WORLD_W || y >= WORLD_H) return false;
-      const tileId = world[y][x];
-      const block = BLOCKS[tileId] || BLOCKS[0];
-      return !block.solid;
-    }
-
     function updateMobs() {
       for (const mob of mobs) {
-        // sometimes change direction
         if (Math.random() < 0.4 || (mob.dirX === 0 && mob.dirY === 0)) {
           const dirs = [
             {dx: 1, dy: 0},
@@ -427,7 +475,6 @@
           mob.dirX = choice.dx;
           mob.dirY = choice.dy;
         }
-
         if (mob.dirX === 0 && mob.dirY === 0) continue;
 
         const nx = mob.x + mob.dirX;
@@ -444,19 +491,105 @@
 
     function drawMobs() {
       for (const mob of mobs) {
-        const px = mob.x * TILE_SIZE;
-        const py = mob.y * TILE_SIZE;
+        if (mob.x < cameraX || mob.x >= cameraX + VIEW_W ||
+            mob.y < cameraY || mob.y >= cameraY + VIEW_H) continue;
+
+        const px = (mob.x - cameraX) * TILE_SIZE;
+        const py = (mob.y - cameraY) * TILE_SIZE;
         const mobType = MOB_TYPES[mob.typeIndex] || MOB_TYPES[0];
 
+        // Mob emoji
         ctx.font = "22px system-ui";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(mobType.emoji, px + TILE_SIZE / 2, py + TILE_SIZE / 2 + 2);
+
+        // HP bar (simple red bar on top)
+        const barWidth = TILE_SIZE - 8;
+        const hpRatio = Math.max(0, mob.hp / mob.maxHp);
+        const filled = barWidth * hpRatio;
+
+        ctx.fillStyle = "#440000";
+        ctx.fillRect(px + 4, py + 2, barWidth, 4);
+        ctx.fillStyle = "#ff0000";
+        ctx.fillRect(px + 4, py + 2, filled, 4);
       }
     }
 
-    function initWorld() {
-      world = [];
+    function hitMob() {
+      const tx = player.x + player.dirX;
+      const ty = player.y + player.dirY;
+      const idx = findMobIndexAt(tx, ty);
+      if (idx === -1) return;
+      const mob = mobs[idx];
+      mob.hp -= 1;
+      if (mob.hp <= 0) {
+        mobs.splice(idx, 1);
+      }
+    }
+
+    // -------- PORTALS --------
+    const portals = []; // {x,y,targetX,targetY}
+
+    function createPortalPair() {
+      function randomSafeCell() {
+        let tries = 0;
+        while (tries < 500) {
+          const x = 5 + Math.floor(Math.random() * (WORLD_W - 10));
+          const y = 5 + Math.floor(Math.random() * (WORLD_H - 10));
+          if (!isWalkableBase(x, y)) { tries++; continue; }
+          return { x, y };
+        }
+        return null;
+      }
+
+      const a = randomSafeCell();
+      const b = randomSafeCell();
+      if (!a || !b) return;
+
+      worldBlocks[a.y][a.x] = PORTAL_ID;
+      worldBlocks[b.y][b.x] = PORTAL_ID;
+
+      portals.push({ x: a.x, y: a.y, targetX: b.x, targetY: b.y });
+      portals.push({ x: b.x, y: b.y, targetX: a.x, targetY: a.y });
+    }
+
+    function findPortalAt(x, y) {
+      return portals.find(p => p.x === x && p.y === y) || null;
+    }
+
+    function checkPortal() {
+      const p = findPortalAt(player.x, player.y);
+      if (p) {
+        player.x = p.targetX;
+        player.y = p.targetY;
+        updateCamera();
+      }
+    }
+
+    // -------- WORLD GENERATION (BIOMES + HOUSES) --------
+    function generateBiomes() {
+      worldBiome = [];
+      for (let y = 0; y < WORLD_H; y++) {
+        const row = [];
+        for (let x = 0; x < WORLD_W; x++) {
+          const n = Math.sin(x * 0.15) * 0.7 +
+                    Math.cos(y * 0.21) * 0.7 +
+                    Math.sin((x + y) * 0.07) * 0.5;
+          let biome = BIOME_PLAINS;
+          if (n < -0.5)      biome = BIOME_WATER;
+          else if (n < -0.15) biome = BIOME_DESERT;
+          else if (n < 0.3)   biome = BIOME_PLAINS;
+          else if (n < 0.8)   biome = BIOME_FOREST;
+          else                biome = BIOME_SNOW;
+          row.push(biome);
+        }
+        worldBiome.push(row);
+      }
+    }
+
+    function initWorldBlocks() {
+      worldBlocks = [];
       for (let y = 0; y < WORLD_H; y++) {
         const row = [];
         for (let x = 0; x < WORLD_W; x++) {
@@ -466,62 +599,184 @@
             row.push(0);
           }
         }
-        world.push(row);
+        worldBlocks.push(row);
+      }
+    }
+
+    function createHouse(topX, topY, w, h) {
+      if (topX < 2 || topY < 2 ||
+          topX + w >= WORLD_W - 2 ||
+          topY + h >= WORLD_H - 2) return;
+
+      for (let y = topY; y < topY + h; y++) {
+        for (let x = topX; x < topX + w; x++) {
+          if (worldBiome[y][x] === BIOME_WATER) return;
+        }
       }
 
-      // simple house
-      const hx = 3, hy = 3, hw = 10, hh = 8;
-      for (let y = hy; y < hy + hh; y++) {
-        for (let x = hx; x < hx + hw; x++) {
-          if (x === hx || y === hy || x === hx + hw - 1 || y === hy + hh - 1) {
-            world[y][x] = WALL_ID;
+      for (let y = topY; y < topY + h; y++) {
+        for (let x = topX; x < topX + w; x++) {
+          const isBorder =
+            x === topX || x === topX + w - 1 ||
+            y === topY || y === topY + h - 1;
+          if (isBorder) {
+            worldBlocks[y][x] = HOUSE_WALL_ID;
           } else {
-            world[y][x] = 0;
+            worldBlocks[y][x] = 0;
           }
         }
       }
 
-      // starter furniture
+      const doorX = topX + Math.floor(w / 2);
+      const doorY = topY + h - 1;
+      worldBlocks[doorY][doorX] = DOOR_ID;
+
+      if (w > 6) {
+        const innerX = topX + Math.floor(w / 2);
+        let gapY = topY + 1 + Math.floor((h - 2) / 2);
+        for (let y = topY + 1; y < topY + h - 1; y++) {
+          if (y === gapY) {
+            worldBlocks[y][innerX] = DOOR_ID;
+          } else {
+            worldBlocks[y][innerX] = HOUSE_WALL_ID;
+          }
+        }
+      } else if (h > 6) {
+        const innerY = topY + Math.floor(h / 2);
+        let gapX = topX + 1 + Math.floor((w - 2) / 2);
+        for (let x = topX + 1; x < topX + w - 1; x++) {
+          if (x === gapX) {
+            worldBlocks[innerY][x] = DOOR_ID;
+          } else {
+            worldBlocks[innerY][x] = HOUSE_WALL_ID;
+          }
+        }
+      }
+    }
+
+    function scatterHouses() {
+      for (let gy = 10; gy < WORLD_H - 20; gy += 40) {
+        for (let gx = 10; gx < WORLD_W - 20; gx += 40) {
+          const b = worldBiome[gy][gx];
+          if (b === BIOME_PLAINS || b === BIOME_FOREST) {
+            if (Math.random() < 0.8) {
+              const w = 8 + Math.floor(Math.random() * 4);
+              const h = 6 + Math.floor(Math.random() * 3);
+              createHouse(gx, gy, w, h);
+            }
+          }
+        }
+      }
+    }
+
+    function placeStarterFurniture() {
+      outer:
+      for (let y = Math.floor(WORLD_H / 2) - 10; y < WORLD_H - 2; y++) {
+        for (let x = Math.floor(WORLD_W / 2) - 10; x < WORLD_W - 2; x++) {
+          if (worldBiome[y][x] !== BIOME_WATER && worldBlocks[y][x] === 0) {
+            player.x = x;
+            player.y = y;
+            break outer;
+          }
+        }
+      }
+
+      const hx = Math.max(2, player.x - 5);
+      const hy = Math.max(2, player.y - 4);
+      createHouse(hx, hy, 10, 7);
+
       const bedId   = findBlockId("bed");
       const tableId = findBlockId("table");
       const sofaId  = findBlockId("sofa");
       const plantId = findBlockId("plant");
 
-      world[hy + hh - 2][hx + 1] = bedId;
-      world[hy + hh - 3][hx + 3] = tableId;
-      world[hy + hh - 3][hx + 5] = sofaId;
-      world[hy + 1][hx + 2]     = plantId;
+      worldBlocks[hy + 5][hx + 2] = bedId;
+      worldBlocks[hy + 3][hx + 4] = tableId;
+      worldBlocks[hy + 3][hx + 6] = sofaId;
+      worldBlocks[hy + 2][hx + 3] = plantId;
+    }
 
-      player.x = hx + Math.floor(hw / 2);
-      player.y = hy + Math.floor(hh / 2);
-      player.dirX = 0;
-      player.dirY = -1;
-
+    function initWorld() {
+      generateBiomes();
+      initWorldBlocks();
+      scatterHouses();
+      placeStarterFurniture();
       initMobs();
+
+      portals.length = 0;
+      for (let i = 0; i < 3; i++) {
+        createPortalPair();
+      }
+
+      updateCamera();
+    }
+
+    // -------- CAMERA --------
+    function updateCamera() {
+      cameraX = player.x - Math.floor(VIEW_W / 2);
+      cameraY = player.y - Math.floor(VIEW_H / 2);
+
+      cameraX = Math.max(0, Math.min(cameraX, WORLD_W - VIEW_W));
+      cameraY = Math.max(0, Math.min(cameraY, WORLD_H - VIEW_H));
+    }
+
+    // -------- WALKABILITY --------
+    function isWalkableBase(x, y) {
+      if (x < 0 || y < 0 || x >= WORLD_W || y >= WORLD_H) return false;
+      const tileId = worldBlocks[y][x];
+      const block = BLOCKS[tileId] || BLOCKS[0];
+      if (block.solid) return false;
+      const biome = worldBiome[y][x];
+      if (biome === BIOME_WATER) return false;
+      return true;
+    }
+
+    function isWalkable(x, y) {
+      if (!isWalkableBase(x, y)) return false;
+      if (isMobAt(x, y)) return false;
+      return true;
     }
 
     // -------- DRAWING --------
-    function drawTile(tileId, x, y) {
-      const px = x * TILE_SIZE;
-      const py = y * TILE_SIZE;
+    function drawTile(tileId, biomeId, screenX, screenY) {
+      const px = screenX * TILE_SIZE;
+      const py = screenY * TILE_SIZE;
 
-      ctx.fillStyle = (x + y) % 2 === 0 ? "#5da15d" : "#579957";
+      // biome ground
+      switch (biomeId) {
+        case BIOME_PLAINS:
+          ctx.fillStyle = (screenX + screenY) % 2 === 0 ? "#5da15d" : "#579957";
+          break;
+        case BIOME_DESERT:
+          ctx.fillStyle = (screenX + screenY) % 2 === 0 ? "#d7c374" : "#c9b86a";
+          break;
+        case BIOME_FOREST:
+          ctx.fillStyle = (screenX + screenY) % 2 === 0 ? "#2e7d32" : "#1b5e20";
+          break;
+        case BIOME_SNOW:
+          ctx.fillStyle = (screenX + screenY) % 2 === 0 ? "#e0f7fa" : "#b2ebf2";
+          break;
+        case BIOME_WATER:
+          ctx.fillStyle = (screenX + screenY) % 2 === 0 ? "#1e88e5" : "#1565c0";
+          break;
+        default:
+          ctx.fillStyle = "#5da15d";
+      }
       ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
 
       if (tileId === 0) return;
-
       const block = BLOCKS[tileId] || BLOCKS[0];
 
-      if (block.id === WALL_ID) {
-        ctx.fillStyle = "#8d6e63";
+      if (block.id === WALL_ID || block.id === HOUSE_WALL_ID) {
+        ctx.fillStyle = block.id === WALL_ID ? "#8d6e63" : "#795548";
         ctx.fillRect(px + 2, py + 2, TILE_SIZE - 4, TILE_SIZE - 4);
         ctx.strokeStyle = "#5d4037";
         ctx.lineWidth = 2;
         ctx.strokeRect(px + 3, py + 3, TILE_SIZE - 6, TILE_SIZE - 6);
       } else {
-        ctx.fillStyle = "#424242";
+        ctx.fillStyle = block.id === PORTAL_ID ? "#4a148c" : "#424242";
         ctx.fillRect(px + 4, py + 4, TILE_SIZE - 8, TILE_SIZE - 8);
-        ctx.strokeStyle = "#b0bec5";
+        ctx.strokeStyle = block.id === PORTAL_ID ? "#ce93d8" : "#b0bec5";
         ctx.lineWidth = 1;
         ctx.strokeRect(px + 4, py + 4, TILE_SIZE - 8, TILE_SIZE - 8);
 
@@ -536,8 +791,12 @@
     }
 
     function drawPlayer() {
-      const px = player.x * TILE_SIZE;
-      const py = player.y * TILE_SIZE;
+      const screenX = player.x - cameraX;
+      const screenY = player.y - cameraY;
+      if (screenX < 0 || screenX >= VIEW_W || screenY < 0 || screenY >= VIEW_H) return;
+
+      const px = screenX * TILE_SIZE;
+      const py = screenY * TILE_SIZE;
 
       ctx.fillStyle = "#2196f3";
       ctx.fillRect(px + 8, py + 6, TILE_SIZE - 16, TILE_SIZE - 10);
@@ -561,34 +820,42 @@
 
     function render() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (let y = 0; y < WORLD_H; y++) {
-        for (let x = 0; x < WORLD_W; x++) {
-          drawTile(world[y][x], x, y);
+
+      for (let sy = 0; sy < VIEW_H; sy++) {
+        const wy = sy + cameraY;
+        if (wy < 0 || wy >= WORLD_H) continue;
+        for (let sx = 0; sx < VIEW_W; sx++) {
+          const wx = sx + cameraX;
+          if (wx < 0 || wx >= WORLD_W) continue;
+          const tileId = worldBlocks[wy][wx];
+          const biomeId = worldBiome[wy][wx];
+          drawTile(tileId, biomeId, sx, sy);
         }
       }
 
-      // draw mobs between tiles and player
       drawMobs();
 
       const tx = player.x + player.dirX;
       const ty = player.y + player.dirY;
-      if (tx >= 0 && ty >= 0 && tx < WORLD_W && ty < WORLD_H) {
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
+      const screenFrontX = tx - cameraX;
+      const screenFrontY = ty - cameraY;
+      if (screenFrontX >= 0 && screenFrontX < VIEW_W &&
+          screenFrontY >= 0 && screenFrontY < VIEW_H) {
+        ctx.strokeStyle = "rgba(255,255,255,0.7)";
         ctx.lineWidth = 2;
-        ctx.strokeRect(tx * TILE_SIZE + 2, ty * TILE_SIZE + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+        ctx.strokeRect(
+          screenFrontX * TILE_SIZE + 2,
+          screenFrontY * TILE_SIZE + 2,
+          TILE_SIZE - 4,
+          TILE_SIZE - 4
+        );
       }
 
       drawPlayer();
       requestAnimationFrame(render);
     }
 
-    // -------- LOGIC --------
-    function isWalkable(x, y) {
-      if (!isWalkableBase(x, y)) return false;
-      if (isMobAt(x, y)) return false;
-      return true;
-    }
-
+    // -------- MOVEMENT / ACTIONS --------
     function movePlayer(dx, dy) {
       if (dx === 0 && dy === 0) return;
       player.dirX = dx;
@@ -598,6 +865,8 @@
       if (isWalkable(nx, ny)) {
         player.x = nx;
         player.y = ny;
+        updateCamera();
+        checkPortal();
       }
     }
 
@@ -607,8 +876,8 @@
       if (tx < 0 || ty < 0 || tx >= WORLD_W || ty >= WORLD_H) return;
       if (tx === 0 || ty === 0 || tx === WORLD_W - 1 || ty === WORLD_H - 1) return;
       if (tx === player.x && ty === player.y) return;
-      if (isMobAt(tx, ty)) return; // don't place on mobs
-      world[ty][tx] = selectedBlockId;
+      if (isMobAt(tx, ty)) return;
+      worldBlocks[ty][tx] = selectedBlockId;
     }
 
     function removeBlock() {
@@ -616,15 +885,17 @@
       const ty = player.y + player.dirY;
       if (tx < 0 || ty < 0 || tx >= WORLD_W || ty >= WORLD_H) return;
       if (tx === 0 || ty === 0 || tx === WORLD_W - 1 || ty === WORLD_H - 1) return;
-      world[ty][tx] = 0;
+      worldBlocks[ty][tx] = 0;
     }
 
     // -------- SAVE / LOAD --------
     function saveWorld() {
       const data = {
-        world,
+        biome: worldBiome,
+        blocks: worldBlocks,
         player: { ...player },
-        mobs: mobs.map(m => ({ ...m }))
+        mobs: mobs.map(m => ({ ...m })),
+        portals: portals.map(p => ({ ...p }))
       };
       try {
         localStorage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -643,13 +914,14 @@
       }
       try {
         const data = JSON.parse(raw);
-        if (!data.world || !Array.isArray(data.world)) {
+        if (!Array.isArray(data.blocks) || !Array.isArray(data.biome)) {
           throw new Error("Invalid world data");
         }
-        if (data.world.length !== WORLD_H || data.world[0].length !== WORLD_W) {
+        if (data.blocks.length !== WORLD_H || data.blocks[0].length !== WORLD_W) {
           throw new Error("Saved world size mismatch");
         }
-        world = data.world.map(row => row.slice());
+        worldBlocks = data.blocks.map(row => row.slice());
+        worldBiome  = data.biome.map(row => row.slice());
         if (data.player) {
           player.x = data.player.x ?? player.x;
           player.y = data.player.y ?? player.y;
@@ -659,9 +931,22 @@
         mobs.length = 0;
         if (Array.isArray(data.mobs)) {
           for (const m of data.mobs) {
-            mobs.push({ ...m });
+            mobs.push({
+              x: m.x,
+              y: m.y,
+              typeIndex: m.typeIndex ?? 0,
+              dirX: m.dirX ?? 0,
+              dirY: m.dirY ?? 0,
+              hp: m.hp ?? DEFAULT_MOB_HP,
+              maxHp: m.maxHp ?? (m.hp ?? DEFAULT_MOB_HP)
+            });
           }
         }
+        portals.length = 0;
+        if (Array.isArray(data.portals)) {
+          for (const p of data.portals) portals.push({ ...p });
+        }
+        updateCamera();
         alert("World loaded!");
       } catch (e) {
         console.error(e);
@@ -755,6 +1040,9 @@
         case "x":
           removeBlock();
           break;
+        case "z":
+          hitMob();
+          break;
         case "1":
           setSelectedBlock(WALL_ID);
           break;
@@ -780,8 +1068,11 @@
       const mx = (e.clientX - rect.left) * scaleX;
       const my = (e.clientY - rect.top) * scaleY;
 
-      const tx = Math.floor(mx / TILE_SIZE);
-      const ty = Math.floor(my / TILE_SIZE);
+      const sx = Math.floor(mx / TILE_SIZE);
+      const sy = Math.floor(my / TILE_SIZE);
+
+      const tx = sx + cameraX;
+      const ty = sy + cameraY;
 
       const dx = tx - player.x;
       const dy = ty - player.y;
@@ -817,6 +1108,7 @@
         const action = btn.dataset.action;
         if (action === "place") placeBlock();
         if (action === "remove") removeBlock();
+        if (action === "hit") hitMob();
       });
     });
 
@@ -838,7 +1130,6 @@
     setSelectedBlock(WALL_ID);
     filterInventory();
     render();
-    // mobs move every 300ms
     setInterval(updateMobs, 300);
   </script>
 </body>
