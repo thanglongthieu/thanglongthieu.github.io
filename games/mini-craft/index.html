@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>MiniCraft with Furniture v2</title>
+  <title>MiniCraft – 200+ Furnitures + Unique Icons</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <style>
     html, body {
@@ -28,75 +28,119 @@
       image-rendering: pixelated;
       border: 2px solid #444;
       max-width: 100vw;
-      max-height: calc(100vh - 200px);
+      max-height: calc(100vh - 230px);
       touch-action: none;
     }
+
+    /* TOP inventory + search + save/load */
     #uiBar {
       background: #222;
       padding: 6px 10px;
-      font-size: 14px;
+      font-size: 13px;
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: stretch;
+      border-top: 1px solid #333;
+    }
+
+    #inventoryPanel {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    #inventoryHeader {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-      border-top: 1px solid #333;
+      gap: 6px;
+      font-size: 12px;
     }
-    #inventory {
+
+    #blockSearch {
+      flex: 1;
+      padding: 3px 6px;
+      border-radius: 4px;
+      border: 1px solid #555;
+      background: #111;
+      color: #eee;
+      font-size: 12px;
+    }
+
+    #inventoryList {
       display: flex;
-      align-items: center;
-      gap: 4px;
       flex-wrap: wrap;
+      gap: 4px;
+      max-height: 80px;
+      overflow-y: auto;
+      padding-right: 4px;
     }
+
     .slot {
       display: inline-flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      width: 40px;
-      height: 40px;
-      border-radius: 4px;
+      width: 48px;
+      height: 48px;
+      border-radius: 6px;
       border: 2px solid #555;
-      position: relative;
       box-sizing: border-box;
       background: #333;
       cursor: pointer;
       user-select: none;
+      font-size: 20px;
+    }
+    .slot span.slot-emoji {
+      pointer-events: none;
     }
     .slot.selected {
       border-color: #ffeb3b;
       box-shadow: 0 0 8px #ffeb3b;
     }
-    .slot-label {
-      position: absolute;
-      bottom: -14px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 11px;
-      color: #aaa;
+    .slot-name {
+      font-size: 9px;
+      color: #ccc;
+      text-align: center;
+      pointer-events: none;
+      line-height: 1.1;
+      max-width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
+
     #help {
       font-size: 11px;
       color: #ccc;
-      max-width: 260px;
+      align-self: center;
     }
+
     #saveLoadButtons {
       display: flex;
-      gap: 6px;
+      flex-direction: column;
+      gap: 4px;
+      align-items: flex-end;
+      justify-content: center;
     }
+
     button {
       background: #424242;
       border: 1px solid #666;
       border-radius: 4px;
       color: #eee;
       padding: 4px 8px;
-      font-size: 12px;
+      font-size: 11px;
       cursor: pointer;
+      white-space: nowrap;
     }
     button:active {
       background: #616161;
     }
 
-    /* Touch controls for mobile */
+    /* Touch controls for mobile (bottom) */
     #touchControls {
       display: flex;
       justify-content: center;
@@ -152,10 +196,21 @@
       background: #546e7a;
     }
 
-    /* On bigger screens, hide touch controls */
+    /* Hide touch controls on big screens */
     @media (min-width: 768px) {
       #touchControls {
         display: none;
+      }
+    }
+
+    @media (max-width: 600px) {
+      #uiBar {
+        grid-template-columns: minmax(0, 1.7fr) minmax(0, 1.3fr);
+        grid-template-rows: auto auto;
+      }
+      #saveLoadButtons {
+        flex-direction: row;
+        justify-content: flex-start;
       }
     }
   </style>
@@ -184,21 +239,22 @@
     </div>
   </div>
 
+  <!-- Inventory + search + save/load -->
   <div id="uiBar">
-    <div id="inventory">
-      <span>Blocks:</span>
-      <div class="slot" data-block="1" id="slot-1"><span>🪵</span><div class="slot-label">1</div></div>
-      <div class="slot" data-block="2" id="slot-2"><span>🛏</span><div class="slot-label">2</div></div>
-      <div class="slot" data-block="3" id="slot-3"><span>🪑</span><div class="slot-label">3</div></div>
-      <div class="slot" data-block="4" id="slot-4"><span>🧰</span><div class="slot-label">4</div></div>
+    <div id="inventoryPanel">
+      <div id="inventoryHeader">
+        <span>Furniture (click to select)</span>
+        <input id="blockSearch" type="text" placeholder="Search: bed, sofa, lamp..." />
+      </div>
+      <div id="inventoryList"></div>
     </div>
     <div id="help">
-      PC: WASD / Arrows to move, Space = Place, X = Remove, 1-4 = select block.
+      PC: WASD / Arrows to move, Space = Place, X = Remove, 1=Wall, 2/3/4 = common furniture.  
       Mobile: Use D-pad & Place/Remove buttons.
     </div>
     <div id="saveLoadButtons">
-      <button id="saveBtn">💾 Save</button>
-      <button id="loadBtn">📂 Load</button>
+      <button id="saveBtn">💾 Save World</button>
+      <button id="loadBtn">📂 Load World</button>
     </div>
   </div>
 
@@ -206,19 +262,97 @@
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
 
-    // WORLD SETTINGS
     const TILE_SIZE = 32;
     const WORLD_W = Math.floor(canvas.width / TILE_SIZE);
     const WORLD_H = Math.floor(canvas.height / TILE_SIZE);
 
-    // TILE TYPES
-    const TILE_EMPTY = 0;   // grass only
-    const TILE_WOOD  = 1;   // wall-ish
-    const TILE_BED   = 2;   // furniture
-    const TILE_TABLE = 3;   // furniture
-    const TILE_CHEST = 4;   // furniture
+    // ---------- BIG EMOJI POOL (used to give each item a unique icon) ----------
+    const emojiPool = [
+      "🛏️","🪑","🛋️","💡","🪴","📺","📚","💻","🧊","🧰","👕","🧶","🚰","🍳","🎹",
+      "🍽️","☕","🍷","📦","🧺","🧴","🧼","🧻","🪥","🚿","🧽","🕯️","🧸","🎮","🎧",
+      "📀","📻","📠","🏮","🪟","🚪","🧱","🧱","🧱","🧱","🎲","♟️","🎯","🏆","🎤",
+      "🎼","🎨","🖼️","🧵","🪡","🧷","🧺","📌","📎","🗂️","🗄️","🪜","🧯","🧹","🪣",
+      "🪜","🧺","🧺","🏺","⏰","⌛","⏳","🧭","💎","🔑","🔒","🔓","🧪","🧫","🧬",
+      "🧴","🧂","🍯","🥫","🍪","🍰","🍓","🍊","🍎","🍇","🍌","🍉","🍍","🥝","🥑",
+      "🍕","🍔","🌭","🍟","🥪","🌮","🍙","🍣","🍤","🍜","🍛","🍚","🥘","🍲","🧂",
+      "🌸","🌼","🌻","🌵","🌴","🌳","🎋","🎍","🍀","🍁","🍂","🍃","🐟","🐠","🐡",
+      "🐱","🐶","🐰","🐹","🦊","🐻","🐼","🐨","🐯","🦁","🐮","🐷","🐸","🐵","🐧",
+      "🦆","🦅","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🦋","🐞","🐢","🐍","🦎","🦂",
+      "💠","🔷","🔶","🔺","🔻","⚪","⚫","🔘","🔲","🔳","🟥","🟧","🟨","🟩","🟦",
+      "🟪","⬜","⬛","◼️","◻️","▫️","▪️","✳️","✴️","❇️","⭐","🌟","✨","💫","🔥",
+      "💡","🔔","📘","📙","📗","📕","📒","📓","📔","📚","📎","📏","📐","✂️","🖊️"
+    ];
+    // Enough variety; if blocks > emojis, some may repeat but most will look unique.
 
-    // PLAYER
+    // -------- BLOCK DEFINITIONS (200+ furniture) --------
+    const BLOCKS = [
+      { id: 0, key: "empty", name: "Empty", emoji: "", solid: false }
+    ];
+
+    // add wood wall (border, solid, fixed emoji)
+    const WALL_ID = BLOCKS.length;
+    BLOCKS.push({
+      id: WALL_ID,
+      key: "wood_wall",
+      name: "Wood Wall",
+      emoji: "🧱",
+      solid: true
+    });
+
+    // base furniture types (15 kinds)
+    const furnitureBases = [
+      { baseKey: "bed",       baseName: "Bed" },
+      { baseKey: "table",     baseName: "Table" },
+      { baseKey: "sofa",      baseName: "Sofa" },
+      { baseKey: "lamp",      baseName: "Lamp" },
+      { baseKey: "plant",     baseName: "Plant" },
+      { baseKey: "tv",        baseName: "TV" },
+      { baseKey: "bookshelf", baseName: "Bookshelf" },
+      { baseKey: "pcdesk",    baseName: "PC Desk" },
+      { baseKey: "fridge",    baseName: "Fridge" },
+      { baseKey: "drawer",    baseName: "Drawer" },
+      { baseKey: "wardrobe",  baseName: "Wardrobe" },
+      { baseKey: "rug",       baseName: "Rug" },
+      { baseKey: "sink",      baseName: "Sink" },
+      { baseKey: "stove",     baseName: "Stove" },
+      { baseKey: "piano",     baseName: "Piano" }
+    ];
+
+    // style names (15) -> 15 * 15 = 225 furniture types
+    const styleNames = [
+      "Oak", "Birch", "Spruce", "Dark", "Light",
+      "Modern", "Classic", "Compact", "Wide", "Tall",
+      "Corner", "Deluxe", "Simple", "Fancy", "Industrial"
+    ];
+
+    // Generate lots of furniture entries
+    for (let i = 0; i < furnitureBases.length; i++) {
+      for (let j = 0; j < styleNames.length; j++) {
+        const base = furnitureBases[i];
+        const style = styleNames[j];
+        const id = BLOCKS.length;
+        // choose unique-ish emoji from pool
+        const emoji = emojiPool[id % emojiPool.length] || "□";
+        BLOCKS.push({
+          id,
+          key: `${base.baseKey}_${style.toLowerCase()}`,
+          name: `${style} ${base.baseName}`,
+          emoji: emoji,
+          solid: false   // furniture is walkable
+        });
+      }
+    }
+    // BLOCKS: 1 (empty) + 1 (wall) + 225 furniture = 227 entries
+
+    function findBlockId(keyStartsWith) {
+      const lower = keyStartsWith.toLowerCase();
+      for (const b of BLOCKS) {
+        if (b.key.startsWith(lower)) return b.id;
+      }
+      return WALL_ID;
+    }
+
+    // -------- WORLD & PLAYER --------
     const player = {
       x: Math.floor(WORLD_W / 2),
       y: Math.floor(WORLD_H / 2),
@@ -227,93 +361,85 @@
     };
 
     let world = [];
-    let selectedBlock = TILE_WOOD;
+    let selectedBlockId = WALL_ID;
+    const SAVE_KEY = "minicraftFurnitureWorld_v4";
 
-    const SAVE_KEY = "minicraftFurnitureWorld_v1";
-
-    // ---------- WORLD INIT ----------
     function initWorld() {
       world = [];
       for (let y = 0; y < WORLD_H; y++) {
         const row = [];
         for (let x = 0; x < WORLD_W; x++) {
           if (x === 0 || y === 0 || x === WORLD_W - 1 || y === WORLD_H - 1) {
-            row.push(TILE_WOOD); // border wall
+            row.push(WALL_ID);
           } else {
-            row.push(TILE_EMPTY);
+            row.push(0);
           }
         }
         world.push(row);
       }
 
-      // small house area with empty inside
-      const hx = 3, hy = 3, hw = 8, hh = 6;
+      // simple house
+      const hx = 3, hy = 3, hw = 10, hh = 8;
       for (let y = hy; y < hy + hh; y++) {
         for (let x = hx; x < hx + hw; x++) {
           if (x === hx || y === hy || x === hx + hw - 1 || y === hy + hh - 1) {
-            world[y][x] = TILE_WOOD;
+            world[y][x] = WALL_ID;
           } else {
-            world[y][x] = TILE_EMPTY;
+            world[y][x] = 0;
           }
         }
       }
 
-      // default furniture
-      world[hy + hh - 2][hx + 1] = TILE_BED;
-      world[hy + hh - 3][hx + 3] = TILE_TABLE;
-      world[hy + hh - 3][hx + 5] = TILE_CHEST;
+      // starter furniture
+      const bedId   = findBlockId("bed");
+      const tableId = findBlockId("table");
+      const sofaId  = findBlockId("sofa");
+      const plantId = findBlockId("plant");
 
-      // player start
+      world[hy + hh - 2][hx + 1] = bedId;
+      world[hy + hh - 3][hx + 3] = tableId;
+      world[hy + hh - 3][hx + 5] = sofaId;
+      world[hy + 1][hx + 2]     = plantId;
+
       player.x = hx + Math.floor(hw / 2);
       player.y = hy + Math.floor(hh / 2);
       player.dirX = 0;
       player.dirY = -1;
     }
 
-    // ---------- DRAWING ----------
-    function drawTile(type, x, y) {
+    // -------- DRAWING --------
+    function drawTile(tileId, x, y) {
       const px = x * TILE_SIZE;
       const py = y * TILE_SIZE;
 
-      // base ground
+      // grass
       ctx.fillStyle = (x + y) % 2 === 0 ? "#5da15d" : "#579957";
       ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
 
-      switch (type) {
-        case TILE_WOOD:
-          ctx.fillStyle = "#8d6e63";
-          ctx.fillRect(px + 2, py + 2, TILE_SIZE - 4, TILE_SIZE - 4);
-          ctx.strokeStyle = "#5d4037";
-          ctx.lineWidth = 2;
-          ctx.strokeRect(px + 3, py + 3, TILE_SIZE - 6, TILE_SIZE - 6);
-          break;
-        case TILE_BED:
-          ctx.fillStyle = "#b71c1c";
-          ctx.fillRect(px + 2, py + TILE_SIZE / 4, TILE_SIZE - 4, TILE_SIZE / 2);
-          ctx.fillStyle = "#eeeeee";
-          ctx.fillRect(px + 2, py + 2, TILE_SIZE - 4, TILE_SIZE / 4);
-          ctx.strokeStyle = "#880e4f";
-          ctx.strokeRect(px + 2, py + 2, TILE_SIZE - 4, TILE_SIZE - 4);
-          break;
-        case TILE_TABLE:
-          ctx.fillStyle = "#a1887f";
-          ctx.fillRect(px + 2, py + 6, TILE_SIZE - 4, TILE_SIZE - 10);
-          ctx.fillStyle = "#4e342e";
-          ctx.fillRect(px + 6, py + TILE_SIZE - 6, 4, 4);
-          ctx.fillRect(px + TILE_SIZE - 10, py + TILE_SIZE - 6, 4, 4);
-          break;
-        case TILE_CHEST:
-          ctx.fillStyle = "#ffb74d";
-          ctx.fillRect(px + 3, py + 6, TILE_SIZE - 6, TILE_SIZE - 10);
-          ctx.fillStyle = "#6d4c41";
-          ctx.fillRect(px + 3, py + 6, TILE_SIZE - 6, 6);
-          ctx.fillStyle = "#3e2723";
-          ctx.fillRect(px + TILE_SIZE / 2 - 2, py + TILE_SIZE / 2, 4, 4);
-          break;
-        case TILE_EMPTY:
-        default:
-          // grass only
-          break;
+      if (tileId === 0) return;
+
+      const block = BLOCKS[tileId] || BLOCKS[0];
+
+      if (block.id === WALL_ID) {
+        ctx.fillStyle = "#8d6e63";
+        ctx.fillRect(px + 2, py + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+        ctx.strokeStyle = "#5d4037";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(px + 3, py + 3, TILE_SIZE - 6, TILE_SIZE - 6);
+      } else {
+        ctx.fillStyle = "#424242";
+        ctx.fillRect(px + 4, py + 4, TILE_SIZE - 8, TILE_SIZE - 8);
+        ctx.strokeStyle = "#b0bec5";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(px + 4, py + 4, TILE_SIZE - 8, TILE_SIZE - 8);
+
+        if (block.emoji) {
+          ctx.font = "18px system-ui";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillStyle = "#ffffff";
+          ctx.fillText(block.emoji, px + TILE_SIZE / 2, py + TILE_SIZE / 2 + 1);
+        }
       }
     }
 
@@ -321,20 +447,16 @@
       const px = player.x * TILE_SIZE;
       const py = player.y * TILE_SIZE;
 
-      // body
       ctx.fillStyle = "#2196f3";
       ctx.fillRect(px + 8, py + 6, TILE_SIZE - 16, TILE_SIZE - 10);
 
-      // head
       ctx.fillStyle = "#ffcc80";
       ctx.fillRect(px + 10, py, TILE_SIZE - 20, TILE_SIZE / 2 - 2);
 
-      // eyes
       ctx.fillStyle = "#000";
       ctx.fillRect(px + 13, py + 6, 2, 2);
       ctx.fillRect(px + TILE_SIZE - 15, py + 6, 2, 2);
 
-      // facing arrow
       const cx = px + TILE_SIZE / 2;
       const cy = py + TILE_SIZE / 2;
       ctx.strokeStyle = "#ffff00";
@@ -353,7 +475,6 @@
         }
       }
 
-      // highlight tile in front
       const tx = player.x + player.dirX;
       const ty = player.y + player.dirY;
       if (tx >= 0 && ty >= 0 && tx < WORLD_W && ty < WORLD_H) {
@@ -366,11 +487,12 @@
       requestAnimationFrame(render);
     }
 
-    // ---------- LOGIC ----------
+    // -------- LOGIC --------
     function isWalkable(x, y) {
       if (x < 0 || y < 0 || x >= WORLD_W || y >= WORLD_H) return false;
-      const tile = world[y][x];
-      return tile !== TILE_WOOD; // cannot walk through wood walls
+      const tileId = world[y][x];
+      const block = BLOCKS[tileId] || BLOCKS[0];
+      return !block.solid;
     }
 
     function movePlayer(dx, dy) {
@@ -389,24 +511,24 @@
       const tx = player.x + player.dirX;
       const ty = player.y + player.dirY;
       if (tx < 0 || ty < 0 || tx >= WORLD_W || ty >= WORLD_H) return;
-      if (tx === 0 || ty === 0 || tx === WORLD_W - 1 || ty === WORLD_H - 1) return; // keep border
-      if (tx === player.x && ty === player.y) return; // not on player
-      world[ty][tx] = selectedBlock;
+      if (tx === 0 || ty === 0 || tx === WORLD_W - 1 || ty === WORLD_H - 1) return;
+      if (tx === player.x && ty === player.y) return;
+      world[ty][tx] = selectedBlockId;
     }
 
     function removeBlock() {
       const tx = player.x + player.dirX;
       const ty = player.y + player.dirY;
       if (tx < 0 || ty < 0 || tx >= WORLD_W || ty >= WORLD_H) return;
-      if (tx === 0 || ty === 0 || tx === WORLD_W - 1 || ty === WORLD_H - 1) return; // keep border
-      world[ty][tx] = TILE_EMPTY;
+      if (tx === 0 || ty === 0 || tx === WORLD_W - 1 || ty === WORLD_H - 1) return;
+      world[ty][tx] = 0;
     }
 
-    // ---------- SAVE / LOAD ----------
+    // -------- SAVE / LOAD --------
     function saveWorld() {
       const data = {
         world,
-        player: { x: player.x, y: player.y, dirX: player.dirX, dirY: player.dirY }
+        player: { ...player }
       };
       try {
         localStorage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -428,9 +550,8 @@
         if (!data.world || !Array.isArray(data.world)) {
           throw new Error("Invalid world data");
         }
-        // Size check
         if (data.world.length !== WORLD_H || data.world[0].length !== WORLD_W) {
-          throw new Error("Saved world size does not match current world size.");
+          throw new Error("Saved world size mismatch");
         }
         world = data.world.map(row => row.slice());
         if (data.player) {
@@ -446,7 +567,64 @@
       }
     }
 
-    // ---------- INPUT: KEYBOARD ----------
+    // -------- INVENTORY & SEARCH --------
+    const inventoryList = document.getElementById("inventoryList");
+    const blockSearch = document.getElementById("blockSearch");
+
+    function createInventorySlots() {
+      inventoryList.innerHTML = "";
+      for (let i = 1; i < BLOCKS.length; i++) {
+        const b = BLOCKS[i];
+        const slot = document.createElement("div");
+        slot.className = "slot";
+        slot.dataset.blockId = String(b.id);
+        slot.dataset.name = b.name.toLowerCase();
+
+        const emojiSpan = document.createElement("span");
+        emojiSpan.className = "slot-emoji";
+        emojiSpan.textContent = b.emoji || "□";
+        const nameSpan = document.createElement("div");
+        nameSpan.className = "slot-name";
+        nameSpan.textContent = b.name;
+
+        slot.appendChild(emojiSpan);
+        slot.appendChild(nameSpan);
+
+        slot.addEventListener("click", () => {
+          setSelectedBlock(b.id);
+        });
+        slot.addEventListener("touchstart", (e) => {
+          e.preventDefault();
+          setSelectedBlock(b.id);
+        });
+
+        inventoryList.appendChild(slot);
+      }
+    }
+
+    function setSelectedBlock(blockId) {
+      selectedBlockId = blockId;
+      const slots = inventoryList.querySelectorAll(".slot");
+      slots.forEach(slot => {
+        slot.classList.toggle(
+          "selected",
+          Number(slot.dataset.blockId) === blockId
+        );
+      });
+    }
+
+    function filterInventory() {
+      const q = (blockSearch.value || "").trim().toLowerCase();
+      const slots = inventoryList.querySelectorAll(".slot");
+      slots.forEach(slot => {
+        const name = slot.dataset.name || "";
+        slot.style.display = name.includes(q) ? "inline-flex" : "none";
+      });
+    }
+
+    blockSearch.addEventListener("input", filterInventory);
+
+    // -------- INPUT: KEYBOARD --------
     window.addEventListener("keydown", (e) => {
       const key = e.key.toLowerCase();
       if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(e.key.toLowerCase())) {
@@ -476,21 +654,21 @@
           removeBlock();
           break;
         case "1":
-          setSelectedBlock(TILE_WOOD);
+          setSelectedBlock(WALL_ID);
           break;
         case "2":
-          setSelectedBlock(TILE_BED);
+          setSelectedBlock(findBlockId("bed"));
           break;
         case "3":
-          setSelectedBlock(TILE_TABLE);
+          setSelectedBlock(findBlockId("table"));
           break;
         case "4":
-          setSelectedBlock(TILE_CHEST);
+          setSelectedBlock(findBlockId("sofa"));
           break;
       }
     });
 
-    // ---------- INPUT: MOUSE (PC) ----------
+    // -------- INPUT: MOUSE CLICK ON CANVAS --------
     canvas.addEventListener("contextmenu", (e) => e.preventDefault());
 
     canvas.addEventListener("mousedown", (e) => {
@@ -503,7 +681,6 @@
       const tx = Math.floor(mx / TILE_SIZE);
       const ty = Math.floor(my / TILE_SIZE);
 
-      // update facing toward clicked tile
       const dx = tx - player.x;
       const dy = ty - player.y;
       if (dx !== 0 || dy !== 0) {
@@ -523,7 +700,7 @@
       }
     });
 
-    // ---------- INPUT: TOUCH (MOBILE BUTTONS) ----------
+    // -------- INPUT: TOUCH BUTTONS --------
     document.querySelectorAll(".dpad-btn").forEach(btn => {
       btn.addEventListener("touchstart", (e) => {
         e.preventDefault();
@@ -541,30 +718,9 @@
       });
     });
 
-    // ---------- INVENTORY ----------
-    function setSelectedBlock(blockType) {
-      selectedBlock = blockType;
-      document.querySelectorAll(".slot").forEach(slot => {
-        slot.classList.toggle("selected", Number(slot.dataset.block) === blockType);
-      });
-    }
-
-    document.querySelectorAll(".slot").forEach(slot => {
-      slot.addEventListener("click", () => {
-        const blockType = Number(slot.dataset.block);
-        setSelectedBlock(blockType);
-      });
-      slot.addEventListener("touchstart", (e) => {
-        e.preventDefault();
-        const blockType = Number(slot.dataset.block);
-        setSelectedBlock(blockType);
-      });
-    });
-
-    // ---------- SAVE / LOAD BUTTONS ----------
+    // -------- SAVE/LOAD BUTTONS --------
     document.getElementById("saveBtn").addEventListener("click", saveWorld);
     document.getElementById("loadBtn").addEventListener("click", loadWorld);
-
     document.getElementById("saveBtn").addEventListener("touchstart", (e) => {
       e.preventDefault();
       saveWorld();
@@ -574,9 +730,11 @@
       loadWorld();
     });
 
-    // ---------- INIT ----------
+    // -------- INIT --------
     initWorld();
-    setSelectedBlock(TILE_WOOD);
+    createInventorySlots();
+    setSelectedBlock(WALL_ID);
+    filterInventory();
     render();
   </script>
 </body>
