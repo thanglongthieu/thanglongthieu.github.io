@@ -2,8 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Mini-Craft 3D World</title>
-  <!-- iPhone 向けフルスクリーン系設定 -->
+  <title>Mini-Craft 3D World (No Import Error)</title>
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
@@ -76,11 +75,12 @@
     </div>
   </div>
 
-  <!-- Three.js + OrbitControls（ES Module） -->
-  <script type="module">
-    import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
-    import { OrbitControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js";
+  <!-- ✅ Three.js 本体（グローバル THREE） -->
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <!-- ✅ OrbitControls（THREE.OrbitControls として追加される） -->
+  <script src="https://unpkg.com/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
 
+  <script>
     // ====== BASIC SETUP ======
     const container = document.getElementById("game");
 
@@ -93,7 +93,6 @@
       0.1,
       1000
     );
-
     camera.position.set(10, 8, 14);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -103,11 +102,11 @@
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(renderer.domElement);
 
-    const controls = new OrbitControls(camera, renderer.domElement);
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.07;
     controls.target.set(0, 2, 0);
-    controls.maxPolarAngle = Math.PI / 2; // 下を向きすぎない
+    controls.maxPolarAngle = Math.PI / 2;
     controls.minDistance = 4;
     controls.maxDistance = 40;
 
@@ -127,7 +126,6 @@
     dirLight.shadow.camera.bottom = -30;
     scene.add(dirLight);
 
-    // 小さなサンライトっぽいポイントライト（室内用）
     const warmLight = new THREE.PointLight(0xffddaa, 1.2, 25);
     warmLight.position.set(0, 6, 0);
     warmLight.castShadow = true;
@@ -139,7 +137,6 @@
       speed: 8,
     };
 
-    // プレイヤーの見た目（小さい箱）
     const playerGeometry = new THREE.BoxGeometry(0.8, 1.4, 0.8);
     const playerMaterial = new THREE.MeshStandardMaterial({ color: 0xffeb3b });
     const playerMesh = new THREE.Mesh(playerGeometry, playerMaterial);
@@ -154,8 +151,6 @@
       const mesh = new THREE.Mesh(geo, mat);
       mesh.castShadow = true;
       mesh.receiveShadow = true;
-
-      // y は中心なので高さの半分を足して設置
       mesh.position.set(x, y + sy / 2, z);
       scene.add(mesh);
       return mesh;
@@ -166,8 +161,7 @@
       const size = 20;
       for (let x = -size; x <= size; x++) {
         for (let z = -size; z <= size; z++) {
-          const color =
-            (x + z) % 2 === 0 ? 0x4caf50 : 0x43a047; // ちょっとチェック柄の芝生
+          const color = (x + z) % 2 === 0 ? 0x4caf50 : 0x43a047;
           createBlock(x, 0, z, color, 1, 0.25, 1);
         }
       }
@@ -175,78 +169,67 @@
 
     // ====== HOUSE & FURNITURE ======
     function createHouseAndFurniture() {
-      // --- House floor (wood) ---
+      // --- wood floor ---
       for (let x = -4; x <= 4; x++) {
         for (let z = -4; z <= 4; z++) {
           createBlock(x, 0.13, z, 0x8d6e63, 1, 0.1, 1);
         }
       }
 
-      // --- Walls ---
       const wallHeight = 4;
+
       // Back wall (z = -4.5)
       for (let x = -4; x <= 4; x++) {
         for (let y = 0; y < wallHeight; y++) {
           createBlock(x, 0.25 + y, -4.5, 0xd7ccc8, 1, 1, 0.2);
         }
       }
+
       // Front wall (z = 4.5) with door opening
       for (let x = -4; x <= 4; x++) {
         for (let y = 0; y < wallHeight; y++) {
-          // door at center: x 0, y 0..2 skip
-          const isDoorArea = (x === 0) && (y <= 2);
+          const isDoorArea = x === 0 && y <= 2;
           if (isDoorArea) continue;
           createBlock(x, 0.25 + y, 4.5, 0xd7ccc8, 1, 1, 0.2);
         }
       }
+
       // Left wall (x = -4.5)
       for (let z = -4; z <= 4; z++) {
         for (let y = 0; y < wallHeight; y++) {
           createBlock(-4.5, 0.25 + y, z, 0xd7ccc8, 0.2, 1, 1);
         }
       }
+
       // Right wall (x = 4.5) with small window
       for (let z = -4; z <= 4; z++) {
         for (let y = 0; y < wallHeight; y++) {
-          const isWindowArea =
-            (z >= -1 && z <= 1) && (y === 2 || y === 1);
+          const isWindowArea = z >= -1 && z <= 1 && (y === 1 || y === 2);
           if (isWindowArea) continue;
           createBlock(4.5, 0.25 + y, z, 0xd7ccc8, 0.2, 1, 1);
         }
       }
 
-      // --- Roof (simple flat) ---
+      // Roof
       for (let x = -4.5; x <= 4.5; x++) {
         for (let z = -4.5; z <= 4.5; z++) {
           createBlock(x, wallHeight + 0.3, z, 0x6d4c41, 1, 0.2, 1);
         }
       }
 
-      // ===== Furniture inside =====
-      // 1) Table (center)
+      // ===== Furniture =====
       createTable(0, 0.25, 0);
-
-      // 2) Chairs around table
-      createChair(-1.5, 0.25, 0);   // left
-      createChair(1.5, 0.25, 0);    // right
-      createChair(0, 0.25, -1.5);   // back
-      createChair(0, 0.25, 1.5);    // front
-
-      // 3) Bed (corner)
+      createChair(-1.5, 0.25, 0);
+      createChair(1.5, 0.25, 0);
+      createChair(0, 0.25, -1.5);
+      createChair(0, 0.25, 1.5);
       createBed(-3, 0.25, -3);
-
-      // 4) Bookshelf (wall)
       createBookshelf(3.7, 0.25, -2);
-
-      // 5) Chest (storage)
       createChest(3, 0.25, 3);
-
-      // 6) Simple lamp / torch stand (near table)
       createLamp(-2.7, 0.25, 1.5);
     }
 
     function createTable(x, y, z) {
-      // legs
       const legHeight = 1.0;
       const legOffset = 0.9;
       const legRadius = 0.15;
@@ -254,46 +237,31 @@
       createBlock(x + legOffset, y, z - legOffset, 0x5d4037, legRadius, legHeight, legRadius);
       createBlock(x - legOffset, y, z + legOffset, 0x5d4037, legRadius, legHeight, legRadius);
       createBlock(x + legOffset, y, z + legOffset, 0x5d4037, legRadius, legHeight, legRadius);
-
-      // top
       createBlock(x, y + legHeight, z, 0x8d6e63, 2.2, 0.15, 2.2);
     }
 
     function createChair(x, y, z) {
       const seatHeight = 0.6;
       const seatSize = 0.7;
-
-      // legs
       const legRadius = 0.1;
       const legOffset = 0.3;
       createBlock(x - legOffset, y, z - legOffset, 0x5d4037, legRadius, seatHeight, legRadius);
       createBlock(x + legOffset, y, z - legOffset, 0x5d4037, legRadius, seatHeight, legRadius);
       createBlock(x - legOffset, y, z + legOffset, 0x5d4037, legRadius, seatHeight, legRadius);
       createBlock(x + legOffset, y, z + legOffset, 0x5d4037, legRadius, seatHeight, legRadius);
-
-      // seat
       createBlock(x, y + seatHeight, z, 0x8d6e63, seatSize, 0.12, seatSize);
-
-      // backrest
       createBlock(x, y + seatHeight + 0.5, z - 0.3, 0x6d4c41, seatSize, 1.0, 0.12);
     }
 
     function createBed(x, y, z) {
-      // frame
       createBlock(x, y, z, 0x5d4037, 2.2, 0.3, 1.1);
-      // mattress
       createBlock(x, y + 0.3, z, 0xfff8e1, 2.0, 0.3, 1.0);
-      // pillow
       createBlock(x + 0.7, y + 0.45, z, 0xffffff, 0.6, 0.25, 0.9);
-      // blanket edge
       createBlock(x - 0.4, y + 0.45, z, 0x2196f3, 1.2, 0.2, 0.9);
     }
 
     function createBookshelf(x, y, z) {
-      // body
       createBlock(x, y + 1.5, z, 0x5d4037, 0.6, 3, 1.6);
-
-      // shelves (just stripes)
       const shelfColors = [0xffcc80, 0x90caf9, 0xffab91, 0xa5d6a7];
       for (let i = 0; i < 4; i++) {
         const sy = y + 0.5 + i * 0.7;
@@ -302,20 +270,14 @@
     }
 
     function createChest(x, y, z) {
-      // base
       createBlock(x, y, z, 0x795548, 1.2, 0.6, 0.9);
-      // lid
       createBlock(x, y + 0.6, z, 0x6d4c41, 1.2, 0.25, 0.9);
-      // lock
       createBlock(x + 0.55, y + 0.35, z, 0xffd54f, 0.12, 0.2, 0.12);
     }
 
     function createLamp(x, y, z) {
-      // stand
       createBlock(x, y, z, 0x424242, 0.12, 1.8, 0.12);
-      // head
       createBlock(x, y + 1.8, z, 0xfff3e0, 0.6, 0.4, 0.6);
-      // light boost near lamp
       const lampLight = new THREE.PointLight(0xfff3b0, 1.5, 8);
       lampLight.position.set(x, y + 2.1, z);
       scene.add(lampLight);
@@ -325,7 +287,6 @@
     createGround();
     createHouseAndFurniture();
 
-    // 軽く遠景用の木を追加
     function createTree(tx, tz) {
       const trunkHeight = 2;
       createBlock(tx, 0.25, tz, 0x5d4037, 0.4, trunkHeight, 0.4);
@@ -338,12 +299,7 @@
     createTree(8, 10);
 
     // ====== INPUT ======
-    const keys = {
-      forward: false,
-      backward: false,
-      left: false,
-      right: false,
-    };
+    const keys = { forward: false, backward: false, left: false, right: false };
 
     function handleKeyDown(e) {
       switch (e.key.toLowerCase()) {
@@ -365,7 +321,6 @@
           break;
       }
     }
-
     function handleKeyUp(e) {
       switch (e.key.toLowerCase()) {
         case "w":
@@ -386,7 +341,6 @@
           break;
       }
     }
-
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
 
@@ -412,21 +366,13 @@
         moveDir.normalize();
         const speed = player.speed * delta;
         player.position.addScaledVector(moveDir, speed);
-
-        // 室内の床から落ちないように簡易制限（Yと周辺だけ）
         player.position.y = 1;
-
-        // プレイヤーモデル位置を更新
         playerMesh.position.copy(player.position);
-
-        // プレイヤーの向きも移動方向に合わせる
         const angle = Math.atan2(moveDir.x, moveDir.z);
         playerMesh.rotation.y = angle;
       }
 
-      // カメラの注視点をプレイヤーに近づける（少しスムーズ）
-      const target = controls.target;
-      target.lerp(player.position, 0.1);
+      controls.target.lerp(player.position, 0.1);
     }
 
     function animate() {
@@ -436,10 +382,9 @@
       controls.update();
       renderer.render(scene, camera);
     }
-
     animate();
 
-    // ====== RESIZE HANDLING ======
+    // ====== RESIZE ======
     function onResize() {
       const width = window.innerWidth;
       const height = window.innerHeight;
@@ -447,7 +392,6 @@
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
     }
-
     window.addEventListener("resize", onResize);
     window.addEventListener("orientationchange", () => {
       setTimeout(onResize, 300);
