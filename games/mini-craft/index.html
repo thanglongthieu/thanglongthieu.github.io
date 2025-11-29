@@ -2,400 +2,582 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Mini-Craft 3D World</title>
-  <!-- iPhone 向けフルスクリーン系設定 -->
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
-  />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-
+  <title>MiniCraft with Furniture v2</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <style>
     html, body {
       margin: 0;
       padding: 0;
-      width: 100%;
+      background: #111;
+      color: #eee;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      display: flex;
+      flex-direction: column;
       height: 100%;
       overflow: hidden;
-      background: #050608;
-      color: #fff;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      -webkit-touch-callout: none;
-      -webkit-user-select: none;
-      -webkit-text-size-adjust: 100%;
     }
-
-    body {
-      padding-top: env(safe-area-inset-top);
-      padding-bottom: env(safe-area-inset-bottom);
-      padding-left: env(safe-area-inset-left);
-      padding-right: env(safe-area-inset-right);
-      box-sizing: border-box;
+    #gameContainer {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
     }
-
-    #game {
-      width: 100%;
-      height: 100%;
-      touch-action: none;
-      position: relative;
-    }
-
     canvas {
-      display: block;
-      width: 100%;
-      height: 100%;
+      background: #66bb6a;
+      image-rendering: pixelated;
+      border: 2px solid #444;
+      max-width: 100vw;
+      max-height: calc(100vh - 200px);
+      touch-action: none;
     }
-
-    #hud {
+    #uiBar {
+      background: #222;
+      padding: 6px 10px;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      border-top: 1px solid #333;
+    }
+    #inventory {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .slot {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 4px;
+      border: 2px solid #555;
+      position: relative;
+      box-sizing: border-box;
+      background: #333;
+      cursor: pointer;
+      user-select: none;
+    }
+    .slot.selected {
+      border-color: #ffeb3b;
+      box-shadow: 0 0 8px #ffeb3b;
+    }
+    .slot-label {
       position: absolute;
-      top: 10px;
-      left: 10px;
-      padding: 8px 12px;
-      background: rgba(0, 0, 0, 0.55);
-      border-radius: 8px;
-      font-size: 12px;
-      line-height: 1.4;
-      pointer-events: none;
+      bottom: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 11px;
+      color: #aaa;
+    }
+    #help {
+      font-size: 11px;
+      color: #ccc;
       max-width: 260px;
     }
+    #saveLoadButtons {
+      display: flex;
+      gap: 6px;
+    }
+    button {
+      background: #424242;
+      border: 1px solid #666;
+      border-radius: 4px;
+      color: #eee;
+      padding: 4px 8px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    button:active {
+      background: #616161;
+    }
 
-    #hud strong {
-      color: #ffeb3b;
+    /* Touch controls for mobile */
+    #touchControls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 6px 0 8px;
+      gap: 12px;
+      background: #181818;
+      border-top: 1px solid #333;
+    }
+    #dpad {
+      display: grid;
+      grid-template-columns: 40px 40px 40px;
+      grid-template-rows: 40px 40px 40px;
+      gap: 4px;
+    }
+    .dpad-btn {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #303030;
+      border-radius: 6px;
+      border: 1px solid #555;
+      font-size: 18px;
+      user-select: none;
+    }
+    .dpad-btn:active {
+      background: #505050;
+    }
+    .dpad-empty {
+      background: transparent;
+      border: none;
+    }
+    #touchActions {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .touch-action-btn {
+      width: 80px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      background: #37474f;
+      border: 1px solid #607d8b;
+      font-size: 12px;
+      user-select: none;
+    }
+    .touch-action-btn:active {
+      background: #546e7a;
+    }
+
+    /* On bigger screens, hide touch controls */
+    @media (min-width: 768px) {
+      #touchControls {
+        display: none;
+      }
     }
   </style>
 </head>
 <body>
-  <div id="game">
-    <div id="hud">
-      <strong>Mini-Craft 3D</strong><br />
-      Move: WASD / Arrow keys<br />
-      Look: Drag (touch / mouse)<br />
-      Zoom: Pinch / Mouse wheel<br />
-      Explore the house & furniture!
+  <div id="gameContainer">
+    <canvas id="gameCanvas" width="800" height="480"></canvas>
+  </div>
+
+  <!-- Mobile / touch controls -->
+  <div id="touchControls">
+    <div id="dpad">
+      <div class="dpad-empty"></div>
+      <div class="dpad-btn" data-move="0,-1">▲</div>
+      <div class="dpad-empty"></div>
+      <div class="dpad-btn" data-move="-1,0">◀</div>
+      <div class="dpad-empty"></div>
+      <div class="dpad-btn" data-move="1,0">▶</div>
+      <div class="dpad-empty"></div>
+      <div class="dpad-btn" data-move="0,1">▼</div>
+      <div class="dpad-empty"></div>
+    </div>
+    <div id="touchActions">
+      <div class="touch-action-btn" data-action="place">Place</div>
+      <div class="touch-action-btn" data-action="remove">Remove</div>
     </div>
   </div>
 
-  <!-- Three.js & OrbitControls (ES Modules, URL 参照なので import エラー出ない) -->
-  <script type="module">
-    import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
-    import { OrbitControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js";
+  <div id="uiBar">
+    <div id="inventory">
+      <span>Blocks:</span>
+      <div class="slot" data-block="1" id="slot-1"><span>🪵</span><div class="slot-label">1</div></div>
+      <div class="slot" data-block="2" id="slot-2"><span>🛏</span><div class="slot-label">2</div></div>
+      <div class="slot" data-block="3" id="slot-3"><span>🪑</span><div class="slot-label">3</div></div>
+      <div class="slot" data-block="4" id="slot-4"><span>🧰</span><div class="slot-label">4</div></div>
+    </div>
+    <div id="help">
+      PC: WASD / Arrows to move, Space = Place, X = Remove, 1-4 = select block.
+      Mobile: Use D-pad & Place/Remove buttons.
+    </div>
+    <div id="saveLoadButtons">
+      <button id="saveBtn">💾 Save</button>
+      <button id="loadBtn">📂 Load</button>
+    </div>
+  </div>
 
-    // ====== BASIC SETUP ======
-    const container = document.getElementById("game");
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
 
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87ceeb); // blue sky
+    // WORLD SETTINGS
+    const TILE_SIZE = 32;
+    const WORLD_W = Math.floor(canvas.width / TILE_SIZE);
+    const WORLD_H = Math.floor(canvas.height / TILE_SIZE);
 
-    const camera = new THREE.PerspectiveCamera(
-      60,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000
-    );
-    camera.position.set(10, 8, 14);
+    // TILE TYPES
+    const TILE_EMPTY = 0;   // grass only
+    const TILE_WOOD  = 1;   // wall-ish
+    const TILE_BED   = 2;   // furniture
+    const TILE_TABLE = 3;   // furniture
+    const TILE_CHEST = 4;   // furniture
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    container.appendChild(renderer.domElement);
-
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.07;
-    controls.target.set(0, 2, 0);
-    controls.maxPolarAngle = Math.PI / 2; // 下を向きすぎない
-    controls.minDistance = 4;
-    controls.maxDistance = 40;
-
-    // ====== LIGHTS ======
-    const ambient = new THREE.AmbientLight(0xffffff, 0.4);
-    scene.add(ambient);
-
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
-    dirLight.position.set(10, 20, 5);
-    dirLight.castShadow = true;
-    dirLight.shadow.mapSize.set(2048, 2048);
-    dirLight.shadow.camera.near = 1;
-    dirLight.shadow.camera.far = 60;
-    dirLight.shadow.camera.left = -30;
-    dirLight.shadow.camera.right = 30;
-    dirLight.shadow.camera.top = 30;
-    dirLight.shadow.camera.bottom = -30;
-    scene.add(dirLight);
-
-    const warmLight = new THREE.PointLight(0xffddaa, 1.2, 25);
-    warmLight.position.set(0, 6, 0);
-    warmLight.castShadow = true;
-    scene.add(warmLight);
-
-    // ====== PLAYER ======
+    // PLAYER
     const player = {
-      position: new THREE.Vector3(0, 1, 10),
-      speed: 8,
+      x: Math.floor(WORLD_W / 2),
+      y: Math.floor(WORLD_H / 2),
+      dirX: 0,
+      dirY: -1
     };
 
-    const playerGeometry = new THREE.BoxGeometry(0.8, 1.4, 0.8);
-    const playerMaterial = new THREE.MeshStandardMaterial({ color: 0xffeb3b });
-    const playerMesh = new THREE.Mesh(playerGeometry, playerMaterial);
-    playerMesh.castShadow = true;
-    playerMesh.position.copy(player.position);
-    scene.add(playerMesh);
+    let world = [];
+    let selectedBlock = TILE_WOOD;
 
-    // ====== HELPERS ======
-    function createBlock(x, y, z, color, sx = 1, sy = 1, sz = 1) {
-      const geo = new THREE.BoxGeometry(sx, sy, sz);
-      const mat = new THREE.MeshStandardMaterial({ color });
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-      mesh.position.set(x, y + sy / 2, z); // y は中心
-      scene.add(mesh);
-      return mesh;
-    }
+    const SAVE_KEY = "minicraftFurnitureWorld_v1";
 
-    // ====== WORLD / GROUND ======
-    function createGround() {
-      const size = 20;
-      for (let x = -size; x <= size; x++) {
-        for (let z = -size; z <= size; z++) {
-          const color = (x + z) % 2 === 0 ? 0x4caf50 : 0x43a047;
-          createBlock(x, 0, z, color, 1, 0.25, 1);
+    // ---------- WORLD INIT ----------
+    function initWorld() {
+      world = [];
+      for (let y = 0; y < WORLD_H; y++) {
+        const row = [];
+        for (let x = 0; x < WORLD_W; x++) {
+          if (x === 0 || y === 0 || x === WORLD_W - 1 || y === WORLD_H - 1) {
+            row.push(TILE_WOOD); // border wall
+          } else {
+            row.push(TILE_EMPTY);
+          }
         }
+        world.push(row);
       }
-    }
 
-    // ====== HOUSE & FURNITURE ======
-    function createHouseAndFurniture() {
-      // --- wood floor ---
-      for (let x = -4; x <= 4; x++) {
-        for (let z = -4; z <= 4; z++) {
-          createBlock(x, 0.13, z, 0x8d6e63, 1, 0.1, 1);
+      // small house area with empty inside
+      const hx = 3, hy = 3, hw = 8, hh = 6;
+      for (let y = hy; y < hy + hh; y++) {
+        for (let x = hx; x < hx + hw; x++) {
+          if (x === hx || y === hy || x === hx + hw - 1 || y === hy + hh - 1) {
+            world[y][x] = TILE_WOOD;
+          } else {
+            world[y][x] = TILE_EMPTY;
+          }
         }
       }
 
-      const wallHeight = 4;
+      // default furniture
+      world[hy + hh - 2][hx + 1] = TILE_BED;
+      world[hy + hh - 3][hx + 3] = TILE_TABLE;
+      world[hy + hh - 3][hx + 5] = TILE_CHEST;
 
-      // Back wall (z = -4.5)
-      for (let x = -4; x <= 4; x++) {
-        for (let y = 0; y < wallHeight; y++) {
-          createBlock(x, 0.25 + y, -4.5, 0xd7ccc8, 1, 1, 0.2);
+      // player start
+      player.x = hx + Math.floor(hw / 2);
+      player.y = hy + Math.floor(hh / 2);
+      player.dirX = 0;
+      player.dirY = -1;
+    }
+
+    // ---------- DRAWING ----------
+    function drawTile(type, x, y) {
+      const px = x * TILE_SIZE;
+      const py = y * TILE_SIZE;
+
+      // base ground
+      ctx.fillStyle = (x + y) % 2 === 0 ? "#5da15d" : "#579957";
+      ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+
+      switch (type) {
+        case TILE_WOOD:
+          ctx.fillStyle = "#8d6e63";
+          ctx.fillRect(px + 2, py + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+          ctx.strokeStyle = "#5d4037";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(px + 3, py + 3, TILE_SIZE - 6, TILE_SIZE - 6);
+          break;
+        case TILE_BED:
+          ctx.fillStyle = "#b71c1c";
+          ctx.fillRect(px + 2, py + TILE_SIZE / 4, TILE_SIZE - 4, TILE_SIZE / 2);
+          ctx.fillStyle = "#eeeeee";
+          ctx.fillRect(px + 2, py + 2, TILE_SIZE - 4, TILE_SIZE / 4);
+          ctx.strokeStyle = "#880e4f";
+          ctx.strokeRect(px + 2, py + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+          break;
+        case TILE_TABLE:
+          ctx.fillStyle = "#a1887f";
+          ctx.fillRect(px + 2, py + 6, TILE_SIZE - 4, TILE_SIZE - 10);
+          ctx.fillStyle = "#4e342e";
+          ctx.fillRect(px + 6, py + TILE_SIZE - 6, 4, 4);
+          ctx.fillRect(px + TILE_SIZE - 10, py + TILE_SIZE - 6, 4, 4);
+          break;
+        case TILE_CHEST:
+          ctx.fillStyle = "#ffb74d";
+          ctx.fillRect(px + 3, py + 6, TILE_SIZE - 6, TILE_SIZE - 10);
+          ctx.fillStyle = "#6d4c41";
+          ctx.fillRect(px + 3, py + 6, TILE_SIZE - 6, 6);
+          ctx.fillStyle = "#3e2723";
+          ctx.fillRect(px + TILE_SIZE / 2 - 2, py + TILE_SIZE / 2, 4, 4);
+          break;
+        case TILE_EMPTY:
+        default:
+          // grass only
+          break;
+      }
+    }
+
+    function drawPlayer() {
+      const px = player.x * TILE_SIZE;
+      const py = player.y * TILE_SIZE;
+
+      // body
+      ctx.fillStyle = "#2196f3";
+      ctx.fillRect(px + 8, py + 6, TILE_SIZE - 16, TILE_SIZE - 10);
+
+      // head
+      ctx.fillStyle = "#ffcc80";
+      ctx.fillRect(px + 10, py, TILE_SIZE - 20, TILE_SIZE / 2 - 2);
+
+      // eyes
+      ctx.fillStyle = "#000";
+      ctx.fillRect(px + 13, py + 6, 2, 2);
+      ctx.fillRect(px + TILE_SIZE - 15, py + 6, 2, 2);
+
+      // facing arrow
+      const cx = px + TILE_SIZE / 2;
+      const cy = py + TILE_SIZE / 2;
+      ctx.strokeStyle = "#ffff00";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + player.dirX * 10, cy + player.dirY * 10);
+      ctx.stroke();
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let y = 0; y < WORLD_H; y++) {
+        for (let x = 0; x < WORLD_W; x++) {
+          drawTile(world[y][x], x, y);
         }
       }
 
-      // Front wall (z = 4.5) with door opening
-      for (let x = -4; x <= 4; x++) {
-        for (let y = 0; y < wallHeight; y++) {
-          const isDoorArea = x === 0 && y <= 2;
-          if (isDoorArea) continue;
-          createBlock(x, 0.25 + y, 4.5, 0xd7ccc8, 1, 1, 0.2);
+      // highlight tile in front
+      const tx = player.x + player.dirX;
+      const ty = player.y + player.dirY;
+      if (tx >= 0 && ty >= 0 && tx < WORLD_W && ty < WORLD_H) {
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(tx * TILE_SIZE + 2, ty * TILE_SIZE + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+      }
+
+      drawPlayer();
+      requestAnimationFrame(render);
+    }
+
+    // ---------- LOGIC ----------
+    function isWalkable(x, y) {
+      if (x < 0 || y < 0 || x >= WORLD_W || y >= WORLD_H) return false;
+      const tile = world[y][x];
+      return tile !== TILE_WOOD; // cannot walk through wood walls
+    }
+
+    function movePlayer(dx, dy) {
+      if (dx === 0 && dy === 0) return;
+      player.dirX = dx;
+      player.dirY = dy;
+      const nx = player.x + dx;
+      const ny = player.y + dy;
+      if (isWalkable(nx, ny)) {
+        player.x = nx;
+        player.y = ny;
+      }
+    }
+
+    function placeBlock() {
+      const tx = player.x + player.dirX;
+      const ty = player.y + player.dirY;
+      if (tx < 0 || ty < 0 || tx >= WORLD_W || ty >= WORLD_H) return;
+      if (tx === 0 || ty === 0 || tx === WORLD_W - 1 || ty === WORLD_H - 1) return; // keep border
+      if (tx === player.x && ty === player.y) return; // not on player
+      world[ty][tx] = selectedBlock;
+    }
+
+    function removeBlock() {
+      const tx = player.x + player.dirX;
+      const ty = player.y + player.dirY;
+      if (tx < 0 || ty < 0 || tx >= WORLD_W || ty >= WORLD_H) return;
+      if (tx === 0 || ty === 0 || tx === WORLD_W - 1 || ty === WORLD_H - 1) return; // keep border
+      world[ty][tx] = TILE_EMPTY;
+    }
+
+    // ---------- SAVE / LOAD ----------
+    function saveWorld() {
+      const data = {
+        world,
+        player: { x: player.x, y: player.y, dirX: player.dirX, dirY: player.dirY }
+      };
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+        alert("World saved!");
+      } catch (e) {
+        console.error(e);
+        alert("Failed to save (localStorage error).");
+      }
+    }
+
+    function loadWorld() {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) {
+        alert("No saved world found.");
+        return;
+      }
+      try {
+        const data = JSON.parse(raw);
+        if (!data.world || !Array.isArray(data.world)) {
+          throw new Error("Invalid world data");
         }
-      }
-
-      // Left wall (x = -4.5)
-      for (let z = -4; z <= 4; z++) {
-        for (let y = 0; y < wallHeight; y++) {
-          createBlock(-4.5, 0.25 + y, z, 0xd7ccc8, 0.2, 1, 1);
+        // Size check
+        if (data.world.length !== WORLD_H || data.world[0].length !== WORLD_W) {
+          throw new Error("Saved world size does not match current world size.");
         }
-      }
-
-      // Right wall (x = 4.5) with small window
-      for (let z = -4; z <= 4; z++) {
-        for (let y = 0; y < wallHeight; y++) {
-          const isWindowArea = z >= -1 && z <= 1 && (y === 1 || y === 2);
-          if (isWindowArea) continue;
-          createBlock(4.5, 0.25 + y, z, 0xd7ccc8, 0.2, 1, 1);
+        world = data.world.map(row => row.slice());
+        if (data.player) {
+          player.x = data.player.x ?? player.x;
+          player.y = data.player.y ?? player.y;
+          player.dirX = data.player.dirX ?? player.dirX;
+          player.dirY = data.player.dirY ?? player.dirY;
         }
-      }
-
-      // Roof
-      for (let x = -4.5; x <= 4.5; x++) {
-        for (let z = -4.5; z <= 4.5; z++) {
-          createBlock(x, wallHeight + 0.3, z, 0x6d4c41, 1, 0.2, 1);
-        }
-      }
-
-      // ===== Furniture =====
-      createTable(0, 0.25, 0);
-      createChair(-1.5, 0.25, 0);
-      createChair(1.5, 0.25, 0);
-      createChair(0, 0.25, -1.5);
-      createChair(0, 0.25, 1.5);
-      createBed(-3, 0.25, -3);
-      createBookshelf(3.7, 0.25, -2);
-      createChest(3, 0.25, 3);
-      createLamp(-2.7, 0.25, 1.5);
-    }
-
-    function createTable(x, y, z) {
-      const legHeight = 1.0;
-      const legOffset = 0.9;
-      const legRadius = 0.15;
-      createBlock(x - legOffset, y, z - legOffset, 0x5d4037, legRadius, legHeight, legRadius);
-      createBlock(x + legOffset, y, z - legOffset, 0x5d4037, legRadius, legHeight, legRadius);
-      createBlock(x - legOffset, y, z + legOffset, 0x5d4037, legRadius, legHeight, legRadius);
-      createBlock(x + legOffset, y, z + legOffset, 0x5d4037, legRadius, legHeight, legRadius);
-      createBlock(x, y + legHeight, z, 0x8d6e63, 2.2, 0.15, 2.2);
-    }
-
-    function createChair(x, y, z) {
-      const seatHeight = 0.6;
-      const seatSize = 0.7;
-      const legRadius = 0.1;
-      const legOffset = 0.3;
-      createBlock(x - legOffset, y, z - legOffset, 0x5d4037, legRadius, seatHeight, legRadius);
-      createBlock(x + legOffset, y, z - legOffset, 0x5d4037, legRadius, seatHeight, legRadius);
-      createBlock(x - legOffset, y, z + legOffset, 0x5d4037, legRadius, seatHeight, legRadius);
-      createBlock(x + legOffset, y, z + legOffset, 0x5d4037, legRadius, seatHeight, legRadius);
-      createBlock(x, y + seatHeight, z, 0x8d6e63, seatSize, 0.12, seatSize);
-      createBlock(x, y + seatHeight + 0.5, z - 0.3, 0x6d4c41, seatSize, 1.0, 0.12);
-    }
-
-    function createBed(x, y, z) {
-      createBlock(x, y, z, 0x5d4037, 2.2, 0.3, 1.1);
-      createBlock(x, y + 0.3, z, 0xfff8e1, 2.0, 0.3, 1.0);
-      createBlock(x + 0.7, y + 0.45, z, 0xffffff, 0.6, 0.25, 0.9);
-      createBlock(x - 0.4, y + 0.45, z, 0x2196f3, 1.2, 0.2, 0.9);
-    }
-
-    function createBookshelf(x, y, z) {
-      createBlock(x, y + 1.5, z, 0x5d4037, 0.6, 3, 1.6);
-      const shelfColors = [0xffcc80, 0x90caf9, 0xffab91, 0xa5d6a7];
-      for (let i = 0; i < 4; i++) {
-        const sy = y + 0.5 + i * 0.7;
-        createBlock(x + 0.05, sy, z, shelfColors[i], 0.4, 0.15, 1.4);
+        alert("World loaded!");
+      } catch (e) {
+        console.error(e);
+        alert("Failed to load world (data corrupted?).");
       }
     }
 
-    function createChest(x, y, z) {
-      createBlock(x, y, z, 0x795548, 1.2, 0.6, 0.9);
-      createBlock(x, y + 0.6, z, 0x6d4c41, 1.2, 0.25, 0.9);
-      createBlock(x + 0.55, y + 0.35, z, 0xffd54f, 0.12, 0.2, 0.12);
-    }
-
-    function createLamp(x, y, z) {
-      createBlock(x, y, z, 0x424242, 0.12, 1.8, 0.12);
-      createBlock(x, y + 1.8, z, 0xfff3e0, 0.6, 0.4, 0.6);
-      const lampLight = new THREE.PointLight(0xfff3b0, 1.5, 8);
-      lampLight.position.set(x, y + 2.1, z);
-      scene.add(lampLight);
-    }
-
-    // ====== SCENE CREATION ======
-    createGround();
-    createHouseAndFurniture();
-
-    function createTree(tx, tz) {
-      const trunkHeight = 2;
-      createBlock(tx, 0.25, tz, 0x5d4037, 0.4, trunkHeight, 0.4);
-      createBlock(tx, 0.25 + trunkHeight, tz, 0x2e7d32, 2, 1.4, 2);
-    }
-
-    createTree(-10, -5);
-    createTree(12, -8);
-    createTree(-12, 6);
-    createTree(8, 10);
-
-    // ====== INPUT ======
-    const keys = { forward: false, backward: false, left: false, right: false };
-
-    function handleKeyDown(e) {
-      switch (e.key.toLowerCase()) {
+    // ---------- INPUT: KEYBOARD ----------
+    window.addEventListener("keydown", (e) => {
+      const key = e.key.toLowerCase();
+      if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(e.key.toLowerCase())) {
+        e.preventDefault();
+      }
+      switch (key) {
         case "w":
         case "arrowup":
-          keys.forward = true;
+          movePlayer(0, -1);
           break;
         case "s":
         case "arrowdown":
-          keys.backward = true;
+          movePlayer(0, 1);
           break;
         case "a":
         case "arrowleft":
-          keys.left = true;
+          movePlayer(-1, 0);
           break;
         case "d":
         case "arrowright":
-          keys.right = true;
+          movePlayer(1, 0);
+          break;
+        case " ":
+          placeBlock();
+          break;
+        case "x":
+          removeBlock();
+          break;
+        case "1":
+          setSelectedBlock(TILE_WOOD);
+          break;
+        case "2":
+          setSelectedBlock(TILE_BED);
+          break;
+        case "3":
+          setSelectedBlock(TILE_TABLE);
+          break;
+        case "4":
+          setSelectedBlock(TILE_CHEST);
           break;
       }
-    }
-    function handleKeyUp(e) {
-      switch (e.key.toLowerCase()) {
-        case "w":
-        case "arrowup":
-          keys.forward = false;
-          break;
-        case "s":
-        case "arrowdown":
-          keys.backward = false;
-          break;
-        case "a":
-        case "arrowleft":
-          keys.left = false;
-          break;
-        case "d":
-        case "arrowright":
-          keys.right = false;
-          break;
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
-
-    // ====== ANIMATION LOOP ======
-    const clock = new THREE.Clock();
-
-    function updatePlayer(delta) {
-      const moveDir = new THREE.Vector3();
-      const camDir = new THREE.Vector3();
-      camera.getWorldDirection(camDir);
-      camDir.y = 0;
-      camDir.normalize();
-
-      const rightDir = new THREE.Vector3();
-      rightDir.crossVectors(camDir, new THREE.Vector3(0, 1, 0)).normalize();
-
-      if (keys.forward) moveDir.add(camDir);
-      if (keys.backward) moveDir.sub(camDir);
-      if (keys.left) moveDir.sub(rightDir);
-      if (keys.right) moveDir.add(rightDir);
-
-      if (moveDir.lengthSq() > 0) {
-        moveDir.normalize();
-        const speed = player.speed * delta;
-        player.position.addScaledVector(moveDir, speed);
-        player.position.y = 1; // 簡易：常に床の高さ
-        playerMesh.position.copy(player.position);
-        const angle = Math.atan2(moveDir.x, moveDir.z);
-        playerMesh.rotation.y = angle;
-      }
-
-      controls.target.lerp(player.position, 0.1);
-    }
-
-    function animate() {
-      requestAnimationFrame(animate);
-      const delta = clock.getDelta();
-      updatePlayer(delta);
-      controls.update();
-      renderer.render(scene, camera);
-    }
-    animate();
-
-    // ====== RESIZE ======
-    function onResize() {
-      const width = window.innerWidth;
-      const height = window.innerHeight;
-      renderer.setSize(width, height);
-      camera.aspect = width / height;
-      camera.updateProjectionMatrix();
-    }
-    window.addEventListener("resize", onResize);
-    window.addEventListener("orientationchange", () => {
-      setTimeout(onResize, 300);
     });
+
+    // ---------- INPUT: MOUSE (PC) ----------
+    canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+
+    canvas.addEventListener("mousedown", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const mx = (e.clientX - rect.left) * scaleX;
+      const my = (e.clientY - rect.top) * scaleY;
+
+      const tx = Math.floor(mx / TILE_SIZE);
+      const ty = Math.floor(my / TILE_SIZE);
+
+      // update facing toward clicked tile
+      const dx = tx - player.x;
+      const dy = ty - player.y;
+      if (dx !== 0 || dy !== 0) {
+        if (Math.abs(dx) > Math.abs(dy)) {
+          player.dirX = dx > 0 ? 1 : -1;
+          player.dirY = 0;
+        } else {
+          player.dirX = 0;
+          player.dirY = dy > 0 ? 1 : -1;
+        }
+      }
+
+      if (e.button === 0) {
+        placeBlock();
+      } else if (e.button === 2) {
+        removeBlock();
+      }
+    });
+
+    // ---------- INPUT: TOUCH (MOBILE BUTTONS) ----------
+    document.querySelectorAll(".dpad-btn").forEach(btn => {
+      btn.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        const [dx, dy] = btn.dataset.move.split(",").map(Number);
+        movePlayer(dx, dy);
+      });
+    });
+
+    document.querySelectorAll(".touch-action-btn").forEach(btn => {
+      btn.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        const action = btn.dataset.action;
+        if (action === "place") placeBlock();
+        if (action === "remove") removeBlock();
+      });
+    });
+
+    // ---------- INVENTORY ----------
+    function setSelectedBlock(blockType) {
+      selectedBlock = blockType;
+      document.querySelectorAll(".slot").forEach(slot => {
+        slot.classList.toggle("selected", Number(slot.dataset.block) === blockType);
+      });
+    }
+
+    document.querySelectorAll(".slot").forEach(slot => {
+      slot.addEventListener("click", () => {
+        const blockType = Number(slot.dataset.block);
+        setSelectedBlock(blockType);
+      });
+      slot.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        const blockType = Number(slot.dataset.block);
+        setSelectedBlock(blockType);
+      });
+    });
+
+    // ---------- SAVE / LOAD BUTTONS ----------
+    document.getElementById("saveBtn").addEventListener("click", saveWorld);
+    document.getElementById("loadBtn").addEventListener("click", loadWorld);
+
+    document.getElementById("saveBtn").addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      saveWorld();
+    });
+    document.getElementById("loadBtn").addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      loadWorld();
+    });
+
+    // ---------- INIT ----------
+    initWorld();
+    setSelectedBlock(TILE_WOOD);
+    render();
   </script>
 </body>
 </html>
