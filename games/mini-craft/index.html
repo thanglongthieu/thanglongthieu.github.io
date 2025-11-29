@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Mini-Craft 3D World (No Import Error)</title>
+  <title>Mini-Craft 3D World</title>
+  <!-- iPhone 向けフルスクリーン系設定 -->
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
@@ -75,12 +76,11 @@
     </div>
   </div>
 
-  <!-- ✅ Three.js 本体（グローバル THREE） -->
-  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
-  <!-- ✅ OrbitControls（THREE.OrbitControls として追加される） -->
-  <script src="https://unpkg.com/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+  <!-- Three.js & OrbitControls (ES Modules, URL 参照なので import エラー出ない) -->
+  <script type="module">
+    import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+    import { OrbitControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js";
 
-  <script>
     // ====== BASIC SETUP ======
     const container = document.getElementById("game");
 
@@ -102,11 +102,11 @@
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(renderer.domElement);
 
-    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.07;
     controls.target.set(0, 2, 0);
-    controls.maxPolarAngle = Math.PI / 2;
+    controls.maxPolarAngle = Math.PI / 2; // 下を向きすぎない
     controls.minDistance = 4;
     controls.maxDistance = 40;
 
@@ -151,7 +151,7 @@
       const mesh = new THREE.Mesh(geo, mat);
       mesh.castShadow = true;
       mesh.receiveShadow = true;
-      mesh.position.set(x, y + sy / 2, z);
+      mesh.position.set(x, y + sy / 2, z); // y は中心
       scene.add(mesh);
       return mesh;
     }
@@ -366,7 +366,7 @@
         moveDir.normalize();
         const speed = player.speed * delta;
         player.position.addScaledVector(moveDir, speed);
-        player.position.y = 1;
+        player.position.y = 1; // 簡易：常に床の高さ
         playerMesh.position.copy(player.position);
         const angle = Math.atan2(moveDir.x, moveDir.z);
         playerMesh.rotation.y = angle;
