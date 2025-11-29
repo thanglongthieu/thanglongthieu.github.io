@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>MiniCraft – Fullscreen + More Mobs + Zoom</title>
+  <title>MiniCraft – Fullscreen + More Mobs + Zoom (Compact UI)</title>
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
@@ -37,15 +37,15 @@
       /* height is controlled from JS (resizeCanvas) */
     }
 
-    /* TOP inventory + search + save/load */
+    /* TOP inventory + search + save/load (COMPACT) */
     #uiBar {
       background: #222;
-      padding: 6px 10px;
-      font-size: 13px;
+      padding: 2px 6px;
+      font-size: 11px;
       display: grid;
-      grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
-      gap: 8px;
-      align-items: stretch;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr) auto;
+      gap: 6px;
+      align-items: center;
       border-top: 1px solid #333;
       box-sizing: border-box;
     }
@@ -53,7 +53,7 @@
     #inventoryPanel {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 2px;
       min-width: 0;
     }
 
@@ -61,27 +61,27 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 6px;
-      font-size: 12px;
+      gap: 4px;
+      font-size: 10px;
     }
 
     #blockSearch {
       flex: 1;
-      padding: 3px 6px;
+      padding: 2px 4px;
       border-radius: 4px;
       border: 1px solid #555;
       background: #111;
       color: #eee;
-      font-size: 12px;
+      font-size: 10px;
     }
 
     #inventoryList {
       display: flex;
       flex-wrap: wrap;
-      gap: 4px;
-      max-height: 80px;
+      gap: 3px;
+      max-height: 48px; /* smaller */
       overflow-y: auto;
-      padding-right: 4px;
+      padding-right: 2px;
     }
 
     .slot {
@@ -89,25 +89,25 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      width: 48px;
-      height: 48px;
-      border-radius: 6px;
-      border: 2px solid #555;
+      width: 40px;
+      height: 40px;
+      border-radius: 4px;
+      border: 1px solid #555;
       box-sizing: border-box;
       background: #333;
       cursor: pointer;
       user-select: none;
-      font-size: 20px;
+      font-size: 16px;
     }
     .slot span.slot-emoji {
       pointer-events: none;
     }
     .slot.selected {
       border-color: #ffeb3b;
-      box-shadow: 0 0 8px #ffeb3b;
+      box-shadow: 0 0 6px #ffeb3b;
     }
     .slot-name {
-      font-size: 9px;
+      font-size: 8px;
       color: #ccc;
       text-align: center;
       pointer-events: none;
@@ -119,15 +119,16 @@
     }
 
     #help {
-      font-size: 11px;
+      font-size: 10px;
       color: #ccc;
       align-self: center;
+      line-height: 1.3;
     }
 
     #saveLoadButtons {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 3px;
       align-items: flex-end;
       justify-content: center;
     }
@@ -137,8 +138,8 @@
       border: 1px solid #666;
       border-radius: 4px;
       color: #eee;
-      padding: 4px 8px;
-      font-size: 11px;
+      padding: 3px 6px;
+      font-size: 10px;
       cursor: pointer;
       white-space: nowrap;
     }
@@ -146,33 +147,33 @@
       background: #616161;
     }
 
-    /* Touch controls for mobile (bottom) */
+    /* Touch controls for mobile (bottom) – COMPACT */
     #touchControls {
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 6px 0 8px;
-      gap: 12px;
+      padding: 2px 0 4px;
+      gap: 8px;
       background: #181818;
       border-top: 1px solid #333;
       box-sizing: border-box;
     }
     #dpad {
       display: grid;
-      grid-template-columns: 40px 40px 40px;
-      grid-template-rows: 40px 40px 40px;
-      gap: 4px;
+      grid-template-columns: 32px 32px 32px;
+      grid-template-rows: 32px 32px 32px;
+      gap: 3px;
     }
     .dpad-btn {
-      width: 40px;
-      height: 40px;
+      width: 32px;
+      height: 32px;
       display: flex;
       align-items: center;
       justify-content: center;
       background: #303030;
-      border-radius: 6px;
+      border-radius: 4px;
       border: 1px solid #555;
-      font-size: 18px;
+      font-size: 16px;
       user-select: none;
     }
     .dpad-btn:active {
@@ -184,19 +185,22 @@
     }
     #touchActions {
       display: flex;
-      flex-direction: column;
-      gap: 6px;
+      flex-wrap: wrap;
+      flex-direction: row;
+      gap: 4px;
+      max-width: 220px;
+      justify-content: center;
     }
     .touch-action-btn {
-      min-width: 80px;
-      height: 34px;
+      min-width: 60px;
+      height: 28px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 6px;
+      border-radius: 4px;
       background: #37474f;
       border: 1px solid #607d8b;
-      font-size: 11px;
+      font-size: 10px;
       user-select: none;
       padding: 0 4px;
     }
@@ -219,6 +223,10 @@
       #saveLoadButtons {
         flex-direction: row;
         justify-content: flex-start;
+      }
+      /* Hide long help text on very small screens to save height */
+      #help {
+        display: none;
       }
     }
   </style>
@@ -254,18 +262,18 @@
   <div id="uiBar">
     <div id="inventoryPanel">
       <div id="inventoryHeader">
-        <span>Furniture (click to select)</span>
-        <input id="blockSearch" type="text" placeholder="Search: bed, sofa, lamp..." />
+        <span>Furniture</span>
+        <input id="blockSearch" type="text" placeholder="Search..." />
       </div>
       <div id="inventoryList"></div>
     </div>
     <div id="help">
-      PC: WASD/Arrows move, Space = Place, X = Remove, Z = Hit, +/= Zoom In, − Zoom Out, 1=Wall, 2/3/4 = quick furniture.  
-      Mobile: Landscape → D-pad + Place / Remove / Hit / Zoom.
+      PC: WASD/Arrows, Space=Place, X=Remove, Z=Hit, +/= Zoom In, − Zoom Out  
+      Mobile: D-pad + Place / Remove / Hit / Zoom
     </div>
     <div id="saveLoadButtons">
-      <button id="saveBtn">💾 Save World</button>
-      <button id="loadBtn">📂 Load World</button>
+      <button id="saveBtn">💾 Save</button>
+      <button id="loadBtn">📂 Load</button>
     </div>
   </div>
 
@@ -418,7 +426,7 @@
     };
 
     let selectedBlockId = WALL_ID;
-    const SAVE_KEY = "minicraft_biomes_portals_houses_mobHP_zoom_v1";
+    const SAVE_KEY = "minicraft_biomes_portals_houses_mobHP_zoom_compact_v1";
 
     // -------- MOBS (with HP) --------
     const mobs = [];
@@ -467,7 +475,7 @@
 
     function initMobs() {
       mobs.length = 0;
-      const mobCount = 40; // MORE MOBS
+      const mobCount = 40; // more mobs
       for (let i = 0; i < mobCount; i++) {
         addRandomMob(i);
       }
@@ -743,7 +751,9 @@
       const touchControls = document.getElementById("touchControls");
 
       const topH = uiBar ? uiBar.offsetHeight : 0;
-      const bottomH = touchControls ? touchControls.offsetHeight : 0;
+      const bottomH = touchControls && getComputedStyle(touchControls).display !== "none"
+        ? touchControls.offsetHeight
+        : 0;
 
       const availableHeight = window.innerHeight - topH - bottomH;
 
