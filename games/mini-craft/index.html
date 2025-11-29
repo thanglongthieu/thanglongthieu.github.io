@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>MiniCraft – Huge Mobs + Player HP + AI</title>
+  <title>MiniCraft – Huge Mobs, Regen, Combat FX</title>
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
@@ -146,7 +146,7 @@
       background: #616161;
     }
 
-    /* Touch controls for mobile (bottom) – COMPACT */
+    /* Touch controls (bottom) */
     #touchControls {
       display: flex;
       justify-content: center;
@@ -277,6 +277,82 @@
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
+
+    // --- SIMPLE SFX (replace with your own paths if needed) ---
+    const sfxPlayerHit = new Audio("player_hit.mp3"); // when YOU get hit
+    const sfxMobHit    = new Audio("mob_hit.mp3");    // when MOB gets hit
+
+    function playSound(audio) {
+      if (!audio) return;
+      try {
+        audio.currentTime = 0;
+        audio.play();
+      } catch (e) {
+        // ignore autoplay errors
+      }
+    }
+
+    // --- HIT ANIMATION EFFECTS ---
+    // Each effect: { type: 'mob'|'player', x, y, size, ttl }
+    let hitEffects = [];
+    const HIT_DURATION = 200; // ms
+
+    function spawnMobHitEffect(mob) {
+      const s = mobSize(mob);
+      hitEffects.push({
+        type: "mob",
+        x: mob.x,
+        y: mob.y,
+        size: s,
+        ttl: HIT_DURATION
+      });
+    }
+
+    function spawnPlayerHitEffect() {
+      hitEffects.push({
+        type: "player",
+        ttl: HIT_DURATION
+      });
+    }
+
+    function updateHitEffects(dt) {
+      hitEffects = hitEffects.map(fx => ({ ...fx, ttl: fx.ttl - dt }))
+                             .filter(fx => fx.ttl > 0);
+    }
+
+    function drawHitEffects() {
+      for (const fx of hitEffects) {
+        const alpha = Math.max(0, fx.ttl / HIT_DURATION);
+
+        if (fx.type === "mob") {
+          const s = fx.size;
+          const sx = fx.x - cameraX;
+          const sy = fx.y - cameraY;
+          if (sx + s <= 0 || sy + s <= 0 || sx >= VIEW_W || sy >= VIEW_H) continue;
+
+          const px = sx * TILE_SIZE;
+          const py = sy * TILE_SIZE;
+          const w  = s * TILE_SIZE;
+          const h  = s * TILE_SIZE;
+
+          ctx.fillStyle = `rgba(255,0,0,${0.35 * alpha})`;
+          ctx.fillRect(px, py, w, h);
+        } else if (fx.type === "player") {
+          const sx = player.x - cameraX;
+          const sy = player.y - cameraY;
+          if (sx < 0 || sy < 0 || sx >= VIEW_W || sy >= VIEW_H) continue;
+
+          const px = sx * TILE_SIZE;
+          const py = sy * TILE_SIZE;
+
+          ctx.strokeStyle = `rgba(255,255,0,${alpha})`;
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.rect(px + 2, py + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+          ctx.stroke();
+        }
+      }
+    }
 
     // ZOOM
     let TILE_SIZE = 32;
@@ -419,7 +495,7 @@
     };
 
     let selectedBlockId = WALL_ID;
-    const SAVE_KEY = "minicraft_huge_mobs_hp_ai_v1";
+    const SAVE_KEY = "minicraft_huge_mobs_hp_ai_fx_regen_v1";
 
     // Mobs
     const mobs = [];
@@ -534,7 +610,8 @@
           dirY: 0,
           hp: maxHp,
           maxHp: maxHp,
-          mode: "idle" // idle | aggro | flee
+          mode: "idle",       // idle | aggro | flee
+          regenTimerMs: 0     // individual regen timer
         });
         return;
       }
@@ -568,21 +645,84 @@
       return false;
     }
 
+    function distancePlayerToMob(mob) {
+      const s = mobSize(mob);
+      let best = Infinity;
+      for (let dy = 0; dy < s; dy++) {
+        for (let dx = 0; dx < s; dx++) {
+          const tx = mob.x + dx;
+          const ty = mob.y + dy;
+          const dist = Math.abs(tx - player.x) + Math.abs(ty - player.y);
+          if (dist < best) best = dist;
+        }
+      }
+      return best;
+    }
+
+    function anyMobWithinRadius(radius) {
+      for (const mob of mobs) {
+        if (distancePlayerToMob(mob) <= radius) return true;
+      }
+      return false;
+    }
+
+    let lastTime = performance.now();
+
+    // --- HP REGEN (PLAYER) ---
+    let regenTimerMs = 0;
+    const REGEN_RADIUS = 4;          // how far you must run away
+    const REGEN_INTERVAL_MS = 500;   // 1 HP per 0.5s when safe
+
+    // --- MOB REGEN (BIGGER = SLOWER) ---
+    const MOB_BASE_REGEN_INTERVAL_MS = 1500; // base: 1×1 mob = 1 HP / 1.5s
+
+    // --- COMBAT BORDER ---
+    const COMBAT_RADIUS = 4;         // when any mob is this close, show red border
+
     function attackPlayer(mob) {
       const s = mobSize(mob);
-      // Bigger mob -> more damage, but player HP is huge
       const dmg = Math.max(1, Math.floor(s / 2)); // 1 for small, up to 5 for 10×10
       player.hp -= dmg;
       if (player.hp < 0) player.hp = 0;
 
-      // If player HP reaches 0, respawn & fully heal
+      spawnPlayerHitEffect();
+      playSound(sfxPlayerHit);
+
+      // getting hit resets regen buildup
+      regenTimerMs = 0;
+
       if (player.hp === 0) {
         alert("You were defeated! Respawning with full HP.");
         player.hp = player.maxHp;
-        // Move player near center again
         player.x = Math.floor(WORLD_W / 2);
         player.y = Math.floor(WORLD_H / 2);
         updateCamera();
+      }
+    }
+
+    function updateMobRegen(dt) {
+      for (const mob of mobs) {
+        if (mob.hp >= mob.maxHp) {
+          mob.regenTimerMs = 0;
+          continue;
+        }
+
+        // If player is too close, no regen
+        const dist = distancePlayerToMob(mob);
+        if (dist <= REGEN_RADIUS + 1) {
+          mob.regenTimerMs = 0;
+          continue;
+        }
+
+        const size = mobSize(mob);
+        const interval = MOB_BASE_REGEN_INTERVAL_MS * size; // bigger = slower
+
+        mob.regenTimerMs += dt;
+
+        while (mob.regenTimerMs >= interval && mob.hp < mob.maxHp) {
+          mob.hp += 1; // heal 1 HP
+          mob.regenTimerMs -= interval;
+        }
       }
     }
 
@@ -590,7 +730,6 @@
       for (const mob of mobs) {
         const s = mobSize(mob);
 
-        // Choose behavior based on mode
         if (mob.mode === "idle") {
           if (Math.random() < 0.4 || (mob.dirX === 0 && mob.dirY === 0)) {
             const dirs = [
@@ -605,7 +744,6 @@
             mob.dirY = choice.dy;
           }
         } else if (mob.mode === "aggro") {
-          // Move toward player
           const dx = player.x - (mob.x + s / 2);
           const dy = player.y - (mob.y + s / 2);
           if (Math.abs(dx) > Math.abs(dy)) {
@@ -615,13 +753,11 @@
             mob.dirX = 0;
             mob.dirY = dy > 0 ? 1 : -1;
           }
-          // Sometimes hesitate
           if (Math.random() < 0.15) {
             mob.dirX = 0;
             mob.dirY = 0;
           }
         } else if (mob.mode === "flee") {
-          // Run away from player
           const dx = player.x - (mob.x + s / 2);
           const dy = player.y - (mob.y + s / 2);
           if (Math.abs(dx) > Math.abs(dy)) {
@@ -631,7 +767,6 @@
             mob.dirX = 0;
             mob.dirY = dy > 0 ? -1 : 1;
           }
-          // Sometimes stop
           if (Math.random() < 0.2) {
             mob.dirX = 0;
             mob.dirY = 0;
@@ -648,7 +783,6 @@
         mob.x = nx;
         mob.y = ny;
 
-        // After moving, maybe attack if next to player
         if (mobAdjacentToPlayer(mob) && Math.random() < 0.35) {
           attackPlayer(mob);
         }
@@ -659,7 +793,6 @@
       for (const mob of mobs) {
         const s = mobSize(mob);
 
-        // View culling
         if (mob.x + s <= cameraX || mob.x >= cameraX + VIEW_W ||
             mob.y + s <= cameraY || mob.y >= cameraY + VIEW_H) {
           continue;
@@ -672,7 +805,7 @@
         const width   = s * TILE_SIZE;
         const height  = s * TILE_SIZE;
 
-        // ==== NAME BAR for big mobs (3×3 and up) ====
+        // Name bar for big mobs
         if (s >= 3) {
           const nameText = mobType.name;
           const nameFontSize = Math.max(10, Math.floor(TILE_SIZE * 0.35));
@@ -683,7 +816,6 @@
           const nameX = screenX + width / 2;
           const nameY = screenY - 2;
 
-          // Background strip behind the name (for readability)
           const paddingX = 6;
           const paddingY = 2;
           const approxTextWidth = ctx.measureText(nameText).width;
@@ -699,7 +831,6 @@
           ctx.fillText(nameText, nameX, nameY);
         }
 
-        // Emoji in center of mob body
         const fontScale =
           s === 1 ? 0.7 :
           s === 2 ? 1.0 :
@@ -712,7 +843,6 @@
         const cy = screenY + height / 2;
         ctx.fillText(mobType.emoji, cx, cy + 2);
 
-        // HP bar
         const barWidth = width - 8;
         const hpRatio = Math.max(0, mob.hp / mob.maxHp);
         const filled = barWidth * hpRatio;
@@ -730,22 +860,22 @@
       const idx = findMobIndexAt(tx, ty);
       if (idx === -1) return;
       const mob = mobs[idx];
+
+      spawnMobHitEffect(mob);
+      playSound(sfxMobHit);
+
       mob.hp -= 1;
       if (mob.hp <= 0) {
         mobs.splice(idx, 1);
         return;
       }
 
-      // Mob survives: it may attack you OR run away
       if (Math.random() < 0.5) {
-        // Aggro mode
         mob.mode = "aggro";
-        // If already next to player, possible instant counter-attack
         if (mobAdjacentToPlayer(mob) && Math.random() < 0.5) {
           attackPlayer(mob);
         }
       } else {
-        // Flee mode
         mob.mode = "flee";
       }
     }
@@ -997,7 +1127,7 @@
       return true;
     }
 
-    // Drawing tiles & player
+    // Tiles & player drawing
     function drawTile(tileId, biomeId, screenX, screenY) {
       const px = screenX * TILE_SIZE;
       const py = screenY * TILE_SIZE;
@@ -1087,17 +1217,14 @@
       const ratio = Math.max(0, player.hp / player.maxHp);
       const filled = barWidth * ratio;
 
-      // Background
       ctx.fillStyle = "rgba(0,0,0,0.7)";
       ctx.fillRect(x - 4, y - 6, barWidth + 8, barHeight + 22);
 
-      // HP bar
       ctx.fillStyle = "#440000";
       ctx.fillRect(x, y, barWidth, barHeight);
-      ctx.fillStyle = "#00e676"; // green
+      ctx.fillStyle = "#00e676";
       ctx.fillRect(x, y, filled, barHeight);
 
-      // Text
       ctx.font = "12px system-ui";
       ctx.fillStyle = "#ffffff";
       ctx.textAlign = "left";
@@ -1106,6 +1233,30 @@
     }
 
     function render() {
+      const now = performance.now();
+      const dt = now - lastTime;
+      lastTime = now;
+
+      updateHitEffects(dt);
+
+      // Player HP regen if safe
+      if (player.hp < player.maxHp) {
+        if (!anyMobWithinRadius(REGEN_RADIUS)) {
+          regenTimerMs += dt;
+          while (regenTimerMs >= REGEN_INTERVAL_MS && player.hp < player.maxHp) {
+            player.hp += 1;
+            regenTimerMs -= REGEN_INTERVAL_MS;
+          }
+        } else {
+          regenTimerMs = 0;
+        }
+      } else {
+        regenTimerMs = 0;
+      }
+
+      // Mob regen (bigger mobs heal slower)
+      updateMobRegen(dt);
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       for (let sy = 0; sy < VIEW_H; sy++) {
@@ -1139,7 +1290,15 @@
       }
 
       drawPlayer();
+      drawHitEffects();
       drawPlayerHP();
+
+      // Combat border
+      if (anyMobWithinRadius(COMBAT_RADIUS)) {
+        ctx.strokeStyle = "rgba(255,0,0,0.85)";
+        ctx.lineWidth = 6;
+        ctx.strokeRect(3, 3, canvas.width - 6, canvas.height - 6);
+      }
 
       requestAnimationFrame(render);
     }
@@ -1233,7 +1392,8 @@
               dirY: m.dirY ?? 0,
               hp: m.hp ?? defaultHp,
               maxHp: m.maxHp ?? defaultHp,
-              mode: m.mode ?? "idle"
+              mode: m.mode ?? "idle",
+              regenTimerMs: m.regenTimerMs ?? 0
             });
           }
         }
