@@ -2,13 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Mini-Craft Style Game (Phaser 3)</title>
-  <!-- iPhone 対応用の viewport -->
+  <title>Mini-Craft 3D World</title>
+  <!-- iPhone 向けフルスクリーン系設定 -->
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
   />
-  <!-- PWA 風フルスクリーン用（ホーム画面から起動したとき） -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
@@ -18,17 +17,15 @@
       padding: 0;
       width: 100%;
       height: 100%;
-      overflow: hidden; /* スクロール禁止 */
-      background: #111;
+      overflow: hidden;
+      background: #050608;
       color: #fff;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-        sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       -webkit-touch-callout: none;
       -webkit-user-select: none;
       -webkit-text-size-adjust: 100%;
     }
 
-    /* iPhone のセーフエリア対応（ノッチの部分） */
     body {
       padding-top: env(safe-area-inset-top);
       padding-bottom: env(safe-area-inset-bottom);
@@ -40,507 +37,420 @@
     #game {
       width: 100%;
       height: 100%;
-      touch-action: none; /* 画面スクロールジェスチャー抑制 */
+      touch-action: none;
+      position: relative;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    #hud {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      padding: 8px 12px;
+      background: rgba(0, 0, 0, 0.55);
+      border-radius: 8px;
+      font-size: 12px;
+      line-height: 1.4;
+      pointer-events: none;
+      max-width: 260px;
+    }
+
+    #hud strong {
+      color: #ffeb3b;
     }
   </style>
 </head>
 <body>
-  <div id="game"></div>
+  <div id="game">
+    <div id="hud">
+      <strong>Mini-Craft 3D</strong><br />
+      Move: WASD / Arrow keys<br />
+      Look: Drag (touch / mouse)<br />
+      Zoom: Pinch / Mouse wheel<br />
+      Explore the house & furniture!
+    </div>
+  </div>
 
-  <!-- Phaser 3 CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
+  <!-- Three.js + OrbitControls（ES Module） -->
+  <script type="module">
+    import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+    import { OrbitControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js";
 
-  <script>
-    // ====== CONSTANTS ======
-    const TILE_SIZE = 32;
-    const WORLD_WIDTH = 100;
-    const WORLD_HEIGHT = 40;
+    // ====== BASIC SETUP ======
+    const container = document.getElementById("game");
 
-    const BLOCK = {
-      AIR: 0,
-      GRASS: 1,
-      DIRT: 2,
-      STONE: 3,
-      WOOD: 4,
-      WATER: 5,
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87ceeb); // blue sky
+
+    const camera = new THREE.PerspectiveCamera(
+      60,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
+
+    camera.position.set(10, 8, 14);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.07;
+    controls.target.set(0, 2, 0);
+    controls.maxPolarAngle = Math.PI / 2; // 下を向きすぎない
+    controls.minDistance = 4;
+    controls.maxDistance = 40;
+
+    // ====== LIGHTS ======
+    const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+    scene.add(ambient);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+    dirLight.position.set(10, 20, 5);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.set(2048, 2048);
+    dirLight.shadow.camera.near = 1;
+    dirLight.shadow.camera.far = 60;
+    dirLight.shadow.camera.left = -30;
+    dirLight.shadow.camera.right = 30;
+    dirLight.shadow.camera.top = 30;
+    dirLight.shadow.camera.bottom = -30;
+    scene.add(dirLight);
+
+    // 小さなサンライトっぽいポイントライト（室内用）
+    const warmLight = new THREE.PointLight(0xffddaa, 1.2, 25);
+    warmLight.position.set(0, 6, 0);
+    warmLight.castShadow = true;
+    scene.add(warmLight);
+
+    // ====== PLAYER ======
+    const player = {
+      position: new THREE.Vector3(0, 1, 10),
+      speed: 8,
     };
 
-    const BLOCK_COLORS = {
-      [BLOCK.AIR]: null,
-      [BLOCK.GRASS]: 0x4caf50,
-      [BLOCK.DIRT]: 0x8d6e63,
-      [BLOCK.STONE]: 0x9e9e9e,
-      [BLOCK.WOOD]: 0x795548,
-      [BLOCK.WATER]: 0x2196f3,
+    // プレイヤーの見た目（小さい箱）
+    const playerGeometry = new THREE.BoxGeometry(0.8, 1.4, 0.8);
+    const playerMaterial = new THREE.MeshStandardMaterial({ color: 0xffeb3b });
+    const playerMesh = new THREE.Mesh(playerGeometry, playerMaterial);
+    playerMesh.castShadow = true;
+    playerMesh.position.copy(player.position);
+    scene.add(playerMesh);
+
+    // ====== HELPERS ======
+    function createBlock(x, y, z, color, sx = 1, sy = 1, sz = 1) {
+      const geo = new THREE.BoxGeometry(sx, sy, sz);
+      const mat = new THREE.MeshStandardMaterial({ color });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+
+      // y は中心なので高さの半分を足して設置
+      mesh.position.set(x, y + sy / 2, z);
+      scene.add(mesh);
+      return mesh;
+    }
+
+    // ====== WORLD / GROUND ======
+    function createGround() {
+      const size = 20;
+      for (let x = -size; x <= size; x++) {
+        for (let z = -size; z <= size; z++) {
+          const color =
+            (x + z) % 2 === 0 ? 0x4caf50 : 0x43a047; // ちょっとチェック柄の芝生
+          createBlock(x, 0, z, color, 1, 0.25, 1);
+        }
+      }
+    }
+
+    // ====== HOUSE & FURNITURE ======
+    function createHouseAndFurniture() {
+      // --- House floor (wood) ---
+      for (let x = -4; x <= 4; x++) {
+        for (let z = -4; z <= 4; z++) {
+          createBlock(x, 0.13, z, 0x8d6e63, 1, 0.1, 1);
+        }
+      }
+
+      // --- Walls ---
+      const wallHeight = 4;
+      // Back wall (z = -4.5)
+      for (let x = -4; x <= 4; x++) {
+        for (let y = 0; y < wallHeight; y++) {
+          createBlock(x, 0.25 + y, -4.5, 0xd7ccc8, 1, 1, 0.2);
+        }
+      }
+      // Front wall (z = 4.5) with door opening
+      for (let x = -4; x <= 4; x++) {
+        for (let y = 0; y < wallHeight; y++) {
+          // door at center: x 0, y 0..2 skip
+          const isDoorArea = (x === 0) && (y <= 2);
+          if (isDoorArea) continue;
+          createBlock(x, 0.25 + y, 4.5, 0xd7ccc8, 1, 1, 0.2);
+        }
+      }
+      // Left wall (x = -4.5)
+      for (let z = -4; z <= 4; z++) {
+        for (let y = 0; y < wallHeight; y++) {
+          createBlock(-4.5, 0.25 + y, z, 0xd7ccc8, 0.2, 1, 1);
+        }
+      }
+      // Right wall (x = 4.5) with small window
+      for (let z = -4; z <= 4; z++) {
+        for (let y = 0; y < wallHeight; y++) {
+          const isWindowArea =
+            (z >= -1 && z <= 1) && (y === 2 || y === 1);
+          if (isWindowArea) continue;
+          createBlock(4.5, 0.25 + y, z, 0xd7ccc8, 0.2, 1, 1);
+        }
+      }
+
+      // --- Roof (simple flat) ---
+      for (let x = -4.5; x <= 4.5; x++) {
+        for (let z = -4.5; z <= 4.5; z++) {
+          createBlock(x, wallHeight + 0.3, z, 0x6d4c41, 1, 0.2, 1);
+        }
+      }
+
+      // ===== Furniture inside =====
+      // 1) Table (center)
+      createTable(0, 0.25, 0);
+
+      // 2) Chairs around table
+      createChair(-1.5, 0.25, 0);   // left
+      createChair(1.5, 0.25, 0);    // right
+      createChair(0, 0.25, -1.5);   // back
+      createChair(0, 0.25, 1.5);    // front
+
+      // 3) Bed (corner)
+      createBed(-3, 0.25, -3);
+
+      // 4) Bookshelf (wall)
+      createBookshelf(3.7, 0.25, -2);
+
+      // 5) Chest (storage)
+      createChest(3, 0.25, 3);
+
+      // 6) Simple lamp / torch stand (near table)
+      createLamp(-2.7, 0.25, 1.5);
+    }
+
+    function createTable(x, y, z) {
+      // legs
+      const legHeight = 1.0;
+      const legOffset = 0.9;
+      const legRadius = 0.15;
+      createBlock(x - legOffset, y, z - legOffset, 0x5d4037, legRadius, legHeight, legRadius);
+      createBlock(x + legOffset, y, z - legOffset, 0x5d4037, legRadius, legHeight, legRadius);
+      createBlock(x - legOffset, y, z + legOffset, 0x5d4037, legRadius, legHeight, legRadius);
+      createBlock(x + legOffset, y, z + legOffset, 0x5d4037, legRadius, legHeight, legRadius);
+
+      // top
+      createBlock(x, y + legHeight, z, 0x8d6e63, 2.2, 0.15, 2.2);
+    }
+
+    function createChair(x, y, z) {
+      const seatHeight = 0.6;
+      const seatSize = 0.7;
+
+      // legs
+      const legRadius = 0.1;
+      const legOffset = 0.3;
+      createBlock(x - legOffset, y, z - legOffset, 0x5d4037, legRadius, seatHeight, legRadius);
+      createBlock(x + legOffset, y, z - legOffset, 0x5d4037, legRadius, seatHeight, legRadius);
+      createBlock(x - legOffset, y, z + legOffset, 0x5d4037, legRadius, seatHeight, legRadius);
+      createBlock(x + legOffset, y, z + legOffset, 0x5d4037, legRadius, seatHeight, legRadius);
+
+      // seat
+      createBlock(x, y + seatHeight, z, 0x8d6e63, seatSize, 0.12, seatSize);
+
+      // backrest
+      createBlock(x, y + seatHeight + 0.5, z - 0.3, 0x6d4c41, seatSize, 1.0, 0.12);
+    }
+
+    function createBed(x, y, z) {
+      // frame
+      createBlock(x, y, z, 0x5d4037, 2.2, 0.3, 1.1);
+      // mattress
+      createBlock(x, y + 0.3, z, 0xfff8e1, 2.0, 0.3, 1.0);
+      // pillow
+      createBlock(x + 0.7, y + 0.45, z, 0xffffff, 0.6, 0.25, 0.9);
+      // blanket edge
+      createBlock(x - 0.4, y + 0.45, z, 0x2196f3, 1.2, 0.2, 0.9);
+    }
+
+    function createBookshelf(x, y, z) {
+      // body
+      createBlock(x, y + 1.5, z, 0x5d4037, 0.6, 3, 1.6);
+
+      // shelves (just stripes)
+      const shelfColors = [0xffcc80, 0x90caf9, 0xffab91, 0xa5d6a7];
+      for (let i = 0; i < 4; i++) {
+        const sy = y + 0.5 + i * 0.7;
+        createBlock(x + 0.05, sy, z, shelfColors[i], 0.4, 0.15, 1.4);
+      }
+    }
+
+    function createChest(x, y, z) {
+      // base
+      createBlock(x, y, z, 0x795548, 1.2, 0.6, 0.9);
+      // lid
+      createBlock(x, y + 0.6, z, 0x6d4c41, 1.2, 0.25, 0.9);
+      // lock
+      createBlock(x + 0.55, y + 0.35, z, 0xffd54f, 0.12, 0.2, 0.12);
+    }
+
+    function createLamp(x, y, z) {
+      // stand
+      createBlock(x, y, z, 0x424242, 0.12, 1.8, 0.12);
+      // head
+      createBlock(x, y + 1.8, z, 0xfff3e0, 0.6, 0.4, 0.6);
+      // light boost near lamp
+      const lampLight = new THREE.PointLight(0xfff3b0, 1.5, 8);
+      lampLight.position.set(x, y + 2.1, z);
+      scene.add(lampLight);
+    }
+
+    // ====== SCENE CREATION ======
+    createGround();
+    createHouseAndFurniture();
+
+    // 軽く遠景用の木を追加
+    function createTree(tx, tz) {
+      const trunkHeight = 2;
+      createBlock(tx, 0.25, tz, 0x5d4037, 0.4, trunkHeight, 0.4);
+      createBlock(tx, 0.25 + trunkHeight, tz, 0x2e7d32, 2, 1.4, 2);
+    }
+
+    createTree(-10, -5);
+    createTree(12, -8);
+    createTree(-12, 6);
+    createTree(8, 10);
+
+    // ====== INPUT ======
+    const keys = {
+      forward: false,
+      backward: false,
+      left: false,
+      right: false,
     };
 
-    const BLOCK_NAMES = {
-      [BLOCK.GRASS]: "Grass",
-      [BLOCK.DIRT]: "Dirt",
-      [BLOCK.STONE]: "Stone",
-      [BLOCK.WOOD]: "Wood",
-      [BLOCK.WATER]: "Water",
-    };
-
-    let world = [];
-
-    // ====== WORLD GENERATION ======
-    function generateWorld() {
-      world = [];
-      for (let y = 0; y < WORLD_HEIGHT; y++) {
-        world[y] = [];
-        for (let x = 0; x < WORLD_WIDTH; x++) {
-          const groundLevel = 20 + Math.floor(Math.sin(x / 6) * 3);
-
-          if (y > groundLevel + 4) {
-            world[y][x] = BLOCK.STONE;
-          } else if (y > groundLevel) {
-            world[y][x] = BLOCK.DIRT;
-          } else if (y === groundLevel) {
-            world[y][x] = BLOCK.GRASS;
-          } else {
-            world[y][x] = BLOCK.AIR;
-          }
-        }
-      }
-
-      // Simple lakes
-      for (let lx = 15; lx < 30; lx++) {
-        const gy = 22;
-        for (let y = gy; y < gy + 3; y++) {
-          if (y >= 0 && y < WORLD_HEIGHT) {
-            world[y][lx] = BLOCK.WATER;
-          }
-        }
-      }
-
-      // Simple trees
-      for (let i = 5; i < WORLD_WIDTH; i += 18) {
-        const trunkX = i;
-        const baseY = 19;
-        for (let t = 0; t < 4; t++) {
-          if (baseY - t >= 0 && baseY - t < WORLD_HEIGHT) {
-            world[baseY - t][trunkX] = BLOCK.WOOD;
-          }
-        }
-        for (let dy = -5; dy <= -2; dy++) {
-          for (let dx = -3; dx <= 3; dx++) {
-            const xx = trunkX + dx;
-            const yy = baseY + dy;
-            if (
-              xx >= 0 &&
-              xx < WORLD_WIDTH &&
-              yy >= 0 &&
-              yy < WORLD_HEIGHT
-            ) {
-              if (Math.abs(dx) + Math.abs(dy + 3) <= 4) {
-                world[yy][xx] = BLOCK.GRASS;
-              }
-            }
-          }
-        }
+    function handleKeyDown(e) {
+      switch (e.key.toLowerCase()) {
+        case "w":
+        case "arrowup":
+          keys.forward = true;
+          break;
+        case "s":
+        case "arrowdown":
+          keys.backward = true;
+          break;
+        case "a":
+        case "arrowleft":
+          keys.left = true;
+          break;
+        case "d":
+        case "arrowright":
+          keys.right = true;
+          break;
       }
     }
 
-    // ====== COLLISION HELPERS ======
-    function tileAt(x, y) {
-      if (x < 0 || x >= WORLD_WIDTH || y < 0 || y >= WORLD_HEIGHT) {
-        return BLOCK.STONE; // outside = solid
-      }
-      return world[y][x];
-    }
-
-    function isSolid(x, y) {
-      const t = tileAt(x, y);
-      if (t === BLOCK.AIR) return false;
-      if (t === BLOCK.WATER) return false; // water is passable
-      return true;
-    }
-
-    function rectCollidesWithWorld(px, py, pw, ph) {
-      const left = Math.floor(px);
-      const right = Math.floor(px + pw);
-      const top = Math.floor(py);
-      const bottom = Math.floor(py + ph);
-
-      for (let y = top; y <= bottom; y++) {
-        for (let x = left; x <= right; x++) {
-          if (isSolid(x, y)) return true;
-        }
-      }
-      return false;
-    }
-
-    function isCollidingWithPlayer(player, tx, ty) {
-      const px = player.x;
-      const py = player.y;
-      const pw = player.width;
-      const ph = player.height;
-
-      const tileLeft = tx;
-      const tileRight = tx + 1;
-      const tileTop = ty;
-      const tileBottom = ty + 1;
-
-      const playerLeft = px;
-      const playerRight = px + pw;
-      const playerTop = py;
-      const playerBottom = py + ph;
-
-      return !(
-        playerRight <= tileLeft ||
-        playerLeft >= tileRight ||
-        playerBottom <= tileTop ||
-        playerTop >= tileBottom
-      );
-    }
-
-    // ====== SCENE CLASS ======
-    class MiniCraftScene extends Phaser.Scene {
-      constructor() {
-        super("MiniCraftScene");
-      }
-
-      init() {
-        this.player = {
-          x: 5,
-          y: 5,
-          width: 0.7,
-          height: 1.2,
-          vx: 0,
-          vy: 0,
-          speed: 9,
-          jumpPower: 14,
-          onGround: false,
-        };
-
-        this.selectedBlock = BLOCK.GRASS;
-        this.timeOfDay = 0; // 0..1
-      }
-
-      preload() {}
-
-      create() {
-        generateWorld();
-
-        this.graphics = this.add.graphics();
-
-        // HUD
-        this.hudText = this.add
-          .text(10, 10, "", {
-            fontSize: "14px",
-            fill: "#ffffff",
-          })
-          .setScrollFactor(0);
-
-        this.helpText = this.add
-          .text(
-            10,
-            30,
-            "Move: A/D or ←/→ | Jump: W/↑/Space | Break: Left Click | Place: Right Click or Shift+Click | Block: 1-5",
-            { fontSize: "12px", fill: "#ffeb3b", wordWrap: { width: 320 } }
-          )
-          .setScrollFactor(0);
-
-        // Day/Night overlay
-        this.dayOverlay = this.add
-          .rectangle(0, 0, this.scale.width, this.scale.height, 0x000020, 0)
-          .setOrigin(0, 0)
-          .setScrollFactor(0);
-
-        // Camera bounds
-        this.cameras.main.setBounds(
-          0,
-          0,
-          WORLD_WIDTH * TILE_SIZE,
-          WORLD_HEIGHT * TILE_SIZE
-        );
-
-        // Input
-        this.cursors = this.input.keyboard.createCursorKeys();
-        this.keys = this.input.keyboard.addKeys({
-          W: Phaser.Input.Keyboard.KeyCodes.W,
-          A: Phaser.Input.Keyboard.KeyCodes.A,
-          S: Phaser.Input.Keyboard.KeyCodes.S,
-          D: Phaser.Input.Keyboard.KeyCodes.D,
-          SPACE: Phaser.Input.Keyboard.KeyCodes.SPACE,
-          SHIFT: Phaser.Input.Keyboard.KeyCodes.SHIFT,
-        });
-
-        // Number keys for block selection
-        this.input.keyboard.on("keydown", (event) => {
-          switch (event.key) {
-            case "1":
-              this.selectedBlock = BLOCK.GRASS;
-              break;
-            case "2":
-              this.selectedBlock = BLOCK.DIRT;
-              break;
-            case "3":
-              this.selectedBlock = BLOCK.STONE;
-              break;
-            case "4":
-              this.selectedBlock = BLOCK.WOOD;
-              break;
-            case "5":
-              this.selectedBlock = BLOCK.WATER;
-              break;
-          }
-        });
-
-        // Mouse actions
-        this.input.on("pointerdown", (pointer) => {
-          const wx = Math.floor(pointer.worldX / TILE_SIZE);
-          const wy = Math.floor(pointer.worldY / TILE_SIZE);
-
-          if (
-            wx < 0 ||
-            wx >= WORLD_WIDTH ||
-            wy < 0 ||
-            wy >= WORLD_HEIGHT
-          ) {
-            return;
-          }
-
-          const right = pointer.rightButtonDown();
-          const shift = pointer.event && pointer.event.shiftKey;
-
-          if (right || shift) {
-            // Place block
-            if (!isCollidingWithPlayer(this.player, wx, wy)) {
-              world[wy][wx] = this.selectedBlock;
-            }
-          } else {
-            // Break block
-            world[wy][wx] = BLOCK.AIR;
-          }
-        });
-
-        // Resize overlay when game size changes
-        this.scale.on("resize", (gameSize) => {
-          this.dayOverlay.setSize(gameSize.width, gameSize.height);
-        });
-      }
-
-      update(time, delta) {
-        const dt = Math.min(delta / 1000, 0.05);
-        this.handleInput(dt);
-        this.updateCamera();
-        this.updateDayNight(dt);
-        this.drawScene();
-        this.updateHUD();
-      }
-
-      handleInput(dt) {
-        let move = 0;
-        if (this.keys.A.isDown || this.cursors.left.isDown) move -= 1;
-        if (this.keys.D.isDown || this.cursors.right.isDown) move += 1;
-
-        this.player.vx = move * this.player.speed;
-
-        const jumpPressed =
-          this.keys.W.isDown ||
-          this.cursors.up.isDown ||
-          this.keys.SPACE.isDown;
-
-        if (jumpPressed && this.player.onGround) {
-          this.player.vy = -this.player.jumpPower;
-          this.player.onGround = false;
-        }
-
-        // Gravity
-        const GRAVITY = 32;
-        const MAX_FALL_SPEED = 32;
-
-        this.player.vy += GRAVITY * dt;
-        if (this.player.vy > MAX_FALL_SPEED) {
-          this.player.vy = MAX_FALL_SPEED;
-        }
-
-        // Horizontal movement
-        let newX = this.player.x + this.player.vx * dt;
-        if (
-          !rectCollidesWithWorld(
-            newX,
-            this.player.y,
-            this.player.width,
-            this.player.height
-          )
-        ) {
-          this.player.x = newX;
-        } else {
-          const sign = Math.sign(this.player.vx);
-          while (
-            !rectCollidesWithWorld(
-              this.player.x + sign * 0.01,
-              this.player.y,
-              this.player.width,
-              this.player.height
-            )
-          ) {
-            this.player.x += sign * 0.01;
-          }
-          this.player.vx = 0;
-        }
-
-        // Vertical movement
-        let newY = this.player.y + this.player.vy * dt;
-        this.player.onGround = false;
-
-        if (
-          !rectCollidesWithWorld(
-            this.player.x,
-            newY,
-            this.player.width,
-            this.player.height
-          )
-        ) {
-          this.player.y = newY;
-        } else {
-          if (this.player.vy > 0) {
-            this.player.onGround = true;
-          }
-          const sign = Math.sign(this.player.vy);
-          while (
-            !rectCollidesWithWorld(
-              this.player.x,
-              this.player.y + sign * 0.01,
-              this.player.width,
-              this.player.height
-            )
-          )
-          {
-            this.player.y += sign * 0.01;
-          }
-          this.player.vy = 0;
-        }
-      }
-
-      updateCamera() {
-        const cam = this.cameras.main;
-        const centerX =
-          (this.player.x + this.player.width / 2) * TILE_SIZE;
-        const centerY =
-          (this.player.y + this.player.height / 2) * TILE_SIZE;
-        cam.centerOn(centerX, centerY);
-      }
-
-      updateDayNight(dt) {
-        // 1 day cycle ~ 60 seconds
-        this.timeOfDay += dt / 60;
-        if (this.timeOfDay > 1) this.timeOfDay -= 1;
-
-        const nightStrength =
-          0.7 * (0.5 - 0.5 * Math.cos(this.timeOfDay * Math.PI * 2));
-        this.dayOverlay.setAlpha(nightStrength);
-      }
-
-      drawScene() {
-        const g = this.graphics;
-        g.clear();
-
-        const cam = this.cameras.main;
-        const view = cam.worldView;
-        const startX = Math.floor(view.x / TILE_SIZE) - 1;
-        const endX = Math.ceil((view.x + view.width) / TILE_SIZE) + 1;
-        const startY = Math.floor(view.y / TILE_SIZE) - 1;
-        const endY = Math.ceil((view.y + view.height) / TILE_SIZE) + 1;
-
-        // Draw tiles
-        for (let y = startY; y <= endY; y++) {
-          for (let x = startX; x <= endX; x++) {
-            if (
-              x < 0 ||
-              x >= WORLD_WIDTH ||
-              y < 0 ||
-              y >= WORLD_HEIGHT
-            ) {
-              continue;
-            }
-            const block = world[y][x];
-            if (block === BLOCK.AIR) continue;
-
-            const color = BLOCK_COLORS[block];
-            if (!color) continue;
-
-            const sx = x * TILE_SIZE;
-            const sy = y * TILE_SIZE;
-
-            g.fillStyle(color, 1);
-            g.fillRect(sx, sy, TILE_SIZE, TILE_SIZE);
-
-            g.lineStyle(1, 0x000000, 0.08);
-            g.strokeRect(sx, sy, TILE_SIZE, TILE_SIZE);
-          }
-        }
-
-        // Draw player
-        const px = this.player.x * TILE_SIZE;
-        const py = this.player.y * TILE_SIZE;
-        const pw = this.player.width * TILE_SIZE;
-        const ph = this.player.height * TILE_SIZE;
-
-        g.fillStyle(0xffeb3b, 1);
-        g.fillRect(px, py, pw, ph);
-        g.lineStyle(2, 0x000000, 1);
-        g.strokeRect(px, py, pw, ph);
-
-        // Cursor highlight
-        const pointer = this.input.activePointer;
-        const wx = Math.floor(pointer.worldX / TILE_SIZE);
-        const wy = Math.floor(pointer.worldY / TILE_SIZE);
-
-        if (
-          wx >= 0 &&
-          wx < WORLD_WIDTH &&
-          wy >= 0 &&
-          wy < WORLD_HEIGHT
-        ) {
-          const cx = wx * TILE_SIZE;
-          const cy = wy * TILE_SIZE;
-          g.lineStyle(2, 0xffffff, 0.9);
-          g.strokeRect(cx, cy, TILE_SIZE, TILE_SIZE);
-        }
-      }
-
-      updateHUD() {
-        const p = this.player;
-        this.hudText.setText(
-          `Block: ${BLOCK_NAMES[this.selectedBlock]} (1-5) | ` +
-          `Pos: (${p.x.toFixed(1)}, ${p.y.toFixed(1)}) | ` +
-          `OnGround: ${p.onGround ? "Yes" : "No"}`
-        );
+    function handleKeyUp(e) {
+      switch (e.key.toLowerCase()) {
+        case "w":
+        case "arrowup":
+          keys.forward = false;
+          break;
+        case "s":
+        case "arrowdown":
+          keys.backward = false;
+          break;
+        case "a":
+        case "arrowleft":
+          keys.left = false;
+          break;
+        case "d":
+        case "arrowright":
+          keys.right = false;
+          break;
       }
     }
 
-    // ====== GAME CONFIG ======
-    const config = {
-      type: Phaser.AUTO,
-      parent: "game",
-      backgroundColor: "#87ceeb",
-      scene: MiniCraftScene,
-      pixelArt: true,
-      antialias: false,
-      scale: {
-        mode: Phaser.Scale.RESIZE,
-        autoCenter: Phaser.Scale.CENTER_BOTH,
-        width: window.innerWidth,
-        height: window.innerHeight,
-      },
-    };
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
 
-    const game = new Phaser.Game(config);
+    // ====== ANIMATION LOOP ======
+    const clock = new THREE.Clock();
 
-    // iPhone のアドレスバー表示変更や回転に追従してリサイズ
-    function resizeGame() {
+    function updatePlayer(delta) {
+      const moveDir = new THREE.Vector3();
+      const camDir = new THREE.Vector3();
+      camera.getWorldDirection(camDir);
+      camDir.y = 0;
+      camDir.normalize();
+
+      const rightDir = new THREE.Vector3();
+      rightDir.crossVectors(camDir, new THREE.Vector3(0, 1, 0)).normalize();
+
+      if (keys.forward) moveDir.add(camDir);
+      if (keys.backward) moveDir.sub(camDir);
+      if (keys.left) moveDir.sub(rightDir);
+      if (keys.right) moveDir.add(rightDir);
+
+      if (moveDir.lengthSq() > 0) {
+        moveDir.normalize();
+        const speed = player.speed * delta;
+        player.position.addScaledVector(moveDir, speed);
+
+        // 室内の床から落ちないように簡易制限（Yと周辺だけ）
+        player.position.y = 1;
+
+        // プレイヤーモデル位置を更新
+        playerMesh.position.copy(player.position);
+
+        // プレイヤーの向きも移動方向に合わせる
+        const angle = Math.atan2(moveDir.x, moveDir.z);
+        playerMesh.rotation.y = angle;
+      }
+
+      // カメラの注視点をプレイヤーに近づける（少しスムーズ）
+      const target = controls.target;
+      target.lerp(player.position, 0.1);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+      updatePlayer(delta);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
+    // ====== RESIZE HANDLING ======
+    function onResize() {
       const width = window.innerWidth;
       const height = window.innerHeight;
-      game.scale.resize(width, height);
+      renderer.setSize(width, height);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
     }
 
-    window.addEventListener("resize", resizeGame);
+    window.addEventListener("resize", onResize);
     window.addEventListener("orientationchange", () => {
-      setTimeout(resizeGame, 300); // 回転後に少し待ってから
+      setTimeout(onResize, 300);
     });
   </script>
 </body>
