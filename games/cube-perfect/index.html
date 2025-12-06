@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Perfect Cube Builder</title>
+  <style>
+    :root {
+      --bg: #0b1021;
+      --panel: #111833;
+      --accent: #5ad1ff;
+      --text: #e8edf7;
+      --muted: #9fb0d1;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at 20% 20%, #121a35 0, #090d1c 40%, #050811 100%);
+      color: var(--text);
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(320px, 380px) 1fr;
+      gap: 0;
+    }
+    .panel {
+      padding: 22px 24px 18px;
+      background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      border-right: 1px solid rgba(255,255,255,0.05);
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      align-self: start;
+      min-height: 100vh;
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: 26px;
+      letter-spacing: -0.4px;
+    }
+    p.lead {
+      margin: 0 0 16px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .stat-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+    }
+    .stat-card h3 {
+      margin: 0 0 6px;
+      font-size: 15px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      color: var(--muted);
+    }
+    .stat-card .value {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .layout-list {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 14px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .layout-list li {
+      margin-bottom: 6px;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    button {
+      background: var(--accent);
+      color: #041225;
+      border: none;
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(90, 209, 255, 0.25);
+      transition: transform 120ms ease, box-shadow 120ms ease;
+    }
+    button.secondary {
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+      box-shadow: none;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+    .canvas-wrap {
+      position: relative;
+      background: radial-gradient(circle at 70% 30%, rgba(90, 209, 255, 0.08), transparent 35%),
+                  radial-gradient(circle at 20% 70%, rgba(255, 255, 255, 0.04), transparent 45%),
+                  #050810;
+    }
+    #three-canvas {
+      width: 100%;
+      height: 100vh;
+      display: block;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(90, 209, 255, 0.12);
+      color: #b7e6ff;
+      border: 1px solid rgba(90, 209, 255, 0.35);
+      padding: 8px 10px;
+      border-radius: 12px;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+    .legend {
+      margin-top: 14px;
+      color: var(--muted);
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .swatch {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+    .swatch.existing { background: linear-gradient(145deg, #00ffc6, #59d1ff); }
+    .swatch.missing { background: rgba(90, 209, 255, 0.25); border: 1px dashed rgba(90, 209, 255, 0.6); }
+    footer {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <section class="panel">
+    <div class="badge">🧊 Perfect Cube Reasoning</div>
+    <h1>At least how many cubes are needed?</h1>
+    <p class="lead">Use the 3D view to explore the given stack and see how many more unit cubes are required to turn it into the smallest possible perfect cube.</p>
+
+    <div class="stat-card">
+      <h3>Given layers</h3>
+      <ul class="layout-list">
+        <li>Floor 1: Row 1 has 5 cubes, Row 2 has 3 cubes.</li>
+        <li>Floor 2: Row 1 has 4 cubes.</li>
+        <li>Floor 3: Row 1 has 4 cubes.</li>
+      </ul>
+      <div class="value" id="given-count"></div>
+    </div>
+
+    <div class="stat-card">
+      <h3>Smallest bounding cube</h3>
+      <div class="value">5 × 5 × 5 = 125 cubes</div>
+      <p class="lead" style="margin:6px 0 0;">The longest run is 5 cubes, so the minimum perfect cube that can contain the figure has side length 5.</p>
+    </div>
+
+    <div class="stat-card">
+      <h3>Missing cubes</h3>
+      <div class="value" id="missing-count"></div>
+    </div>
+
+    <div class="controls">
+      <button id="toggle-missing">Show missing cubes</button>
+      <button class="secondary" id="reset">Reset camera</button>
+    </div>
+
+    <div class="legend">
+      <span><span class="swatch existing"></span>Given cubes</span>
+      <span><span class="swatch missing"></span>Needed cubes</span>
+    </div>
+
+    <footer>
+      Drag to orbit, scroll to zoom, right-click to pan. The translucent cubes show exactly how many need to be added (109) to complete a 5 × 5 × 5 perfect cube.</footer>
+  </section>
+
+  <div class="canvas-wrap">
+    <canvas id="three-canvas"></canvas>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'https://unpkg.com/three@0.158.0/build/three.module.js';
+    import { OrbitControls } from 'https://unpkg.com/three@0.158.0/examples/jsm/controls/OrbitControls.js';
+
+    const canvas = document.getElementById('three-canvas');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(window.devicePixelRatio || 1);
+
+    const sidebarWidth = () => Math.min(Math.max(340, window.innerWidth * 0.38), 420);
+    const viewportWidth = () => Math.max(320, window.innerWidth - sidebarWidth());
+    renderer.setSize(viewportWidth(), window.innerHeight);
+
+    const scene = new THREE.Scene();
+    scene.background = null;
+
+    const camera = new THREE.PerspectiveCamera(50, viewportWidth() / window.innerHeight, 0.1, 100);
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.target.set(0, 0.8, 0);
+
+    const light = new THREE.DirectionalLight(0xffffff, 1.2);
+    light.position.set(4, 8, 6);
+    scene.add(light);
+    scene.add(new THREE.AmbientLight(0x9eb7ff, 0.45));
+
+    const cubeSide = 5;
+    const unit = 0.8;
+    const gap = 0.06;
+    const offset = ((cubeSide - 1) * (unit + gap)) / 2;
+
+    const existingPositions = new Set();
+    function addPositionKey(x, y, z) {
+      existingPositions.add(`${x},${y},${z}`);
+    }
+
+    const originalGroup = new THREE.Group();
+    const missingGroup = new THREE.Group();
+    missingGroup.visible = false;
+
+    const existingMaterial = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#59f4ff'),
+      emissive: new THREE.Color('#0b2a33'),
+      roughness: 0.35,
+      metalness: 0.2,
+    });
+
+    const missingMaterial = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#5ad1ff'),
+      transparent: true,
+      opacity: 0.32,
+      roughness: 0.9,
+      metalness: 0,
+    });
+
+    const geo = new THREE.BoxGeometry(unit, unit, unit);
+
+    function placeCube(x, y, z, material, group) {
+      const mesh = new THREE.Mesh(geo, material);
+      mesh.position.set(
+        (x * (unit + gap)) - offset,
+        (y * (unit + gap)),
+        (z * (unit + gap)) - offset
+      );
+      group.add(mesh);
+    }
+
+    // Floor 1
+    for (let x = 0; x < 5; x++) { addPositionKey(x, 0, 0); placeCube(x, 0, 0, existingMaterial, originalGroup); }
+    for (let x = 0; x < 3; x++) { addPositionKey(x, 0, 1); placeCube(x, 0, 1, existingMaterial, originalGroup); }
+    // Floor 2
+    for (let x = 0; x < 4; x++) { addPositionKey(x, 1, 0); placeCube(x, 1, 0, existingMaterial, originalGroup); }
+    // Floor 3
+    for (let x = 0; x < 4; x++) { addPositionKey(x, 2, 0); placeCube(x, 2, 0, existingMaterial, originalGroup); }
+
+    scene.add(originalGroup);
+
+    let missingCount = 0;
+    for (let x = 0; x < cubeSide; x++) {
+      for (let y = 0; y < cubeSide; y++) {
+        for (let z = 0; z < cubeSide; z++) {
+          const key = `${x},${y},${z}`;
+          if (!existingPositions.has(key)) {
+            placeCube(x, y, z, missingMaterial, missingGroup);
+            missingCount++;
+          }
+        }
+      }
+    }
+    scene.add(missingGroup);
+
+    const givenCountEl = document.getElementById('given-count');
+    const missingCountEl = document.getElementById('missing-count');
+    givenCountEl.textContent = `Given cubes: ${existingPositions.size}`;
+    missingCountEl.textContent = `Need to add: ${missingCount} cubes`;
+
+    camera.position.set(4, 4.5, 6.5);
+    controls.update();
+
+    function render() {
+      controls.update();
+      renderer.render(scene, camera);
+      requestAnimationFrame(render);
+    }
+    render();
+
+    function onResize() {
+      const width = viewportWidth();
+      const height = window.innerHeight;
+      renderer.setSize(width, height);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+    }
+    window.addEventListener('resize', onResize);
+
+    const toggleBtn = document.getElementById('toggle-missing');
+    toggleBtn.addEventListener('click', () => {
+      missingGroup.visible = !missingGroup.visible;
+      toggleBtn.textContent = missingGroup.visible ? 'Hide missing cubes' : 'Show missing cubes';
+    });
+
+    document.getElementById('reset').addEventListener('click', () => {
+      camera.position.set(4, 4.5, 6.5);
+      controls.target.set(0, 0.8, 0);
+      controls.update();
+    });
+  </script>
+</body>
+</html>
