@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Train 3D Ride</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      background: radial-gradient(circle at 20% 20%, #152b3c, #0c1723 55%);
+      color: #f2f6fb;
+      display: grid;
+      place-items: center;
+      padding: 16px;
+    }
+    .card {
+      position: relative;
+      width: min(1080px, 100%);
+      aspect-ratio: 16 / 9;
+      background: rgba(8, 16, 28, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(8px);
+    }
+    .hud {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      padding: 12px 14px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      max-width: 360px;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+    }
+    .hud h1 {
+      margin: 0 0 6px;
+      font-size: 1.3rem;
+      letter-spacing: 0.01em;
+    }
+    .hud p {
+      margin: 0;
+      opacity: 0.82;
+      line-height: 1.4;
+      font-size: 0.95rem;
+    }
+    .hud .hint {
+      margin-top: 6px;
+      font-size: 0.85rem;
+      color: #9dd2ff;
+    }
+    .back-link {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      padding: 9px 12px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      text-decoration: none;
+      color: #c5e8ff;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+    .back-link:hover { background: rgba(255, 255, 255, 0.14); }
+    #scene-container { width: 100%; height: 100%; }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 0;
+      }
+      .card {
+        width: 100vw;
+        height: 100vh;
+        aspect-ratio: auto;
+        border-radius: 0;
+        box-shadow: none;
+      }
+      .hud {
+        max-width: calc(100% - 28px);
+      }
+      .back-link {
+        right: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="hud">
+      <h1>3D Train Ride</h1>
+      <p>Watch a bright toy train circle a mountain pass. Drag to orbit, zoom to see the engine details.</p>
+      <div class="hint">Tip: pause the ride by switching tabs or hold the mouse still to enjoy the view.</div>
+    </div>
+    <a class="back-link" href="../..">← Back</a>
+    <div id="scene-container"></div>
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+        "three/examples/jsm/controls/OrbitControls.js": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/controls/OrbitControls.js"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+
+    const container = document.getElementById('scene-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0b1622);
+    scene.fog = new THREE.Fog(0x0b1622, 28, 85);
+
+    const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 200);
+    camera.position.set(12, 10, 24);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.shadowMap.enabled = true;
+    container.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.target.set(0, 3, 0);
+
+    const hemi = new THREE.HemisphereLight(0xaad8ff, 0x1b1b1f, 0.9);
+    scene.add(hemi);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+    dirLight.position.set(10, 16, 6);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.set(1024, 1024);
+    dirLight.shadow.camera.far = 80;
+    dirLight.shadow.camera.left = -30;
+    dirLight.shadow.camera.right = 30;
+    dirLight.shadow.camera.top = 30;
+    dirLight.shadow.camera.bottom = -30;
+    scene.add(dirLight);
+
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(120, 120),
+      new THREE.MeshStandardMaterial({ color: 0x0f2534, roughness: 0.95 })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = 0;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    const meadow = new THREE.Mesh(
+      new THREE.CircleGeometry(28, 80),
+      new THREE.MeshStandardMaterial({ color: 0x1c5b44, roughness: 0.9 })
+    );
+    meadow.rotation.x = -Math.PI / 2;
+    meadow.position.y = 0.02;
+    meadow.receiveShadow = true;
+    scene.add(meadow);
+
+    const hill = new THREE.Mesh(
+      new THREE.ConeGeometry(6, 10, 6),
+      new THREE.MeshStandardMaterial({ color: 0x225c7a, roughness: 0.8 })
+    );
+    hill.position.set(0, 5, 0);
+    hill.castShadow = true;
+    hill.receiveShadow = true;
+    scene.add(hill);
+
+    const trackRadius = 15;
+    const curveDetail = 96;
+    const curvePoints = [];
+    for (let i = 0; i < curveDetail; i++) {
+      const t = (i / curveDetail) * Math.PI * 2;
+      curvePoints.push(new THREE.Vector3(Math.cos(t) * trackRadius, 0.2, Math.sin(t) * trackRadius));
+    }
+    const trackCurve = new THREE.CatmullRomCurve3(curvePoints, true);
+
+    const tubeGeometry = new THREE.TubeGeometry(trackCurve, curveDetail * 2, 0.08, 8, true);
+    const railMaterial = new THREE.MeshStandardMaterial({ color: 0xe1b07e, metalness: 0.2, roughness: 0.65 });
+    const rails = new THREE.Mesh(tubeGeometry, railMaterial);
+    rails.castShadow = true;
+    rails.receiveShadow = true;
+    scene.add(rails);
+
+    const sleeperGeometry = new THREE.BoxGeometry(0.7, 0.12, 2.4);
+    const sleeperMaterial = new THREE.MeshStandardMaterial({ color: 0x3d2f28, roughness: 0.9 });
+    for (let i = 0; i < 90; i++) {
+      const t = i / 90;
+      const pos = trackCurve.getPointAt(t);
+      const tangent = trackCurve.getTangentAt(t);
+      const sleeper = new THREE.Mesh(sleeperGeometry, sleeperMaterial);
+      sleeper.position.copy(pos);
+      sleeper.position.y = 0.12;
+      sleeper.rotation.y = Math.atan2(tangent.z, tangent.x);
+      sleeper.castShadow = true;
+      sleeper.receiveShadow = true;
+      scene.add(sleeper);
+    }
+
+    function createWheel(radius = 0.55, width = 0.35) {
+      const geometry = new THREE.CylinderGeometry(radius, radius, width, 22);
+      geometry.rotateZ(Math.PI / 2);
+      const material = new THREE.MeshStandardMaterial({ color: 0x1f1f23, metalness: 0.55, roughness: 0.25 });
+      const wheel = new THREE.Mesh(geometry, material);
+      wheel.castShadow = true;
+      wheel.receiveShadow = true;
+      return wheel;
+    }
+
+    function createCarriage({ color = 0x4cc3ff, length = 3.6, accent = 0xe8f7ff } = {}) {
+      const group = new THREE.Group();
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(length, 1.2, 1.8),
+        new THREE.MeshStandardMaterial({ color, roughness: 0.45, metalness: 0.15 })
+      );
+      body.position.y = 1;
+      body.castShadow = true;
+      body.receiveShadow = true;
+      group.add(body);
+
+      const roof = new THREE.Mesh(
+        new THREE.BoxGeometry(length + 0.2, 0.35, 2.05),
+        new THREE.MeshStandardMaterial({ color: accent, roughness: 0.4, metalness: 0.1 })
+      );
+      roof.position.y = 1.8;
+      roof.castShadow = true;
+      roof.receiveShadow = true;
+      group.add(roof);
+
+      const wheels = [];
+      const offset = length / 2 - 0.6;
+      const positions = [offset, -offset];
+      positions.forEach((xPos) => {
+        const left = createWheel();
+        left.position.set(xPos, 0.55, -0.85);
+        const right = createWheel();
+        right.position.set(xPos, 0.55, 0.85);
+        wheels.push(left, right);
+        group.add(left, right);
+      });
+
+      return { group, wheels };
+    }
+
+    const trainGroup = new THREE.Group();
+
+    const locoBody = new THREE.Mesh(
+      new THREE.BoxGeometry(4.4, 1.3, 1.9),
+      new THREE.MeshStandardMaterial({ color: 0xff6b6b, roughness: 0.4, metalness: 0.2 })
+    );
+    locoBody.position.y = 1.05;
+    locoBody.castShadow = true;
+    locoBody.receiveShadow = true;
+
+    const boiler = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.75, 0.75, 3.4, 26),
+      new THREE.MeshStandardMaterial({ color: 0xfa9f53, roughness: 0.35, metalness: 0.25 })
+    );
+    boiler.rotation.z = Math.PI / 2;
+    boiler.position.set(0.4, 1.25, 0);
+    boiler.castShadow = true;
+    boiler.receiveShadow = true;
+
+    const cabin = new THREE.Mesh(
+      new THREE.BoxGeometry(1.6, 1.5, 1.8),
+      new THREE.MeshStandardMaterial({ color: 0x1f3b64, roughness: 0.45, metalness: 0.15 })
+    );
+    cabin.position.set(-0.9, 1.65, 0);
+    cabin.castShadow = true;
+    cabin.receiveShadow = true;
+
+    const windowFrame = new THREE.Mesh(
+      new THREE.BoxGeometry(1.15, 0.8, 0.2),
+      new THREE.MeshStandardMaterial({ color: 0x7ecbff, emissive: 0x0a1320, emissiveIntensity: 0.4 })
+    );
+    windowFrame.position.set(-0.9, 1.65, 0.95);
+    const windowFrameBack = windowFrame.clone();
+    windowFrameBack.position.z = -0.95;
+
+    const smokestack = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.32, 0.45, 1.1, 14),
+      new THREE.MeshStandardMaterial({ color: 0x222831, roughness: 0.35, metalness: 0.4 })
+    );
+    smokestack.position.set(1.6, 1.7, 0);
+    smokestack.castShadow = true;
+    smokestack.receiveShadow = true;
+
+    const cowcatcher = new THREE.Mesh(
+      new THREE.ConeGeometry(0.9, 1.2, 12),
+      new THREE.MeshStandardMaterial({ color: 0x7b341e, roughness: 0.55, metalness: 0.2 })
+    );
+    cowcatcher.rotation.z = Math.PI / 2;
+    cowcatcher.position.set(2.6, 0.6, 0);
+    cowcatcher.castShadow = true;
+    cowcatcher.receiveShadow = true;
+
+    const buffer = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.38, 0.38, 1.7, 12),
+      new THREE.MeshStandardMaterial({ color: 0xf8d067, roughness: 0.4, metalness: 0.45 })
+    );
+    buffer.rotation.z = Math.PI / 2;
+    buffer.position.set(-2.5, 0.5, 0);
+    buffer.castShadow = true;
+    buffer.receiveShadow = true;
+
+    const locoWheels = [];
+    const wheelPositions = [1.7, 0.5, -0.7];
+    wheelPositions.forEach((xPos) => {
+      const left = createWheel(0.6, 0.4);
+      left.position.set(xPos, 0.6, -0.95);
+      const right = createWheel(0.6, 0.4);
+      right.position.set(xPos, 0.6, 0.95);
+      locoWheels.push(left, right);
+      trainGroup.add(left, right);
+    });
+
+    const carriageA = createCarriage({ color: 0x2bd4a4, accent: 0xd9fff5, length: 3.4 });
+    carriageA.group.position.x = -5.6;
+
+    const carriageB = createCarriage({ color: 0x4b7bff, accent: 0xe3e9ff, length: 3.6 });
+    carriageB.group.position.x = -10.6;
+
+    const carriageWheels = [...carriageA.wheels, ...carriageB.wheels];
+
+    const headLight = new THREE.SpotLight(0xfff3b0, 0.9, 12, Math.PI / 7, 0.45, 1.1);
+    headLight.position.set(2.5, 1.4, 0);
+    headLight.target.position.set(5, 1, 0);
+    headLight.castShadow = true;
+    trainGroup.add(headLight, headLight.target);
+
+    const smokeParticles = [];
+    const smokeGeometry = new THREE.SphereGeometry(0.18, 10, 10);
+    const smokeMaterial = new THREE.MeshStandardMaterial({ color: 0xf0f4ff, transparent: true, opacity: 0.7 });
+    for (let i = 0; i < 10; i++) {
+      const puff = new THREE.Mesh(smokeGeometry, smokeMaterial.clone());
+      puff.position.set(1.6, 2.1, 0);
+      puff.visible = false;
+      smokeParticles.push(puff);
+      trainGroup.add(puff);
+    }
+
+    trainGroup.add(
+      locoBody,
+      boiler,
+      cabin,
+      windowFrame,
+      windowFrameBack,
+      smokestack,
+      cowcatcher,
+      buffer,
+      carriageA.group,
+      carriageB.group
+    );
+
+    scene.add(trainGroup);
+
+    const trees = new THREE.InstancedMesh(
+      new THREE.ConeGeometry(0.9, 3.6, 8),
+      new THREE.MeshStandardMaterial({ color: 0x2c8f4d, roughness: 0.8 }),
+      40
+    );
+    const dummy = new THREE.Object3D();
+    for (let i = 0; i < 40; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = trackRadius + 4 + Math.random() * 4;
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+      dummy.position.set(x, 1.8, z);
+      dummy.rotation.y = Math.random() * Math.PI;
+      dummy.updateMatrix();
+      trees.setMatrixAt(i, dummy.matrix);
+    }
+    trees.castShadow = true;
+    trees.receiveShadow = true;
+    scene.add(trees);
+
+    const trackLength = trackCurve.getLength();
+    const forward = new THREE.Vector3(1, 0, 0);
+    let progress = 0;
+    let traveled = 0;
+    const speed = 8; // units per second
+    const clock = new THREE.Clock();
+
+    function animateSmoke(delta) {
+      smokeParticles.forEach((puff, index) => {
+        const life = (traveled * 0.5 + index * 0.08) % 3;
+        puff.visible = life < 2.5;
+        if (!puff.visible) return;
+        const rise = Math.min(life * 0.8, 1.6);
+        const spread = 0.4 + life * 0.2;
+        puff.position.set(1.6 + (Math.sin(index * 2 + traveled) * spread) * 0.2, 2.1 + rise, (Math.cos(index + traveled) * spread) * 0.25);
+        puff.material.opacity = 0.7 * (1 - life / 2.5);
+        puff.scale.setScalar(1 + life * 0.8);
+      });
+    }
+
+    function resize() {
+      const { clientWidth, clientHeight } = container;
+      camera.aspect = clientWidth / clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(clientWidth, clientHeight);
+    }
+    window.addEventListener('resize', resize);
+
+    function animate() {
+      const delta = clock.getDelta();
+      traveled += delta * speed;
+      progress = (progress + (delta * speed) / trackLength) % 1;
+
+      const position = trackCurve.getPointAt(progress);
+      const tangent = trackCurve.getTangentAt(progress).normalize();
+      const orientation = new THREE.Quaternion().setFromUnitVectors(forward, tangent);
+      trainGroup.position.copy(position);
+      trainGroup.position.y = 0.55;
+      trainGroup.quaternion.slerp(orientation, 0.2);
+
+      const wheelRotation = traveled / 0.6;
+      [...locoWheels, ...carriageWheels].forEach((wheel) => {
+        wheel.rotation.x = wheelRotation;
+      });
+
+      const lightTarget = position.clone().add(tangent.clone().multiplyScalar(3));
+      headLight.target.position.copy(lightTarget);
+
+      animateSmoke(delta);
+      controls.update();
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    }
+
+    resize();
+    animate();
+  </script>
+</body>
+</html>
