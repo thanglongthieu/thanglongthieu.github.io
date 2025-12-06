@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stick Intersections – Three.js Demo</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at 40% 30%, #0e1220, #080a12 65%);
+      color: #e8efff;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 16px;
+    }
+    .card {
+      position: relative;
+      width: min(1200px, 100%);
+      aspect-ratio: 16 / 9;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+    }
+    .overlay {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      padding: 12px 14px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      backdrop-filter: blur(8px);
+      max-width: 360px;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.25);
+    }
+    .overlay h1 {
+      margin: 0 0 8px;
+      font-size: 1.2rem;
+      letter-spacing: 0.02em;
+    }
+    .overlay p {
+      margin: 0 0 6px;
+      line-height: 1.45;
+      opacity: 0.88;
+      font-size: 0.95rem;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+      padding: 8px 10px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 10px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: #a7e1ff;
+    }
+    .badge svg { width: 18px; height: 18px; }
+
+    #scene-container {
+      width: 100%;
+      height: 100%;
+    }
+    a.back-link {
+      position: absolute;
+      right: 14px;
+      top: 14px;
+      color: #9fd0ff;
+      text-decoration: none;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      padding: 8px 12px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    a.back-link:hover { background: rgba(255,255,255,0.14); }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="overlay">
+      <h1>10 Sticks – Maximum Intersections</h1>
+      <p>Sabrina places 10 straight sticks on a table. If none are parallel and no three meet at the same point, every pair crosses once.</p>
+      <p>The total crossings are combinations of 10 sticks taken 2 at a time: <strong>C(10, 2) = 45</strong>.</p>
+      <div class="badge" aria-label="Total intersections">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 4l16 16M4 20L20 4" />
+        </svg>
+        45 intersections
+      </div>
+    </div>
+    <a class="back-link" href="../..">← Back</a>
+    <div id="scene-container"></div>
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+        "three/examples/jsm/controls/OrbitControls": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/controls/OrbitControls.js"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+
+    const container = document.getElementById('scene-container');
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x0a0f1c, 0.038);
+
+    const camera = new THREE.PerspectiveCamera(55, container.clientWidth / container.clientHeight, 0.1, 100);
+    camera.position.set(6, 5.5, 8);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.shadowMap.enabled = true;
+    container.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.minDistance = 4;
+    controls.maxDistance = 16;
+    controls.target.set(0, 0, 0);
+
+    // Lights
+    scene.add(new THREE.AmbientLight(0x9ecbff, 0.45));
+    const keyLight = new THREE.DirectionalLight(0x9fb8ff, 0.85);
+    keyLight.position.set(5, 8, 4);
+    keyLight.castShadow = true;
+    scene.add(keyLight);
+    const rimLight = new THREE.DirectionalLight(0x6fd2ff, 0.6);
+    rimLight.position.set(-6, 5, -4);
+    scene.add(rimLight);
+
+    // Ground
+    const groundGeo = new THREE.PlaneGeometry(22, 22);
+    const groundMat = new THREE.MeshPhongMaterial({ color: 0x0f1424, opacity: 0.6, transparent: true });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    const grid = new THREE.GridHelper(22, 22, 0x3ca8ff, 0x244d79);
+    grid.position.y = 0.01;
+    scene.add(grid);
+
+    // Stick definitions: each line has a unique angle and offset so no three overlap
+    const stickDefs = [
+      { angle: -1.25, offset: -2.2, color: 0x8bd7ff },
+      { angle: -0.9, offset: 1.7, color: 0xffd173 },
+      { angle: -0.35, offset: -1.1, color: 0xff9fad },
+      { angle: 0.18, offset: 0.4, color: 0xb0ff9c },
+      { angle: 0.62, offset: -2.6, color: 0xffb56f },
+      { angle: 1.05, offset: 1.3, color: 0x9dc1ff },
+      { angle: 1.48, offset: -0.35, color: 0xd5a5ff },
+      { angle: 1.92, offset: 2.6, color: 0x6fe2d8 },
+      { angle: 2.38, offset: -1.9, color: 0xff89c0 },
+      { angle: 2.92, offset: 0.9, color: 0x98f0ff }
+    ];
+
+    const sticks = [];
+
+    function buildStick(def) {
+      const normal = new THREE.Vector2(Math.cos(def.angle), Math.sin(def.angle));
+      const tangent = new THREE.Vector2(-normal.y, normal.x);
+      const length = 18;
+      const center2d = normal.clone().multiplyScalar(def.offset);
+      const p1 = new THREE.Vector3(center2d.x, 0, center2d.y).add(new THREE.Vector3(tangent.x, 0, tangent.y).multiplyScalar(length / 2));
+      const p2 = new THREE.Vector3(center2d.x, 0, center2d.y).add(new THREE.Vector3(tangent.x, 0, tangent.y).multiplyScalar(-length / 2));
+      const dir = new THREE.Vector3().subVectors(p2, p1);
+      const stickLength = dir.length();
+
+      const geometry = new THREE.CylinderGeometry(0.08, 0.08, stickLength, 14);
+      const material = new THREE.MeshStandardMaterial({
+        color: def.color,
+        roughness: 0.35,
+        metalness: 0.2,
+        emissive: def.color,
+        emissiveIntensity: 0.05
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      mesh.position.copy(new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5));
+      mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
+
+      // Thin glow line for emphasis
+      const lineGeo = new THREE.BufferGeometry().setFromPoints([p1, p2]);
+      const lineMat = new THREE.LineBasicMaterial({ color: def.color, transparent: true, opacity: 0.6 });
+      const line = new THREE.Line(lineGeo, lineMat);
+
+      scene.add(mesh, line);
+      sticks.push({ ...def, p1, p2, mesh });
+    }
+
+    stickDefs.forEach(buildStick);
+
+    function addIntersectionMarkers() {
+      const markers = new THREE.Group();
+      for (let i = 0; i < sticks.length; i++) {
+        for (let j = i + 1; j < sticks.length; j++) {
+          const a = sticks[i];
+          const b = sticks[j];
+          const det = Math.cos(a.angle) * Math.sin(b.angle) - Math.sin(a.angle) * Math.cos(b.angle);
+          if (Math.abs(det) < 1e-3) continue;
+          const x = (a.offset * Math.sin(b.angle) - b.offset * Math.sin(a.angle)) / det;
+          const z = (Math.cos(a.angle) * b.offset - Math.cos(b.angle) * a.offset) / det;
+          const sphere = new THREE.Mesh(
+            new THREE.SphereGeometry(0.11, 14, 10),
+            new THREE.MeshBasicMaterial({ color: 0xffffff })
+          );
+          sphere.position.set(x, 0.08, z);
+          markers.add(sphere);
+        }
+      }
+      scene.add(markers);
+    }
+
+    addIntersectionMarkers();
+
+    function onResize() {
+      const { clientWidth, clientHeight } = container;
+      camera.aspect = clientWidth / clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(clientWidth, clientHeight);
+    }
+    window.addEventListener('resize', onResize);
+
+    function animate() {
+      controls.update();
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    }
+    animate();
+  </script>
+</body>
+</html>
