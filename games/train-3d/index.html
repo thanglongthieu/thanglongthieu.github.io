@@ -69,6 +69,25 @@
     }
     .back-link:hover { background: rgba(255, 255, 255, 0.14); }
     #scene-container { width: 100%; height: 100%; }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 0;
+      }
+      .card {
+        width: 100vw;
+        height: 100vh;
+        aspect-ratio: auto;
+        border-radius: 0;
+        box-shadow: none;
+      }
+      .hud {
+        max-width: calc(100% - 28px);
+      }
+      .back-link {
+        right: 16px;
+      }
+    }
   </style>
 </head>
 <body>
