@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D Multiplication Test</title>
+  <style>
+    :root {
+      --panel: rgba(18, 26, 44, 0.75);
+      --accent: #68d5ff;
+      --text: #e8f0ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at 20% 20%, #0a1a2d, #050915 60%);
+      color: var(--text);
+      font-family: "Inter", system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+    }
+
+    canvas#bg {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .ui {
+      position: relative;
+      z-index: 2;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 26px 18px 32px;
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    @media (max-width: 800px) {
+      .ui {
+        grid-template-columns: 1fr;
+        padding: 18px 14px 28px;
+      }
+    }
+
+    .glass {
+      background: var(--panel);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(10px);
+      border-radius: 18px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+      padding: 16px 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 26px;
+      letter-spacing: 0.3px;
+    }
+
+    .sub {
+      margin: 6px 0 14px;
+      opacity: 0.8;
+      font-size: 14px;
+    }
+
+    .hud {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.08);
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
+    .pill.alert {
+      background: rgba(255, 99, 99, 0.12);
+      border: 1px solid rgba(255, 99, 99, 0.5);
+      color: #ffc7c7;
+    }
+
+    .pill .label { opacity: 0.7; font-weight: 500; }
+
+    .question-card { margin-top: 12px; }
+
+    .question-text {
+      font-size: 34px;
+      font-weight: 800;
+      letter-spacing: 0.6px;
+      background: linear-gradient(145deg, #7af2ff, #c3ff7a);
+      -webkit-background-clip: text;
+      color: transparent;
+      text-shadow:
+        0 0 18px rgba(122, 242, 255, 0.35),
+        0 10px 18px rgba(0, 0, 0, 0.35),
+        0 2px 0 #063754,
+        0 4px 0 #053049,
+        0 6px 0 #04263a;
+    }
+
+    .options {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+    }
+
+    .option-btn {
+      padding: 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: linear-gradient(160deg, rgba(22,46,77,0.9), rgba(14,24,44,0.9));
+      color: #e9fbff;
+      font-weight: 800;
+      font-size: 18px;
+      letter-spacing: 0.4px;
+      cursor: pointer;
+      box-shadow:
+        0 10px 20px rgba(0,0,0,0.3),
+        inset 0 1px 0 rgba(255,255,255,0.1),
+        inset 0 -6px 12px rgba(0,0,0,0.35);
+      transition: transform 120ms ease, box-shadow 120ms ease, background 200ms ease;
+      text-shadow:
+        0 0 12px rgba(122, 242, 255, 0.25),
+        0 6px 14px rgba(0, 0, 0, 0.35),
+        0 2px 0 #062035,
+        0 4px 0 #041624;
+    }
+
+    .option-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow:
+        0 12px 24px rgba(0,0,0,0.35),
+        inset 0 1px 0 rgba(255,255,255,0.15),
+        inset 0 -4px 10px rgba(0,0,0,0.3);
+      background: linear-gradient(160deg, rgba(38,82,134,0.95), rgba(17,32,56,0.95));
+    }
+
+    .option-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -2px 6px rgba(0,0,0,0.3);
+    }
+
+    .feedback {
+      margin-top: 10px;
+      min-height: 22px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+    }
+
+    .history h2 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      letter-spacing: 0.4px;
+    }
+
+    .history ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .history li {
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+    }
+
+    .history .empty {
+      opacity: 0.7;
+      font-style: italic;
+    }
+
+    .end-note {
+      margin-top: 12px;
+      opacity: 0.7;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bg"></canvas>
+  <div class="ui">
+    <div class="glass">
+      <h1>3D Multiplication Test</h1>
+      <div class="sub">Practice 3×9 multiplication while the neon cubes spin. Beat the clock and chase your best score.</div>
+
+      <div class="hud">
+        <div class="pill"><span class="label">⏱ Time</span> <span id="time">60</span>s</div>
+        <div class="pill"><span class="label">⭐ Score</span> <span id="score">0</span></div>
+        <div class="pill"><span class="label">🏆 Best</span> <span id="best">0</span></div>
+      </div>
+
+      <div class="question-card">
+        <div id="question" class="question-text">Press Start</div>
+        <div id="options" class="options"></div>
+        <div class="feedback" id="feedback"></div>
+        <div class="hud" style="margin-top:12px;">
+          <button
+            id="startBtn"
+            class="pill"
+            style="background:rgba(119,255,216,0.12); border:1px solid rgba(119,255,216,0.4); color:#9efff0; cursor:pointer;"
+          >
+            ▶ Start / Restart
+          </button>
+          <div class="pill" style="background:rgba(255,255,255,0.05);"><span class="label">Range</span> 3 × 3 up to 9 × 9</div>
+        </div>
+        <div class="end-note">Pick the correct product before time runs out. New cube-bright answers appear instantly.</div>
+      </div>
+    </div>
+
+    <div class="glass history">
+      <h2>High Score History</h2>
+      <ul id="historyList"></ul>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script>
+    // --- THREE.JS BACKGROUND ----------------------------
+    const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('bg'), antialias: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2('#050915', 0.03);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(0, 2.4, 6);
+
+    const ambient = new THREE.AmbientLight(0x66ccff, 0.6);
+    scene.add(ambient);
+
+    const spot = new THREE.SpotLight(0x74ffb3, 1.2, 15, Math.PI / 6, 0.2, 1.5);
+    spot.position.set(2.5, 5, 4);
+    scene.add(spot);
+
+    const boxGeo = new THREE.BoxGeometry(0.6, 0.6, 0.6);
+    const palette = [0x1ea0ff, 0x66ffcc, 0xff9bf2, 0xffd479];
+    const cluster = new THREE.Group();
+
+    for (let i = 0; i < 30; i++) {
+      const mat = new THREE.MeshStandardMaterial({ color: palette[i % palette.length], roughness: 0.35, metalness: 0.35 });
+      const mesh = new THREE.Mesh(boxGeo, mat);
+      mesh.position.set(
+        (Math.random() - 0.5) * 6,
+        (Math.random() - 0.3) * 4,
+        (Math.random() - 0.5) * 6
+      );
+      mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+      cluster.add(mesh);
+    }
+    scene.add(cluster);
+
+    const plane = new THREE.Mesh(
+      new THREE.PlaneGeometry(30, 30),
+      new THREE.MeshPhongMaterial({ color: 0x06101c, transparent: true, opacity: 0.45 })
+    );
+    plane.rotateX(-Math.PI / 2);
+    plane.position.y = -2.3;
+    scene.add(plane);
+
+    function animate() {
+      requestAnimationFrame(animate);
+      cluster.rotation.y += 0.0025;
+      cluster.rotation.x += 0.0009;
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // --- GAME LOGIC -------------------------------------
+    const questionEl = document.getElementById('question');
+    const optionsEl = document.getElementById('options');
+    const startBtn = document.getElementById('startBtn');
+    const timeEl = document.getElementById('time');
+    const scoreEl = document.getElementById('score');
+    const bestEl = document.getElementById('best');
+    const feedbackEl = document.getElementById('feedback');
+    const historyList = document.getElementById('historyList');
+    const timePill = document.querySelector('#time').parentElement;
+
+    const MIN = 3;
+    const MAX = 9;
+    const GAME_SECONDS = 60;
+    const STORAGE_KEY = 'multiplication3d-history';
+
+    let timer = null;
+    let timeLeft = GAME_SECONDS;
+    let score = 0;
+    let currentAnswer = null;
+    let running = false;
+    let history = [];
+    let optionButtons = [];
+
+    function randomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function newQuestion() {
+      const a = randomInt(MIN, MAX);
+      const b = randomInt(MIN, MAX);
+      currentAnswer = a * b;
+      questionEl.textContent = `${a} × ${b} = ?`;
+
+      const options = new Set([currentAnswer]);
+      while (options.size < 4) {
+        options.add(randomInt(MIN * MIN, MAX * MAX));
+      }
+      const shuffled = Array.from(options).sort(() => Math.random() - 0.5);
+
+      optionButtons.forEach((btn, idx) => {
+        btn.textContent = shuffled[idx];
+        btn.dataset.value = shuffled[idx];
+      });
+    }
+
+    function buildOptions() {
+      optionsEl.innerHTML = '';
+      optionButtons = Array.from({ length: 4 }, () => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.disabled = true;
+        btn.addEventListener('click', () => handleGuess(Number(btn.dataset.value)));
+        optionsEl.appendChild(btn);
+        return btn;
+      });
+    }
+
+    function updateHistoryUI() {
+      historyList.innerHTML = '';
+      if (!history.length) {
+        const li = document.createElement('li');
+        li.textContent = 'Play once to log your first score!';
+        li.className = 'empty';
+        historyList.appendChild(li);
+        bestEl.textContent = '0';
+        return;
+      }
+
+      const bestScore = history[0].score;
+      bestEl.textContent = bestScore;
+
+      history.slice(0, 7).forEach(entry => {
+        const li = document.createElement('li');
+        const date = new Date(entry.date);
+        li.innerHTML = `<span>Score ${entry.score}</span><span>${date.toLocaleDateString()} ${date.toLocaleTimeString()}</span>`;
+        historyList.appendChild(li);
+      });
+    }
+
+    function loadHistory() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        history = saved ? JSON.parse(saved) : [];
+      } catch (e) {
+        history = [];
+      }
+      history.sort((a, b) => b.score - a.score || new Date(b.date) - new Date(a.date));
+      updateHistoryUI();
+    }
+
+    function saveHistory() {
+      history.sort((a, b) => b.score - a.score || new Date(b.date) - new Date(a.date));
+      history = history.slice(0, 12);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+      updateHistoryUI();
+    }
+
+    function startGame() {
+      running = true;
+      score = 0;
+      timeLeft = GAME_SECONDS;
+      scoreEl.textContent = score;
+      timeEl.textContent = timeLeft;
+      timePill.classList.remove('alert');
+      feedbackEl.textContent = '';
+      optionButtons.forEach(btn => btn.disabled = false);
+      startBtn.textContent = '↻ Restart';
+      newQuestion();
+
+      if (timer) clearInterval(timer);
+      timer = setInterval(() => {
+        timeLeft -= 1;
+        timeEl.textContent = timeLeft;
+        if (timeLeft <= 10) {
+          timePill.classList.add('alert');
+        }
+        if (timeLeft <= 0) {
+          endGame();
+        }
+      }, 1000);
+    }
+
+    function endGame() {
+      running = false;
+      if (timer) clearInterval(timer);
+      timer = null;
+      optionButtons.forEach(btn => btn.disabled = true);
+      timePill.classList.remove('alert');
+      feedbackEl.textContent = `Time! Final score: ${score}`;
+      questionEl.textContent = 'Press Start';
+
+      if (!Number.isFinite(score)) return;
+      const entry = { score, date: new Date().toISOString() };
+      history.push(entry);
+      saveHistory();
+    }
+
+    function handleGuess(guess) {
+      if (!running) return;
+      if (!Number.isFinite(guess)) return;
+
+      if (guess === currentAnswer) {
+        score += 1;
+        scoreEl.textContent = score;
+        feedbackEl.textContent = '✅ Correct! New cube spin...';
+      } else {
+        feedbackEl.textContent = `❌ ${currentAnswer} was correct`;
+      }
+      newQuestion();
+    }
+
+    startBtn.addEventListener('click', () => {
+      startGame();
+    });
+
+    buildOptions();
+    loadHistory();
+  </script>
+</body>
+</html>
