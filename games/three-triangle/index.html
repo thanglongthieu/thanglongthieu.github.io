@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Three.js Triangle</title>
+  <title>Three.js Spaceship</title>
   <style>
     :root {
       color-scheme: light dark;
@@ -12,7 +12,7 @@
     body {
       margin: 0;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: radial-gradient(circle at 20% 20%, #1b2735, #090a0f 60%);
+      background: radial-gradient(circle at 20% 20%, #060b16, #0a0f1d 60%);
       color: #f4f7fb;
       min-height: 100vh;
       display: grid;
@@ -21,7 +21,7 @@
     }
     .card {
       position: relative;
-      width: min(960px, 100%);
+      width: min(1100px, 100%);
       aspect-ratio: 16 / 9;
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid rgba(255, 255, 255, 0.08);
@@ -40,6 +40,7 @@
       border: 1px solid rgba(255, 255, 255, 0.08);
       backdrop-filter: blur(8px);
       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+      max-width: 320px;
     }
     .label h1 {
       margin: 0 0 6px;
@@ -75,80 +76,180 @@
 <body>
   <div class="card">
     <div class="label">
-      <h1>Three.js Triangle</h1>
-      <p>Interactive 3D triangle built with a custom geometry and soft lighting.</p>
+      <h1>Three.js Spaceship</h1>
+      <p>Phi thuyền 3D xoay được, có động cơ sáng, nền sao và ánh sáng động.</p>
     </div>
     <a class="back-link" href="../..">← Back</a>
     <div id="scene-container"></div>
   </div>
 
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+        "three/examples/jsm/controls/OrbitControls": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/controls/OrbitControls.js"
+      }
+    }
+  </script>
+
   <script type="module">
-    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js';
-    import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/controls/OrbitControls.js';
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
     const container = document.getElementById('scene-container');
     const scene = new THREE.Scene();
 
-    const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 100);
-    camera.position.set(0, 0.5, 3.5);
+    const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 200);
+    camera.position.set(0, 1.2, 7);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(renderer.domElement);
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
-    controls.minDistance = 2;
-    controls.maxDistance = 6;
+    controls.minDistance = 4;
+    controls.maxDistance = 12;
 
-    const vertices = new Float32Array([
-      0, 1, 0,
-      -1.2, -0.8, 0,
-      1.2, -0.8, 0,
-    ]);
+    // Background stars
+    const starGeometry = new THREE.BufferGeometry();
+    const starCount = 700;
+    const starPositions = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount; i++) {
+      const radius = 40 + Math.random() * 25;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+      starPositions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
+      starPositions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+      starPositions[i * 3 + 2] = radius * Math.cos(phi);
+    }
+    starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+    const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.12, sizeAttenuation: true });
+    scene.add(new THREE.Points(starGeometry, starMaterial));
 
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-    geometry.computeVertexNormals();
+    // Materials
+    const hullMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0x90a4ff,
+      metalness: 0.65,
+      roughness: 0.25,
+      clearcoat: 0.4,
+      clearcoatRoughness: 0.3,
+      emissive: 0x0d1a3a,
+      emissiveIntensity: 0.25
+    });
+    const accentMaterial = new THREE.MeshStandardMaterial({ color: 0xd0e5ff, metalness: 0.5, roughness: 0.25 });
+    const glowMaterial = new THREE.MeshBasicMaterial({ color: 0x57d3ff, transparent: true, opacity: 0.85 });
 
-    const triangleMaterial = new THREE.MeshStandardMaterial({
-      color: 0x4cc3ff,
-      metalness: 0.1,
-      roughness: 0.45,
-      side: THREE.DoubleSide,
-      emissive: 0x0a2c4a,
-      emissiveIntensity: 0.2,
+    // Spaceship group
+    const ship = new THREE.Group();
+
+    // Main hull
+    const hullGeometry = new THREE.CapsuleGeometry(0.75, 3.2, 12, 24);
+    const hull = new THREE.Mesh(hullGeometry, hullMaterial);
+    hull.castShadow = true;
+    hull.receiveShadow = true;
+    ship.add(hull);
+
+    // Cockpit bubble
+    const cockpitGeometry = new THREE.SphereGeometry(0.55, 24, 16);
+    const cockpitMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0x66ccff,
+      metalness: 0,
+      roughness: 0.1,
+      transmission: 0.7,
+      thickness: 0.4,
+      emissive: 0x0a2e46,
+      emissiveIntensity: 0.35
+    });
+    const cockpit = new THREE.Mesh(cockpitGeometry, cockpitMaterial);
+    cockpit.position.set(0, 0.35, 0.4);
+    cockpit.castShadow = true;
+    ship.add(cockpit);
+
+    // Wings
+    const wingGeometry = new THREE.BoxGeometry(2.6, 0.15, 1.2);
+    const wingLeft = new THREE.Mesh(wingGeometry, accentMaterial);
+    wingLeft.position.set(0, -0.3, -0.2);
+    wingLeft.rotation.y = Math.PI / 15;
+    wingLeft.castShadow = true;
+    wingLeft.receiveShadow = true;
+    ship.add(wingLeft);
+
+    // Tail wings
+    const tailWingGeometry = new THREE.BoxGeometry(1.4, 0.12, 1.6);
+    const tailWing = new THREE.Mesh(tailWingGeometry, accentMaterial);
+    tailWing.position.set(0, -0.28, -1.5);
+    tailWing.rotation.y = -Math.PI / 12;
+    tailWing.castShadow = true;
+    tailWing.receiveShadow = true;
+    ship.add(tailWing);
+
+    // Engines
+    const engineGeometry = new THREE.CylinderGeometry(0.22, 0.32, 0.8, 16);
+    const engineOffsets = [-0.5, 0.5];
+    engineOffsets.forEach(offset => {
+      const engine = new THREE.Mesh(engineGeometry, hullMaterial);
+      engine.rotation.z = Math.PI / 2;
+      engine.position.set(offset, -0.28, -2.4);
+      engine.castShadow = true;
+      engine.receiveShadow = true;
+      ship.add(engine);
+
+      const thruster = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.5, 14), hullMaterial);
+      thruster.rotation.z = Math.PI / 2;
+      thruster.position.set(offset, -0.28, -2.85);
+      thruster.castShadow = true;
+      thruster.receiveShadow = true;
+      ship.add(thruster);
+
+      const glow = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.26, 0.6, 16), glowMaterial);
+      glow.rotation.z = Math.PI / 2;
+      glow.position.set(offset, -0.28, -2.7);
+      ship.add(glow);
     });
 
-    const triangle = new THREE.Mesh(geometry, triangleMaterial);
-    triangle.castShadow = true;
-    scene.add(triangle);
+    // Nose spike
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.9, 20), accentMaterial);
+    nose.position.set(0, 0, 2.2);
+    ship.add(nose);
 
-    const edgeGeometry = new THREE.EdgesGeometry(geometry);
-    const edgeLines = new THREE.LineSegments(
-      edgeGeometry,
-      new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 })
-    );
-    scene.add(edgeLines);
+    ship.position.y = 0.6;
+    scene.add(ship);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.45);
+    // Lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
     scene.add(ambientLight);
 
-    const spotLight = new THREE.SpotLight(0x7cc4ff, 1.6, 12, Math.PI / 6, 0.35, 1.3);
-    spotLight.position.set(3, 4, 3);
-    spotLight.castShadow = true;
-    scene.add(spotLight);
+    const keyLight = new THREE.SpotLight(0x8ab7ff, 1.4, 25, Math.PI / 5, 0.45, 1.6);
+    keyLight.position.set(6, 8, 6);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.set(1024, 1024);
+    scene.add(keyLight);
 
-    const rimLight = new THREE.DirectionalLight(0xff8fb1, 0.7);
-    rimLight.position.set(-4, 3, -3);
+    const rimLight = new THREE.DirectionalLight(0xffb7e1, 0.9);
+    rimLight.position.set(-6, 3, -5);
     scene.add(rimLight);
 
-    const grid = new THREE.GridHelper(8, 16, 0x557ba1, 0x21344e);
-    grid.position.y = -1.4;
+    // Floor for shadow
+    const floorGeometry = new THREE.CircleGeometry(12, 48);
+    const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x0a1b33, roughness: 0.9, metalness: 0.05, transparent: true, opacity: 0.8 });
+    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -1.1;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    const grid = new THREE.GridHelper(20, 30, 0x335a80, 0x112030);
+    grid.position.y = -1.1;
     scene.add(grid);
+
+    // Engine glow pulsation
+    const glowParts = ship.children.filter(child => child.material === glowMaterial);
 
     function onResize() {
       const { clientWidth, clientHeight } = container;
@@ -159,13 +260,20 @@
     window.addEventListener('resize', onResize);
 
     let lastTime = 0;
+    const clock = new THREE.Clock();
     function animate(time = 0) {
       const delta = (time - lastTime) / 1000;
       lastTime = time;
 
-      triangle.rotation.y += delta * 0.7;
-      triangle.rotation.x = Math.sin(time * 0.0006) * 0.3;
-      edgeLines.rotation.copy(triangle.rotation);
+      const bob = Math.sin(clock.getElapsedTime() * 1.1) * 0.08;
+      ship.position.y = 0.6 + bob;
+      ship.rotation.y += delta * 0.6;
+      ship.rotation.x = Math.sin(time * 0.0008) * 0.12;
+
+      glowParts.forEach((part, i) => {
+        part.material.opacity = 0.65 + Math.sin(time * 0.003 + i) * 0.18;
+        part.scale.setScalar(1 + Math.sin(time * 0.005 + i) * 0.05);
+      });
 
       controls.update();
       renderer.render(scene, camera);
