@@ -49,13 +49,6 @@
       align-items: center;
     }
 
-    .card img {
-      width: 120px;
-      height: 120px;
-      object-fit: contain;
-      margin-bottom: 10px;
-    }
-
     .card-title {
       font-weight: 600;
       margin-bottom: 4px;
@@ -76,7 +69,7 @@
   <h1>🎮 Andi & Anna Games Room</h1>
   <p class="lead">
     Choose a game below! Each game lives in the <code>/games/</code> folder with its own
-    <code>index.html</code> and <code>icon.png</code>.
+    <code>index.html</code> file.
   </p>
 
   <div id="games" class="grid"></div>
@@ -127,6 +120,11 @@
         title: "3D Multiplication Test",
         description: "Countdown x-table drill with neon cubes and saved high scores"
       },
+      {
+        id: "multiple-math-quiz",
+        title: "3D Math Quiz (3–9 × 3–9)",
+        description: "Timed multiple-choice multiplication practice in Three.js"
+      },
       { id: "math-car-run", title: "Two Cars Meeting", description: "Two Cars Meeting – Math Simulator" },
       { id: "work-together-lab", title: "Work Together", description: "Work Together – Math Lab" }
     ];
@@ -146,15 +144,14 @@
 
       games.forEach(game => {
         const gameUrl = `${gamesBase}/${game.id}/index.html`;
-        const iconUrl = `${gamesBase}/${game.id}/icon.png`;
+        const safeDesc = (game.description || "").replace(/</g, "&lt;");
 
         const card = document.createElement("div");
         card.className = "card";
         card.innerHTML = `
           <a href="${gameUrl}">
-            <img src="${iconUrl}" alt="${game.title}" onerror="this.style.display='none'" />
             <div class="card-title">${game.title}</div>
-            <div class="card-desc">${(game.description || "").replace(/</g, "&lt;")}</div>
+            <div class="card-desc">${safeDesc}</div>
           </a>
         `;
         gamesDiv.appendChild(card);
