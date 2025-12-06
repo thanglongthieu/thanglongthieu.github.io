@@ -46,13 +46,26 @@
     .hud p {
       margin: 0 0 6px;
       opacity: 0.86;
-      line-height: 1.4;
+      line-height: 1.45;
       font-size: 0.95rem;
     }
     .hud .hint {
       font-size: 0.85rem;
       color: #b3e2ff;
       opacity: 0.9;
+      margin-top: 6px;
+    }
+    .hud ul {
+      margin: 6px 0 8px 18px;
+      padding: 0;
+      opacity: 0.92;
+      line-height: 1.35;
+    }
+    .hud small {
+      display: block;
+      margin-top: 6px;
+      color: #9fcff5;
+      opacity: 0.95;
     }
     .back-link {
       position: absolute;
@@ -87,8 +100,15 @@
   <div class="card">
     <div class="hud">
       <h1>Tokyo City 3D</h1>
-      <p>Orbit a neon postcard of Tokyo — Tokyo Tower, a Shinkansen loop, a sumo dohyo, lanterns, and cherry trees.</p>
+      <p>Orbit a neon postcard of Tokyo that mixes icons of the city with soft night lighting and moving trains.</p>
+      <ul>
+        <li>Tokyo Tower: illuminated lattice, beacon glow, and tall antenna.</li>
+        <li>Shinkansen loop: three white-blue cars circling a raised copper rail.</li>
+        <li>Sumo dohyo: earthen ring with two wrestlers and four warm lantern pillars.</li>
+        <li>Sakura & skyline: pink blossoms tucked between pastel mid-rises.</li>
+      </ul>
       <div class="hint">Drag to look around • Scroll to zoom • Double-click to focus.</div>
+      <small>Everything is lit with hemisphere light, a directional moon beam, and lantern strings for extra glow.</small>
     </div>
     <a class="back-link" href="../..">← Back</a>
     <div id="scene-container"></div>
