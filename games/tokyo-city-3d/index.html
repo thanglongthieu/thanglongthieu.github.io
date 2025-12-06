@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tokyo City 3D</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: radial-gradient(circle at 20% 20%, #0c1526, #060912 60%);
+      color: #f4f7fb;
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      padding: 16px;
+    }
+    .card {
+      position: relative;
+      width: min(1100px, 100%);
+      aspect-ratio: 16 / 9;
+      background: rgba(8, 12, 22, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 14px 38px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(6px);
+    }
+    .hud {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      padding: 12px 14px;
+      background: rgba(0, 0, 0, 0.32);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      max-width: 380px;
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.25);
+    }
+    .hud-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .hud h1 {
+      margin: 0 0 8px;
+      font-size: 1.3rem;
+      letter-spacing: 0.01em;
+    }
+    .hud button {
+      margin-left: auto;
+      padding: 6px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.08);
+      color: #d9ecff;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .hud button:hover { background: rgba(255, 255, 255, 0.16); }
+    .hud-body { margin-top: 4px; }
+    .hud.collapsed .hud-body { display: none; }
+    .hud p {
+      margin: 0 0 6px;
+      opacity: 0.86;
+      line-height: 1.45;
+      font-size: 0.95rem;
+    }
+    .hud .hint {
+      font-size: 0.85rem;
+      color: #b3e2ff;
+      opacity: 0.9;
+      margin-top: 6px;
+    }
+    .hud ul {
+      margin: 6px 0 8px 18px;
+      padding: 0;
+      opacity: 0.92;
+      line-height: 1.35;
+    }
+    .hud small {
+      display: block;
+      margin-top: 6px;
+      color: #9fcff5;
+      opacity: 0.95;
+    }
+    .back-link {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      padding: 9px 12px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      text-decoration: none;
+      color: #d9ecff;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+    .back-link:hover { background: rgba(255, 255, 255, 0.18); }
+    #scene-container { width: 100%; height: 100%; }
+
+    .banner-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      font-weight: 700;
+      color: #0b1725;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .banner {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(135deg, #fbd786, #f7797d);
+      color: #091320;
+      padding: 6px 12px;
+      border-radius: 999px;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+      font-size: 0.78rem;
+      white-space: nowrap;
+      opacity: 0.95;
+    }
+    .banner.secondary {
+      background: linear-gradient(135deg, #9be7ff, #7a83ff);
+    }
+
+    @media (max-width: 768px) {
+      body { padding: 0; }
+      .card {
+        width: 100vw;
+        height: 100vh;
+        aspect-ratio: auto;
+        border-radius: 0;
+        box-shadow: none;
+      }
+      .hud { max-width: calc(100% - 28px); }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="hud">
+      <div class="hud-header">
+        <h1>Tokyo City 3D</h1>
+        <button class="hud-toggle" type="button">Hide details</button>
+      </div>
+      <div class="hud-body">
+        <p>Orbit a neon postcard of Tokyo that mixes icons of the city with soft night lighting and moving trains.</p>
+        <ul>
+          <li>Tokyo Tower: illuminated lattice, beacon glow, and tall antenna.</li>
+          <li>Shinkansen loop: three white-blue cars circling a raised copper rail.</li>
+          <li>Sumo dohyo: earthen ring with two wrestlers and four warm lantern pillars.</li>
+          <li>Sakura & skyline: pink blossoms tucked between pastel mid-rises.</li>
+        </ul>
+        <div class="hint">Drag to look around • Scroll to zoom • Double-click to focus.</div>
+        <small>Everything is lit with hemisphere light, a directional moon beam, and lantern strings for extra glow.</small>
+      </div>
+    </div>
+    <a class="back-link" href="../..">← Back</a>
+    <div class="banner-layer"></div>
+    <div id="scene-container"></div>
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+        "three/examples/jsm/controls/OrbitControls.js": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/controls/OrbitControls.js"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+
+    const container = document.getElementById('scene-container');
+    const hud = document.querySelector('.hud');
+    const toggleBtn = document.querySelector('.hud-toggle');
+    toggleBtn.addEventListener('click', () => {
+      const isCollapsed = hud.classList.toggle('collapsed');
+      toggleBtn.textContent = isCollapsed ? 'Show details' : 'Hide details';
+    });
+
+    const bannerLayer = document.querySelector('.banner-layer');
+    const bannerItems = [
+      { label: 'Tokyo Tower', position: new THREE.Vector3(-6, 22, 2), className: '' },
+      { label: 'Shinkansen Loop', position: new THREE.Vector3(16, 4, 0), className: 'secondary' },
+      { label: 'Sumo Dohyo', position: new THREE.Vector3(10, 4, -10), className: '' },
+      { label: 'Sakura Grove', position: new THREE.Vector3(12, 5, 10), className: 'secondary' }
+    ];
+    const bannerElements = bannerItems.map(item => {
+      const el = document.createElement('div');
+      el.className = `banner ${item.className}`.trim();
+      el.textContent = item.label;
+      bannerLayer.appendChild(el);
+      return el;
+    });
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x060a14);
+    scene.fog = new THREE.Fog(0x060a14, 35, 120);
+
+    const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 300);
+    camera.position.set(24, 16, 26);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.shadowMap.enabled = true;
+    container.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.target.set(0, 4, 0);
+
+    const ambient = new THREE.HemisphereLight(0x7bc6ff, 0x0c1016, 0.9);
+    scene.add(ambient);
+    const dir = new THREE.DirectionalLight(0xffffff, 0.9);
+    dir.position.set(18, 30, 14);
+    dir.castShadow = true;
+    dir.shadow.mapSize.set(2048, 2048);
+    dir.shadow.camera.far = 120;
+    dir.shadow.camera.left = -60;
+    dir.shadow.camera.right = 60;
+    dir.shadow.camera.top = 60;
+    dir.shadow.camera.bottom = -60;
+    scene.add(dir);
+
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(200, 200),
+      new THREE.MeshStandardMaterial({ color: 0x0b1725, roughness: 0.95 })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    const plaza = new THREE.Mesh(
+      new THREE.CircleGeometry(30, 80),
+      new THREE.MeshStandardMaterial({ color: 0x0f2c46, roughness: 0.8 })
+    );
+    plaza.rotation.x = -Math.PI / 2;
+    plaza.position.y = 0.02;
+    plaza.receiveShadow = true;
+    scene.add(plaza);
+
+    const gridHelper = new THREE.GridHelper(140, 28, 0x3fa9f5, 0x11324a);
+    gridHelper.position.y = 0.01;
+    scene.add(gridHelper);
+
+    function randomBuildings() {
+      const group = new THREE.Group();
+      const palette = [0x1f88ff, 0xff6ea1, 0xf2d479, 0x9ef7d4];
+      for (let i = 0; i < 40; i++) {
+        const size = 2 + Math.random() * 5;
+        const height = 3 + Math.random() * 14;
+        const geom = new THREE.BoxGeometry(size, height, size);
+        const mat = new THREE.MeshStandardMaterial({
+          color: palette[i % palette.length],
+          emissive: new THREE.Color(palette[(i + 1) % palette.length]).multiplyScalar(0.12),
+          roughness: 0.35,
+          metalness: 0.15
+        });
+        const b = new THREE.Mesh(geom, mat);
+        const radius = 18 + Math.random() * 24;
+        const angle = Math.random() * Math.PI * 2;
+        b.position.set(Math.cos(angle) * radius, height / 2, Math.sin(angle) * radius);
+        b.castShadow = true;
+        b.receiveShadow = true;
+        group.add(b);
+      }
+      return group;
+    }
+    scene.add(randomBuildings());
+
+    function createTokyoTower() {
+      const tower = new THREE.Group();
+      const base = new THREE.ConeGeometry(6, 9, 6, 1, true);
+      const baseMat = new THREE.MeshStandardMaterial({ color: 0xe94b3c, emissive: 0x2b0c0c, roughness: 0.55, metalness: 0.2 });
+      const lower = new THREE.Mesh(base, baseMat);
+      lower.position.y = 4.5;
+      lower.castShadow = true;
+      lower.receiveShadow = true;
+      tower.add(lower);
+
+      const mid = new THREE.Mesh(
+        new THREE.CylinderGeometry(2.5, 4, 9, 12, 1, true),
+        new THREE.MeshStandardMaterial({ color: 0xfaf7f4, emissive: 0x2f2f2f, roughness: 0.4, metalness: 0.2 })
+      );
+      mid.position.y = 10;
+      mid.castShadow = true;
+      tower.add(mid);
+
+      const top = new THREE.Mesh(
+        new THREE.ConeGeometry(2, 7, 12),
+        new THREE.MeshStandardMaterial({ color: 0xe94b3c, emissive: 0x431212, roughness: 0.5, metalness: 0.22 })
+      );
+      top.position.y = 18;
+      top.castShadow = true;
+      tower.add(top);
+
+      const antenna = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.35, 0.5, 5, 8),
+        new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x777777, roughness: 0.35, metalness: 0.5 })
+      );
+      antenna.position.y = 22.5;
+      antenna.castShadow = true;
+      tower.add(antenna);
+
+      const lattice = new THREE.LineSegments(
+        new THREE.EdgesGeometry(new THREE.ConeGeometry(6, 9, 24, 1, true)),
+        new THREE.LineBasicMaterial({ color: 0xffd7c2, linewidth: 2 })
+      );
+      lattice.position.y = 4.5;
+      tower.add(lattice);
+
+      const glow = new THREE.PointLight(0xffc89f, 1.2, 40, 2);
+      glow.position.set(0, 14, 0);
+      glow.castShadow = true;
+      tower.add(glow);
+
+      return tower;
+    }
+
+    const tokyoTower = createTokyoTower();
+    tokyoTower.position.set(-6, 0, 2);
+    scene.add(tokyoTower);
+
+    const trackRadius = 16;
+    const trainGroup = new THREE.Group();
+    const carGeom = new THREE.BoxGeometry(3.8, 1.4, 1.5);
+    const noseGeom = new THREE.CylinderGeometry(0.75, 1.4, 2, 12, 1, false);
+    const carMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x0e335d, metalness: 0.25, roughness: 0.38 });
+    const accentMat = new THREE.MeshStandardMaterial({ color: 0x3fa9f5, emissive: 0x114b7a, metalness: 0.3, roughness: 0.32 });
+
+    function buildCar(index) {
+      const g = new THREE.Group();
+      const body = new THREE.Mesh(carGeom, carMat);
+      body.castShadow = true;
+      body.receiveShadow = true;
+      g.add(body);
+
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(3.9, 0.24, 1.55), accentMat);
+      stripe.position.y = 0;
+      g.add(stripe);
+
+      const nose = new THREE.Mesh(noseGeom, carMat);
+      nose.rotation.z = Math.PI / 2;
+      nose.position.x = 2.6;
+      nose.castShadow = true;
+      g.add(nose);
+
+      const windows = new THREE.Mesh(
+        new THREE.BoxGeometry(3.4, 0.5, 1.2),
+        new THREE.MeshStandardMaterial({ color: 0xd9f2ff, emissive: 0x3da7ff, metalness: 0.1, roughness: 0.2, transparent: true, opacity: 0.9 })
+      );
+      windows.position.y = 0.35;
+      g.add(windows);
+
+      const light = new THREE.SpotLight(0x9dd8ff, 2, 20, Math.PI / 7, 0.4, 2);
+      light.position.set(3.6, 0.4, 0);
+      light.target.position.set(8, 0, 0);
+      g.add(light);
+      g.add(light.target);
+
+      g.userData.offset = index;
+      return g;
+    }
+
+    const cars = [buildCar(0), buildCar(1.4), buildCar(2.8)];
+    cars.forEach(c => trainGroup.add(c));
+    scene.add(trainGroup);
+
+    const railGeom = new THREE.TorusGeometry(trackRadius, 0.12, 10, 120);
+    const rail = new THREE.Mesh(railGeom, new THREE.MeshStandardMaterial({ color: 0xe1b07e, roughness: 0.6 }));
+    rail.rotation.x = Math.PI / 2;
+    rail.position.y = 0.14;
+    rail.receiveShadow = true;
+    scene.add(rail);
+
+    const ringLights = new THREE.PointLight(0x4fc3ff, 0.9, 80, 2);
+    ringLights.position.set(0, 6, 0);
+    scene.add(ringLights);
+
+    function createSakura(x, z) {
+      const tree = new THREE.Group();
+      const trunk = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.35, 0.5, 3.4, 8),
+        new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.7 })
+      );
+      trunk.position.y = 1.7;
+      trunk.castShadow = true;
+      trunk.receiveShadow = true;
+      tree.add(trunk);
+
+      const blossom = new THREE.Mesh(
+        new THREE.IcosahedronGeometry(2.5, 1),
+        new THREE.MeshStandardMaterial({ color: 0xffb7d5, emissive: 0x5d1f3d, roughness: 0.55 })
+      );
+      blossom.position.y = 3.4;
+      blossom.castShadow = true;
+      tree.add(blossom);
+
+      tree.position.set(x, 0, z);
+      return tree;
+    }
+
+    const sakuraPositions = [
+      [8, -6], [12, -2], [10, 6], [14, 10], [-12, -8], [-14, 6]
+    ];
+    sakuraPositions.forEach(([x, z]) => scene.add(createSakura(x, z)));
+
+    function createSumoRing() {
+      const ring = new THREE.Group();
+      const base = new THREE.Mesh(
+        new THREE.CylinderGeometry(5, 5.3, 1.2, 32),
+        new THREE.MeshStandardMaterial({ color: 0xcaa472, roughness: 0.7 })
+      );
+      base.position.y = 0.6;
+      base.castShadow = true;
+      base.receiveShadow = true;
+      ring.add(base);
+
+      const rope = new THREE.Mesh(
+        new THREE.TorusGeometry(5.1, 0.16, 12, 64),
+        new THREE.MeshStandardMaterial({ color: 0xf5e2c2, roughness: 0.4 })
+      );
+      rope.rotation.x = Math.PI / 2;
+      rope.position.y = 1.22;
+      rope.castShadow = true;
+      ring.add(rope);
+
+      const mat = new THREE.Mesh(
+        new THREE.CircleGeometry(5, 48),
+        new THREE.MeshStandardMaterial({ color: 0xd7b98b, roughness: 0.8 })
+      );
+      mat.rotation.x = -Math.PI / 2;
+      mat.position.y = 1.21;
+      mat.receiveShadow = true;
+      ring.add(mat);
+
+      function createSumo(color, facing = 1) {
+        const wrestler = new THREE.Group();
+        const belly = new THREE.Mesh(
+          new THREE.SphereGeometry(1.2, 24, 18),
+          new THREE.MeshStandardMaterial({ color, roughness: 0.6 })
+        );
+        belly.castShadow = true;
+        wrestler.add(belly);
+
+        const mawashi = new THREE.Mesh(
+          new THREE.TorusGeometry(0.85, 0.18, 12, 32),
+          new THREE.MeshStandardMaterial({ color: 0x2b2b2b, roughness: 0.5 })
+        );
+        mawashi.rotation.x = Math.PI / 2;
+        mawashi.position.y = -0.05;
+        wrestler.add(mawashi);
+
+        const head = new THREE.Mesh(
+          new THREE.SphereGeometry(0.55, 18, 12),
+          new THREE.MeshStandardMaterial({ color, roughness: 0.5 })
+        );
+        head.position.y = 1.35;
+        head.castShadow = true;
+        wrestler.add(head);
+
+        const topknot = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.16, 0.22, 0.5, 12),
+          new THREE.MeshStandardMaterial({ color: 0x1b1b1b, roughness: 0.35 })
+        );
+        topknot.position.y = 1.9;
+        wrestler.add(topknot);
+
+        wrestler.rotation.y = facing * Math.PI;
+        return wrestler;
+      }
+
+      const fighterA = createSumo(0xffd6b3, 1);
+      const fighterB = createSumo(0xfcc197, -1);
+      fighterA.position.set(-1.4, 1.21, 0);
+      fighterB.position.set(1.4, 1.21, 0);
+      ring.add(fighterA, fighterB);
+
+      const lanternPositions = [
+        [-4.2, -4.2], [4.2, -4.2], [4.2, 4.2], [-4.2, 4.2]
+      ];
+      lanternPositions.forEach(([x, z]) => {
+        const lantern = new THREE.PointLight(0xffa07a, 1.6, 18, 2);
+        lantern.position.set(x, 3.6, z);
+        ring.add(lantern);
+
+        const glow = new THREE.Mesh(
+          new THREE.SphereGeometry(0.35, 12, 12),
+          new THREE.MeshStandardMaterial({ color: 0xffc9a3, emissive: 0xffa07a, emissiveIntensity: 0.6 })
+        );
+        glow.position.set(x, 3.6, z);
+        ring.add(glow);
+      });
+
+      return ring;
+    }
+
+    const sumoRing = createSumoRing();
+    sumoRing.position.set(10, 0, -10);
+    scene.add(sumoRing);
+
+    function hangLanternString() {
+      const group = new THREE.Group();
+      const count = 9;
+      for (let i = 0; i < count; i++) {
+        const t = i / (count - 1);
+        const x = -12 + t * 24;
+        const z = -14;
+        const y = 6 + Math.sin(t * Math.PI) * 1.2;
+        const bulb = new THREE.Mesh(
+          new THREE.SphereGeometry(0.32, 10, 10),
+          new THREE.MeshStandardMaterial({ color: 0xffe0a3, emissive: 0xffb347, emissiveIntensity: 0.8 })
+        );
+        bulb.position.set(x, y, z);
+        bulb.castShadow = true;
+        group.add(bulb);
+
+        const light = new THREE.PointLight(0xffb347, 0.9, 10, 2);
+        light.position.set(x, y, z);
+        group.add(light);
+      }
+      return group;
+    }
+    scene.add(hangLanternString());
+
+    function updateBanners() {
+      const { clientWidth, clientHeight } = container;
+      bannerItems.forEach((item, idx) => {
+        const screenPos = item.position.clone().project(camera);
+        const isVisible = screenPos.z < 1;
+        const el = bannerElements[idx];
+        if (!isVisible) {
+          el.style.display = 'none';
+          return;
+        }
+        const x = (screenPos.x * 0.5 + 0.5) * clientWidth;
+        const y = (-screenPos.y * 0.5 + 0.5) * clientHeight;
+        el.style.display = 'block';
+        el.style.left = `${x}px`;
+        el.style.top = `${y}px`;
+      });
+    }
+
+    function animate(time) {
+      const t = time * 0.0002;
+      const speed = 0.4;
+      cars.forEach((car, i) => {
+        const angle = (t * speed + car.userData.offset * 0.18) * Math.PI * 2;
+        const x = Math.cos(angle) * trackRadius;
+        const z = Math.sin(angle) * trackRadius;
+        car.position.set(x, 0.8, z);
+        car.rotation.y = -angle + Math.PI / 2;
+      });
+
+      tokyoTower.rotation.y = Math.sin(t * 0.4) * 0.08;
+      sumoRing.position.y = 0.06 + Math.sin(t * 0.6) * 0.04;
+
+      controls.update();
+      updateBanners();
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    }
+
+    requestAnimationFrame(animate);
+
+    function onResize() {
+      const { clientWidth, clientHeight } = container;
+      camera.aspect = clientWidth / clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(clientWidth, clientHeight);
+    }
+    window.addEventListener('resize', onResize);
+  </script>
+</body>
+</html>
