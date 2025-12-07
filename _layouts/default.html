@@ -16,31 +16,55 @@
 </head>
 <body class="min-h-screen bg-gradient-to-b from-blue-50 via-white to-slate-50 text-slate-900">
   <header class="bg-white/80 backdrop-blur border-b border-slate-200 sticky top-0 z-20">
-    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
-      <a href="{{ '/' | relative_url }}" class="flex items-center gap-3">
-        <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-600 text-white font-bold shadow-lg">A</span>
-        <div>
-          <p class="text-sm font-semibold text-blue-600">Andi &amp; Anna</p>
-          <p class="text-base font-bold text-slate-900">Games Room</p>
+    <div class="max-w-6xl mx-auto px-4 py-4 space-y-3 md:space-y-0">
+      <div class="flex items-center justify-between gap-4">
+        <a href="{{ '/' | relative_url }}" class="flex items-center gap-3">
+          <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-600 text-white font-bold shadow-lg">A</span>
+          <div>
+            <p class="text-sm font-semibold text-blue-600">Andi &amp; Anna</p>
+            <p class="text-base font-bold text-slate-900">Games Room</p>
+          </div>
+        </a>
+        <div class="flex items-center gap-3">
+          <nav class="hidden md:block" aria-label="Primary">
+            <ul class="flex items-center gap-6 text-sm font-semibold text-slate-700">
+              <li><a class="hover:text-blue-600 transition-colors" href="{{ '/' | relative_url }}">Home</a></li>
+              <li><a class="hover:text-blue-600 transition-colors" href="{{ '/#apps' | relative_url }}">Apps</a></li>
+              <li><a class="hover:text-blue-600 transition-colors" href="{{ '/#games' | relative_url }}">Games</a></li>
+              <li><a class="hover:text-blue-600 transition-colors" href="{{ '/login/' | relative_url }}">Login</a></li>
+            </ul>
+          </nav>
+          <button
+            type="button"
+            id="mobile-menu-toggle"
+            class="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm md:hidden"
+            aria-expanded="false"
+            aria-controls="mobile-nav"
+          >
+            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+            Menu
+          </button>
+          <a
+            class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-700 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-200 hover:shadow-xl"
+            href="{{ '/login/' | relative_url }}"
+          >
+            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M3 4a2 2 0 0 1 2-2h6a1 1 0 1 1 0 2H5v12h6a1 1 0 1 1 0 2H5a2 2 0 0 1-2-2V4Zm10.293 3.293a1 1 0 0 1 1.414 0l3 3a1 1 0 0 1 0 1.414l-3 3A1 1 0 0 1 13.293 14L15.586 12H9a1 1 0 1 1 0-2h6.586l-2.293-2.293a1 1 0 0 1 0-1.414Z" />
+            </svg>
+            Login portal
+          </a>
         </div>
-      </a>
-      <nav class="hidden md:block">
-        <ul class="flex items-center gap-6 text-sm font-semibold text-slate-700">
-          <li><a class="hover:text-blue-600 transition-colors" href="{{ '/' | relative_url }}">Home</a></li>
-          <li><a class="hover:text-blue-600 transition-colors" href="{{ '/#apps' | relative_url }}">Apps</a></li>
-          <li><a class="hover:text-blue-600 transition-colors" href="{{ '/#games' | relative_url }}">Games</a></li>
-          <li><a class="hover:text-blue-600 transition-colors" href="{{ '/login/' | relative_url }}">Login</a></li>
+      </div>
+      <nav id="mobile-nav" class="md:hidden hidden border-t border-slate-200 pt-3" aria-label="Primary mobile">
+        <ul class="flex flex-col gap-2 text-sm font-semibold text-slate-700">
+          <li><a class="flex items-center gap-2 rounded-lg px-2 py-2 hover:bg-blue-50 hover:text-blue-600" href="{{ '/' | relative_url }}">Home</a></li>
+          <li><a class="flex items-center gap-2 rounded-lg px-2 py-2 hover:bg-blue-50 hover:text-blue-600" href="{{ '/#apps' | relative_url }}">Apps</a></li>
+          <li><a class="flex items-center gap-2 rounded-lg px-2 py-2 hover:bg-blue-50 hover:text-blue-600" href="{{ '/#games' | relative_url }}">Games</a></li>
+          <li><a class="flex items-center gap-2 rounded-lg px-2 py-2 hover:bg-blue-50 hover:text-blue-600" href="{{ '/login/' | relative_url }}">Login</a></li>
         </ul>
       </nav>
-      <a
-        class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-700 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-200 hover:shadow-xl"
-        href="{{ '/login/' | relative_url }}"
-      >
-        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-          <path d="M3 4a2 2 0 0 1 2-2h6a1 1 0 1 1 0 2H5v12h6a1 1 0 1 1 0 2H5a2 2 0 0 1-2-2V4Zm10.293 3.293a1 1 0 0 1 1.414 0l3 3a1 1 0 0 1 0 1.414l-3 3A1 1 0 0 1 13.293 14L15.586 12H9a1 1 0 1 1 0-2h6.586l-2.293-2.293a1 1 0 0 1 0-1.414Z" />
-        </svg>
-        Login portal
-      </a>
     </div>
   </header>
 
@@ -60,5 +84,18 @@
   </footer>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.5.2/flowbite.min.js" integrity="sha512-lvkSB9bnpNFHmf070mgwhqJPRuHNEweSFNuo1RMvR+I/oacgDsYnxQyqEmLBoD1aiZ6YdPz7Il9CDb6c5FqZfw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script>
+    (function () {
+      const toggle = document.getElementById('mobile-menu-toggle');
+      const menu = document.getElementById('mobile-nav');
+
+      if (!toggle || !menu) return;
+
+      toggle.addEventListener('click', () => {
+        const isHidden = menu.classList.toggle('hidden');
+        toggle.setAttribute('aria-expanded', String(!isHidden));
+      });
+    })();
+  </script>
 </body>
 </html>
