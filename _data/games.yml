@@ -1,0 +1,42 @@
+- id: tokyo-city-3d
+  title: Tokyo City 3D
+  description: "Neon postcard with Tokyo Tower, a Shinkansen loop, sumo dohyo, lanterns, and sakura"
+- id: train-3d
+  title: Train 3D Ride
+  description: "A colorful toy engine looping a mountain track in Three.js"
+- id: cube-perfect
+  title: Perfect Cube Builder
+  description: "Fill the 3-floor stack into the smallest 5×5×5 cube"
+- id: three-triangle
+  title: Three.js Triangle
+  description: "Interactive 3D triangle built with Three.js"
+- id: math-fun
+  title: Math Fun
+  description: "Quick + − × ÷ practice for all grades"
+- id: mini-craft
+  title: Mini Craft
+  description: Mini Craft!
+- id: kanji-fun
+  title: Kanji Fun
+  description: Kanji Fun!
+- id: fraction-game-fun
+  title: Fraction Game
+  description: Fraction Game
+- id: stick-intersections
+  title: Stick Intersections
+  description: "Three.js demo: 10 sticks showing the 45 possible crossings"
+- id: multi-quiz-math
+  title: Multi Quiz Math Lab
+  description: "Pick any of 30 PhIMO review questions, with 3D context where needed"
+- id: multiplication-3d
+  title: 3D Multiplication Test
+  description: "Countdown x-table drill with neon cubes and saved high scores"
+- id: multiple-math-quiz
+  title: "3D Math Quiz (3–9 × 3–9)"
+  description: "Timed multiple-choice multiplication practice in Three.js"
+- id: math-car-run
+  title: Two Cars Meeting
+  description: "Two Cars Meeting – Math Simulator"
+- id: work-together-lab
+  title: Work Together
+  description: "Work Together – Math Lab"
