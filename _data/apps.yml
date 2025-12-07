@@ -1,0 +1,6 @@
+- id: salesforce-sheet
+  title: Salesforce Sheet
+  category: Spreadsheet App
+  description: Manage Salesforce-style data with CSV export using Jspreadsheet CE.
+  path: /app/salesforce-sheet/
+  badge: New
