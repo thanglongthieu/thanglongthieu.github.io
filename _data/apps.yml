@@ -1,1 +1,5 @@
-[]
+- title: Salesforce Sheet
+  path: /feature/salesforce-sheet/
+  description: Spreadsheet-style opportunity console with inline editing, filtering, and CSV export.
+  category: Salesforce
+  badge: New
