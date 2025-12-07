@@ -1,0 +1,357 @@
+---
+layout: default
+title: "Salesforce Sheet | Pipeline Console"
+description: "Inline-editable Salesforce-style sheet for tracking opportunities, stages, and exports."
+---
+<section class="space-y-8">
+  <div class="flex flex-wrap items-center justify-between gap-4">
+    <div>
+      <p class="text-sm font-semibold text-blue-600">Salesforce utility</p>
+      <h1 class="text-3xl font-bold text-slate-900">Salesforce Sheet</h1>
+      <p class="text-slate-600 max-w-2xl">
+        Rebuilt spreadsheet-style console for quick pipeline edits. Add opportunities, tweak stages, and export a CSV
+        without leaving the browser.
+      </p>
+    </div>
+    <div class="flex flex-wrap items-center gap-3">
+      <a
+        href="{{ '/' | relative_url }}"
+        class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:border-blue-300 hover:text-blue-700"
+      >
+        ← Back home
+      </a>
+      <button
+        id="export-csv"
+        type="button"
+        class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-700 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-200 hover:shadow-xl"
+      >
+        ⬇️ Export CSV
+      </button>
+      <button
+        id="copy-clipboard"
+        type="button"
+        class="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 hover:border-indigo-300 hover:bg-indigo-100"
+      >
+        📋 Copy table
+      </button>
+    </div>
+  </div>
+
+  <div class="grid gap-6 lg:grid-cols-3">
+    <div class="lg:col-span-2 space-y-4 rounded-2xl bg-white/80 p-6 shadow-sm ring-1 ring-slate-200">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p class="text-sm font-semibold text-indigo-600">Pipeline sheet</p>
+          <h2 class="text-xl font-bold text-slate-900">Inline editable rows</h2>
+        </div>
+        <label class="flex items-center gap-2 text-sm font-semibold text-slate-700">
+          Stage filter
+          <select id="stage-filter" class="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500">
+            <option value="">All stages</option>
+          </select>
+        </label>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200 text-sm" aria-live="polite">
+          <thead class="bg-slate-50">
+            <tr>
+              <th class="px-3 py-2 text-left font-semibold text-slate-700">Owner</th>
+              <th class="px-3 py-2 text-left font-semibold text-slate-700">Account</th>
+              <th class="px-3 py-2 text-left font-semibold text-slate-700">Opportunity</th>
+              <th class="px-3 py-2 text-left font-semibold text-slate-700">Amount ($)</th>
+              <th class="px-3 py-2 text-left font-semibold text-slate-700">Stage</th>
+              <th class="px-3 py-2 text-left font-semibold text-slate-700">Close Date</th>
+              <th class="px-3 py-2 text-left font-semibold text-slate-700">Notes</th>
+              <th class="px-3 py-2 text-left font-semibold text-slate-700">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="sheet-body" class="divide-y divide-slate-100 bg-white"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="space-y-4">
+      <div class="rounded-2xl bg-white/90 p-5 shadow-sm ring-1 ring-slate-200">
+        <p class="text-sm font-semibold text-emerald-600">Add row</p>
+        <h3 class="text-lg font-bold text-slate-900">Quick capture</h3>
+        <form id="add-form" class="mt-3 space-y-3">
+          <div class="grid grid-cols-1 gap-3">
+            <label class="text-sm font-semibold text-slate-700">
+              Owner
+              <input name="owner" required class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500" placeholder="AE name" />
+            </label>
+            <label class="text-sm font-semibold text-slate-700">
+              Account
+              <input name="account" required class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Customer account" />
+            </label>
+            <label class="text-sm font-semibold text-slate-700">
+              Opportunity
+              <input name="opportunity" required class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Opportunity name" />
+            </label>
+            <label class="text-sm font-semibold text-slate-700">
+              Amount ($)
+              <input name="amount" type="number" min="0" step="100" required class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500" placeholder="25000" />
+            </label>
+            <label class="text-sm font-semibold text-slate-700">
+              Stage
+              <select name="stage" required class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500"></select>
+            </label>
+            <label class="text-sm font-semibold text-slate-700">
+              Close date
+              <input name="closeDate" type="date" required class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500" />
+            </label>
+            <label class="text-sm font-semibold text-slate-700">
+              Notes
+              <textarea name="notes" rows="2" class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Next steps"></textarea>
+            </label>
+          </div>
+          <button type="submit" class="w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:shadow-md">Add to sheet</button>
+        </form>
+      </div>
+
+      <div class="rounded-2xl bg-white/90 p-5 shadow-sm ring-1 ring-slate-200">
+        <p class="text-sm font-semibold text-purple-600">Summary</p>
+        <h3 class="text-lg font-bold text-slate-900">Pipeline health</h3>
+        <dl id="summary" class="mt-3 space-y-2 text-sm text-slate-700"></dl>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  (() => {
+    const stageOptions = ['Prospecting', 'Discovery', 'Proposal', 'Negotiation', 'Closed Won', 'Closed Lost'];
+
+    const data = [
+      {
+        id: crypto.randomUUID(),
+        owner: 'Andi Adams',
+        account: 'Northern Trails',
+        opportunity: 'Service Cloud rollout',
+        amount: 42000,
+        stage: 'Discovery',
+        closeDate: '2024-11-08',
+        notes: 'Mapping support channels'
+      },
+      {
+        id: crypto.randomUUID(),
+        owner: 'Anna Lee',
+        account: 'S-Force Retail',
+        opportunity: 'Commerce + OMS expansion',
+        amount: 98000,
+        stage: 'Proposal',
+        closeDate: '2024-12-01',
+        notes: 'Needs ROI deck and sandbox demo'
+      },
+      {
+        id: crypto.randomUUID(),
+        owner: 'Kai Brown',
+        account: 'Blue Horizon',
+        opportunity: 'Analytics Cloud pilot',
+        amount: 30000,
+        stage: 'Prospecting',
+        closeDate: '2024-10-15',
+        notes: 'Budget check in progress'
+      }
+    ];
+
+    const body = document.getElementById('sheet-body');
+    const stageFilter = document.getElementById('stage-filter');
+    const summary = document.getElementById('summary');
+    const addForm = document.getElementById('add-form');
+    const exportCsvBtn = document.getElementById('export-csv');
+    const copyBtn = document.getElementById('copy-clipboard');
+
+    const fillStageSelect = (selectEl, { includeAll } = {}) => {
+      selectEl.innerHTML = '';
+
+      if (includeAll) {
+        const anyOption = document.createElement('option');
+        anyOption.value = '';
+        anyOption.textContent = 'All stages';
+        selectEl.appendChild(anyOption);
+      }
+
+      stageOptions.forEach((stage) => {
+        const option = document.createElement('option');
+        option.value = stage;
+        option.textContent = stage;
+        selectEl.appendChild(option);
+      });
+    };
+
+    fillStageSelect(stageFilter, { includeAll: true });
+    fillStageSelect(addForm.elements.namedItem('stage'));
+
+    const formatCurrency = (value) => {
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(Number(value || 0));
+    };
+
+    const renderRows = () => {
+      const filter = stageFilter.value;
+      body.innerHTML = '';
+
+      data
+        .filter((row) => (filter ? row.stage === filter : true))
+        .forEach((row) => {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-50';
+
+          const cells = [
+            { key: 'owner', type: 'text' },
+            { key: 'account', type: 'text' },
+            { key: 'opportunity', type: 'text' },
+            { key: 'amount', type: 'number', formatter: formatCurrency },
+            { key: 'stage', type: 'select' },
+            { key: 'closeDate', type: 'date' },
+            { key: 'notes', type: 'textarea' }
+          ];
+
+          cells.forEach(({ key, type, formatter }) => {
+            const td = document.createElement('td');
+            td.className = 'px-3 py-2 align-top';
+
+            if (type === 'select') {
+              const select = document.createElement('select');
+              select.className = 'min-w-[140px] rounded-lg border border-slate-200 px-2 py-1 text-sm focus:border-blue-500 focus:ring-blue-500';
+              fillStageSelect(select);
+              select.value = row[key];
+              select.addEventListener('change', (e) => updateRow(row.id, key, e.target.value));
+              td.appendChild(select);
+            } else if (type === 'textarea') {
+              const textarea = document.createElement('textarea');
+              textarea.rows = 2;
+              textarea.className = 'w-full rounded-lg border border-slate-200 px-2 py-1 text-sm focus:border-blue-500 focus:ring-blue-500';
+              textarea.value = row[key];
+              textarea.addEventListener('input', (e) => updateRow(row.id, key, e.target.value));
+              td.appendChild(textarea);
+            } else {
+              const input = document.createElement('input');
+              input.type = type;
+              input.value = row[key];
+              input.className = 'w-full rounded-lg border border-slate-200 px-2 py-1 text-sm focus:border-blue-500 focus:ring-blue-500';
+              input.addEventListener('input', (e) => updateRow(row.id, key, type === 'number' ? Number(e.target.value || 0) : e.target.value));
+              td.appendChild(input);
+
+              if (formatter && type === 'number') {
+                const hint = document.createElement('p');
+                hint.className = 'mt-1 text-xs text-slate-500';
+                hint.textContent = formatter(row[key]);
+                td.appendChild(hint);
+              }
+            }
+
+            tr.appendChild(td);
+          });
+
+          const actionTd = document.createElement('td');
+          actionTd.className = 'px-3 py-2';
+          const deleteBtn = document.createElement('button');
+          deleteBtn.type = 'button';
+          deleteBtn.className = 'text-sm font-semibold text-rose-600 hover:text-rose-700';
+          deleteBtn.textContent = 'Remove';
+          deleteBtn.addEventListener('click', () => removeRow(row.id));
+          actionTd.appendChild(deleteBtn);
+          tr.appendChild(actionTd);
+
+          body.appendChild(tr);
+        });
+
+      renderSummary();
+    };
+
+    const renderSummary = () => {
+      const totals = data.reduce(
+        (acc, row) => {
+          acc.count += 1;
+          acc.amount += Number(row.amount) || 0;
+          acc.byStage[row.stage] = (acc.byStage[row.stage] || 0) + 1;
+          return acc;
+        },
+        { count: 0, amount: 0, byStage: {} }
+      );
+
+      summary.innerHTML = '';
+
+      const totalItem = document.createElement('div');
+      totalItem.className = 'flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2';
+      totalItem.innerHTML = `<span class="font-semibold text-slate-800">Opportunities</span><span class="font-bold text-slate-900">${totals.count}</span>`;
+      summary.appendChild(totalItem);
+
+      const amountItem = document.createElement('div');
+      amountItem.className = 'flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2';
+      amountItem.innerHTML = `<span class="font-semibold text-slate-800">Pipeline amount</span><span class="font-bold text-emerald-600">${formatCurrency(totals.amount)}</span>`;
+      summary.appendChild(amountItem);
+
+      Object.entries(totals.byStage).forEach(([stage, count]) => {
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2';
+        row.innerHTML = `<span class="text-slate-700">${stage}</span><span class="font-semibold text-slate-900">${count}</span>`;
+        summary.appendChild(row);
+      });
+    };
+
+    const updateRow = (id, key, value) => {
+      const row = data.find((item) => item.id === id);
+      if (!row) return;
+      row[key] = value;
+      renderRows();
+    };
+
+    const removeRow = (id) => {
+      const index = data.findIndex((item) => item.id === id);
+      if (index >= 0) {
+        data.splice(index, 1);
+        renderRows();
+      }
+    };
+
+    addForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const formData = new FormData(addForm);
+      const newRow = Object.fromEntries(formData.entries());
+      newRow.id = crypto.randomUUID();
+      newRow.amount = Number(newRow.amount) || 0;
+      data.unshift(newRow);
+      addForm.reset();
+      const stageSelect = addForm.elements.namedItem('stage');
+      if (stageSelect) stageSelect.value = stageOptions[0];
+      renderRows();
+    });
+
+    stageFilter.addEventListener('change', renderRows);
+
+    const toCsv = () => {
+      const headers = ['Owner', 'Account', 'Opportunity', 'Amount', 'Stage', 'Close Date', 'Notes'];
+      const rows = data.map((row) => [row.owner, row.account, row.opportunity, row.amount, row.stage, row.closeDate, row.notes]);
+      return [headers, ...rows]
+        .map((line) => line.map((field) => `"${String(field ?? '').replace(/"/g, '""')}"`).join(','))
+        .join('\n');
+    };
+
+    exportCsvBtn.addEventListener('click', () => {
+      const csv = toCsv();
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'salesforce-sheet.csv';
+      link.click();
+      URL.revokeObjectURL(url);
+    });
+
+    copyBtn.addEventListener('click', async () => {
+      const csv = toCsv();
+      try {
+        await navigator.clipboard.writeText(csv);
+        copyBtn.textContent = '✅ Copied';
+        setTimeout(() => (copyBtn.textContent = '📋 Copy table'), 1500);
+      } catch (err) {
+        copyBtn.textContent = 'Clipboard blocked';
+        copyBtn.classList.add('text-rose-600');
+      }
+    });
+
+    renderRows();
+  })();
+</script>
