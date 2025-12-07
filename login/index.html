@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Salesforce Login & Signup | Andi & Anna</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --border: #e5e7eb;
+      --accent: #2563eb;
+      --accent-2: #0ea5e9;
+      --text: #0f172a;
+      --muted: #6b7280;
+      --success: #16a34a;
+      --error: #dc2626;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at 20% 20%, rgba(37, 99, 235, 0.08), transparent 25%),
+                  radial-gradient(circle at 80% 0%, rgba(14, 165, 233, 0.08), transparent 20%),
+                  var(--bg);
+      min-height: 100vh;
+      color: var(--text);
+      padding: 24px;
+    }
+
+    .page {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .title {
+      margin: 0;
+      font-size: 1.6rem;
+      letter-spacing: -0.02em;
+    }
+
+    .home-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: #0f172a;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 12px;
+      font-weight: 600;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.18);
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+
+    .home-link:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 16px 32px rgba(15, 23, 42, 0.22);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 18px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+    }
+
+    .card h2 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-size: 1.2rem;
+    }
+
+    .card p.description {
+      margin-top: 0;
+      margin-bottom: 14px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    label {
+      font-weight: 600;
+      color: #111827;
+      font-size: 0.92rem;
+    }
+
+    input, select {
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      font-size: 1rem;
+      transition: border-color 0.1s ease, box-shadow 0.1s ease;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--accent);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-weight: 700;
+      font-size: 1rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff;
+      box-shadow: 0 10px 25px rgba(37, 99, 235, 0.28);
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+
+    button.secondary {
+      background: #e5e7eb;
+      color: #111827;
+      box-shadow: none;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 30px rgba(37, 99, 235, 0.32);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .status {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: #f1f5f9;
+      color: var(--muted);
+      font-size: 0.95rem;
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status.ok {
+      background: #ecfdf3;
+      color: var(--success);
+      border: 1px solid rgba(22, 163, 74, 0.2);
+    }
+
+    .status.error {
+      background: #fef2f2;
+      color: var(--error);
+      border: 1px solid rgba(220, 38, 38, 0.2);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #e0f2fe;
+      color: #0369a1;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+
+    .output {
+      background: #0f172a;
+      color: #e5e7eb;
+      border-radius: 12px;
+      padding: 12px;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 0.9rem;
+      overflow: auto;
+      max-height: 220px;
+    }
+
+    .list {
+      margin: 8px 0 0;
+      padding-left: 18px;
+      color: var(--muted);
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 16px;
+      }
+
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .home-link {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div>
+        <p class="pill">🔐 Salesforce Auth via JSforce</p>
+        <h1 class="title">Signup & Login Console</h1>
+        <p class="hint" style="margin: 6px 0 0; max-width: 640px;">
+          Connect with your Salesforce credentials to test login and create Leads for signups.
+          Credentials never leave your browser; use a sandbox or scratch org for safety.
+        </p>
+      </div>
+      <a class="home-link" href="../">⬅ Back to games</a>
+    </header>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Login to Salesforce</h2>
+        <p class="description">Authenticate with a username, password, and security token using JSforce.</p>
+        <form id="login-form">
+          <div class="field">
+            <label for="login-url">Login URL</label>
+            <select id="login-url" required>
+              <option value="https://login.salesforce.com">Production / Developer</option>
+              <option value="https://test.salesforce.com">Sandbox</option>
+            </select>
+            <p class="hint">Choose the domain that matches your org (sandbox uses <code>test.salesforce.com</code>).</p>
+          </div>
+          <div class="field">
+            <label for="username">Username</label>
+            <input id="username" type="email" autocomplete="username" required />
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input id="password" type="password" autocomplete="current-password" required />
+          </div>
+          <div class="field">
+            <label for="token">Security Token</label>
+            <input id="token" type="password" autocomplete="one-time-code" required />
+            <p class="hint">JSforce uses the SOAP login flow: concatenate your password + security token.</p>
+          </div>
+          <div class="actions">
+            <button type="submit">🚀 Login</button>
+            <button type="button" class="secondary" id="logout" disabled>Sign out</button>
+          </div>
+        </form>
+        <div id="login-status" class="status">Waiting for login…</div>
+        <div class="output" id="session-output" aria-live="polite">Session details will appear here.</div>
+      </div>
+
+      <div class="card">
+        <h2>Signup (create Lead)</h2>
+        <p class="description">After logging in, create a Lead to capture a signup with a single click.</p>
+        <form id="signup-form">
+          <div class="field">
+            <label for="first-name">First name</label>
+            <input id="first-name" type="text" autocomplete="given-name" required />
+          </div>
+          <div class="field">
+            <label for="last-name">Last name</label>
+            <input id="last-name" type="text" autocomplete="family-name" required />
+          </div>
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" type="email" autocomplete="email" required />
+          </div>
+          <div class="field">
+            <label for="company">Company / School</label>
+            <input id="company" type="text" autocomplete="organization" value="JSforce Web Signup" required />
+          </div>
+          <div class="actions">
+            <button type="submit" id="signup-btn" disabled>✏️ Create Lead</button>
+            <button type="button" class="secondary" id="clear-btn">Clear</button>
+          </div>
+        </form>
+        <div id="signup-status" class="status">Login first to enable signup.</div>
+        <div class="output" id="signup-output" aria-live="polite">Lead responses will appear here.</div>
+        <ul class="list">
+          <li>Uses <code>connection.sobject('Lead').create()</code> to store the signup.</li>
+          <li>Requires a valid session from the Login panel.</li>
+          <li>Great for testing Connected App + API perms in a sandbox.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/jsforce@1.11.1/build/jsforce.min.js"></script>
+  <script>
+    const loginForm = document.getElementById('login-form');
+    const loginStatus = document.getElementById('login-status');
+    const sessionOutput = document.getElementById('session-output');
+    const logoutButton = document.getElementById('logout');
+    const signupForm = document.getElementById('signup-form');
+    const signupButton = document.getElementById('signup-btn');
+    const clearButton = document.getElementById('clear-btn');
+    const signupStatus = document.getElementById('signup-status');
+    const signupOutput = document.getElementById('signup-output');
+
+    let connection = null;
+
+    function setStatus(target, message, type = '') {
+      target.textContent = message;
+      target.classList.remove('ok', 'error');
+      if (type) target.classList.add(type);
+    }
+
+    function updateSessionOutput(data) {
+      sessionOutput.textContent = JSON.stringify(data, null, 2);
+    }
+
+    function updateSignupOutput(data) {
+      signupOutput.textContent = JSON.stringify(data, null, 2);
+    }
+
+    loginForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const token = document.getElementById('token').value;
+      const loginUrl = document.getElementById('login-url').value;
+
+      if (!username || !password || !token) {
+        setStatus(loginStatus, 'Please fill username, password, and security token.', 'error');
+        return;
+      }
+
+      setStatus(loginStatus, 'Connecting to Salesforce…');
+      loginForm.querySelector('button[type="submit"]').disabled = true;
+
+      try {
+        connection = new jsforce.Connection({ loginUrl });
+        const userInfo = await connection.login(username, password + token);
+        const identity = await connection.identity();
+        setStatus(loginStatus, `Logged in as ${identity.display_name} (${identity.username})`, 'ok');
+        updateSessionOutput({
+          instanceUrl: connection.instanceUrl,
+          accessToken: connection.accessToken,
+          userId: userInfo.id,
+          organizationId: userInfo.organizationId,
+          identity
+        });
+        logoutButton.disabled = false;
+        signupButton.disabled = false;
+        signupStatus.textContent = 'Ready to create Leads.';
+      } catch (error) {
+        console.error(error);
+        setStatus(loginStatus, `Login failed: ${error.message}`, 'error');
+        updateSessionOutput({ error: error.message });
+        signupButton.disabled = true;
+        signupStatus.textContent = 'Login first to enable signup.';
+      } finally {
+        loginForm.querySelector('button[type="submit"]').disabled = false;
+      }
+    });
+
+    logoutButton.addEventListener('click', () => {
+      connection = null;
+      setStatus(loginStatus, 'Signed out.');
+      updateSessionOutput('Session cleared.');
+      logoutButton.disabled = true;
+      signupButton.disabled = true;
+      signupStatus.textContent = 'Login first to enable signup.';
+    });
+
+    signupForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!connection) {
+        setStatus(signupStatus, 'Login required before creating Leads.', 'error');
+        return;
+      }
+
+      const firstName = document.getElementById('first-name').value.trim();
+      const lastName = document.getElementById('last-name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const company = document.getElementById('company').value.trim();
+
+      if (!firstName || !lastName || !email || !company) {
+        setStatus(signupStatus, 'Fill all fields before submitting.', 'error');
+        return;
+      }
+
+      setStatus(signupStatus, 'Creating Lead…');
+      signupButton.disabled = true;
+
+      try {
+        const lead = await connection.sobject('Lead').create({
+          FirstName: firstName,
+          LastName: lastName,
+          Company: company,
+          Email: email,
+          Description: 'Created from JSforce web signup console'
+        });
+
+        if (lead.success) {
+          setStatus(signupStatus, `Lead created (Id: ${lead.id})`, 'ok');
+          updateSignupOutput({ leadId: lead.id, firstName, lastName, email, company });
+        } else {
+          setStatus(signupStatus, 'Lead creation failed. Check API permissions.', 'error');
+          updateSignupOutput(lead);
+        }
+      } catch (error) {
+        console.error(error);
+        setStatus(signupStatus, `Lead creation failed: ${error.message}`, 'error');
+        updateSignupOutput({ error: error.message });
+      } finally {
+        signupButton.disabled = false;
+      }
+    });
+
+    clearButton.addEventListener('click', () => {
+      signupForm.reset();
+      updateSignupOutput('Cleared form.');
+      setStatus(signupStatus, connection ? 'Ready to create Leads.' : 'Login first to enable signup.');
+    });
+  </script>
+</body>
+</html>
