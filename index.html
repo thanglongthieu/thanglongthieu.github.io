@@ -2,28 +2,95 @@
 layout: default
 title: "Andi & Anna Games Room"
 ---
-<div class="top-bar">
-  <a class="login-button" href="{{ '/login/' | relative_url }}">🔐 Login</a>
-</div>
-<h1>🎮 Andi & Anna Games Room</h1>
-<p class="lead">
-  Choose a game below! Each game lives in the <code>/games/</code> folder with its own
-  <code>index.html</code> file.
-</p>
-
-<div class="grid">
-  {% for game in site.data.games %}
-  <div class="card">
-    <a href="{{ '/games/' | append: game.id | append: '/index.html' | relative_url }}">
-      <div class="card-title">{{ game.title }}</div>
-      {% if game.description %}
-      <div class="card-desc">{{ game.description | escape }}</div>
-      {% endif %}
-    </a>
+<section class="grid gap-10 lg:grid-cols-2 items-center mb-12">
+  <div class="space-y-4">
+    <div class="inline-flex items-center gap-2 rounded-full bg-blue-100 text-blue-700 px-4 py-2 text-sm font-semibold shadow-sm">
+      <span class="h-2.5 w-2.5 rounded-full bg-blue-500"></span>
+      Flowbite-powered fun hub
+    </div>
+    <h1 class="text-4xl sm:text-5xl font-extrabold leading-tight text-slate-900">🎮 Andi &amp; Anna Games Room</h1>
+    <p class="text-lg text-slate-600">
+      Pick a game and start playing instantly. Each experience lives in its own
+      <code class="text-sm bg-slate-900/90 text-white px-2 py-1 rounded">/games/&lt;name&gt;/index.html</code> folder.
+    </p>
+    <div class="flex flex-wrap items-center gap-3 pt-2">
+      <a
+        class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-700 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-200 hover:shadow-xl"
+        href="{{ '/login/' | relative_url }}"
+      >
+        🔐 Go to login portal
+      </a>
+      <div class="flex -space-x-2 overflow-hidden">
+        <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-lg">🎲</span>
+        <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-lg">🧮</span>
+        <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-lg">🧠</span>
+      </div>
+    </div>
   </div>
-  {% endfor %}
-</div>
+  <div class="grid gap-4 sm:grid-cols-2">
+    <div class="rounded-2xl bg-white/70 shadow-lg ring-1 ring-slate-200 p-5">
+      <p class="text-sm font-semibold text-blue-600">Library</p>
+      <p class="text-2xl font-bold text-slate-900">{{ site.data.games | size }} games</p>
+      <p class="text-slate-600 mt-2">Math drills, puzzles, and 3D adventures ready to launch.</p>
+    </div>
+    <div class="rounded-2xl bg-gradient-to-br from-indigo-500 via-blue-600 to-cyan-500 shadow-xl p-5 text-white">
+      <p class="text-sm font-semibold">Play anywhere</p>
+      <p class="text-2xl font-bold">Web-first experiences</p>
+      <p class="text-white/90 mt-2">Responsive layouts and Flowbite components keep everything crisp.</p>
+    </div>
+    <div class="rounded-2xl bg-white/70 shadow-lg ring-1 ring-slate-200 p-5">
+      <p class="text-sm font-semibold text-emerald-600">Easy setup</p>
+      <p class="text-slate-700">Add a folder in <code class="text-xs bg-slate-900/90 text-white px-2 py-1 rounded">/games/</code> and list it in <code class="text-xs bg-slate-900/90 text-white px-2 py-1 rounded">_data/games.yml</code>.</p>
+    </div>
+    <div class="rounded-2xl bg-white/70 shadow-lg ring-1 ring-slate-200 p-5">
+      <p class="text-sm font-semibold text-purple-600">Community vibes</p>
+      <p class="text-slate-700">Bright badges, smooth shadows, and inviting gradients welcome everyone.</p>
+    </div>
+  </div>
+</section>
 
-<p class="footer-note">
-  To add a new game, create a folder in <code>/games/</code> and add it to <code>_data/games.yml</code>.
-</p>
+<section id="games" class="space-y-4">
+  <div class="flex items-center justify-between gap-4">
+    <div>
+      <p class="text-sm font-semibold text-blue-600">Game shelf</p>
+      <h2 class="text-2xl font-bold text-slate-900">Choose your adventure</h2>
+    </div>
+    <span class="inline-flex items-center gap-2 rounded-full bg-emerald-100 text-emerald-700 px-3 py-1 text-sm font-semibold ring-1 ring-emerald-200">Updated with Flowbite</span>
+  </div>
+  <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    {% for game in site.data.games %}
+    <a
+      href="{{ '/games/' | append: game.id | append: '/index.html' | relative_url }}"
+      class="group block h-full overflow-hidden rounded-2xl bg-white shadow-md ring-1 ring-slate-200 transition hover:-translate-y-1 hover:shadow-xl"
+    >
+      <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 px-5 py-4 text-white">
+        <p class="text-xs font-semibold uppercase tracking-wide text-blue-200">{{ game.category | default: 'Game' }}</p>
+        <h3 class="text-lg font-bold">{{ game.title }}</h3>
+      </div>
+      <div class="p-5 space-y-3">
+        {% if game.description %}
+        <p class="text-sm text-slate-600">{{ game.description | escape }}</p>
+        {% else %}
+        <p class="text-sm text-slate-600">Launch and play instantly.</p>
+        {% endif %}
+        <div class="flex items-center justify-between text-sm font-semibold text-blue-600">
+          <span class="inline-flex items-center gap-2">Play now</span>
+          <svg class="h-4 w-4 transition-transform group-hover:translate-x-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 10" aria-hidden="true">
+            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 5h12m0 0L9 1m4 4L9 9" />
+          </svg>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="mt-12 rounded-2xl bg-white/70 p-6 shadow-sm ring-1 ring-slate-200">
+  <div class="flex flex-wrap items-center justify-between gap-4">
+    <div>
+      <p class="text-sm font-semibold text-blue-600">Add your own</p>
+      <p class="text-slate-700">Create a folder under <code class="text-xs bg-slate-900/90 text-white px-2 py-1 rounded">/games/</code> and register it in <code class="text-xs bg-slate-900/90 text-white px-2 py-1 rounded">_data/games.yml</code>.</p>
+    </div>
+    <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">Flowbite cards &amp; gradients everywhere</span>
+  </div>
+</section>
