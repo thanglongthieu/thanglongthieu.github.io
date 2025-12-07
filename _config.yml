@@ -1,0 +1,23 @@
+# Site settings
+baseurl: "" # the subpath of your site, e.g. /blog
+url: "https://thanglongthieu.github.io"
+
+title: "Andi & Anna Games Room"
+description: "Family-friendly collection of math and 3D games"
+
+markdown: kramdown
+plugins: []
+
+# Exclude build tooling assets from the generated site
+exclude:
+  - node_modules
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - rollup.config.js
+  - lwr.config.json
+  - app.js
+  - app.ts
+  - app
+  - README.md
+  - test.html

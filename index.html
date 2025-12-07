@@ -1,203 +1,29 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Andi & Anna Games Room</title>
-  <style>
-    .top-bar {
-      display: flex;
-      justify-content: flex-end;
-      align-items: center;
-      margin-bottom: 10px;
-    }
+---
+layout: default
+title: "Andi & Anna Games Room"
+---
+<div class="top-bar">
+  <a class="login-button" href="{{ '/login/' | relative_url }}">🔐 Login</a>
+</div>
+<h1>🎮 Andi & Anna Games Room</h1>
+<p class="lead">
+  Choose a game below! Each game lives in the <code>/games/</code> folder with its own
+  <code>index.html</code> file.
+</p>
 
-    .login-button {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 14px;
-      border-radius: 10px;
-      background: linear-gradient(135deg, #0d6efd, #3b82f6);
-      color: #fff;
-      font-weight: 600;
-      text-decoration: none;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
-      transition: transform 0.1s ease, box-shadow 0.1s ease;
-    }
-
-    .login-button:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.16);
-    }
-
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #f7f7f7;
-      padding: 20px;
-      text-align: center;
-    }
-    h1 {
-      margin-bottom: 10px;
-    }
-    p.lead {
-      margin-top: 0;
-      margin-bottom: 25px;
-      font-size: 0.95rem;
-      opacity: 0.8;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-      gap: 20px;
-      max-width: 900px;
-      margin: 0 auto;
-    }
-
-    .card {
-      background: #fff;
-      padding: 15px;
-      border-radius: 14px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      transition: transform 0.1s ease, box-shadow 0.1s ease;
-    }
-    .card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-    }
-
-    .card a {
-      text-decoration: none;
-      color: #333;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .card-title {
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-    .card-desc {
-      font-size: 0.85rem;
-      opacity: 0.8;
-    }
-
-    .footer-note {
-      margin-top: 30px;
-      font-size: 0.8rem;
-      opacity: 0.7;
-    }
-  </style>
-</head>
-<body>
-  <div class="top-bar">
-    <a id="login-link" class="login-button" href="/login/">🔐 Login</a>
+<div class="grid">
+  {% for game in site.data.games %}
+  <div class="card">
+    <a href="{{ '/games/' | append: game.id | append: '/index.html' | relative_url }}">
+      <div class="card-title">{{ game.title }}</div>
+      {% if game.description %}
+      <div class="card-desc">{{ game.description | escape }}</div>
+      {% endif %}
+    </a>
   </div>
-  <h1>🎮 Andi & Anna Games Room</h1>
-  <p class="lead">
-    Choose a game below! Each game lives in the <code>/games/</code> folder with its own
-    <code>index.html</code> file.
-  </p>
+  {% endfor %}
+</div>
 
-  <div id="games" class="grid"></div>
-
-  <p class="footer-note">
-    To add a new game, just create a folder in <code>/games/</code> and update the game list in this file.
-  </p>
-
-  <script>
-    // --- CONFIG: list your games here -------------------------
-    // id = folder name under /games/
-    const games = [
-      {
-        id: "tokyo-city-3d",
-        title: "Tokyo City 3D",
-        description: "Neon postcard with Tokyo Tower, a Shinkansen loop, sumo dohyo, lanterns, and sakura"
-      },
-      {
-        id: "train-3d",
-        title: "Train 3D Ride",
-        description: "A colorful toy engine looping a mountain track in Three.js"
-      },
-      {
-        id: "cube-perfect",
-        title: "Perfect Cube Builder",
-        description: "Fill the 3-floor stack into the smallest 5×5×5 cube"
-      },
-      {
-        id: "three-triangle",
-        title: "Three.js Triangle",
-        description: "Interactive 3D triangle built with Three.js"
-      },
-      {
-        id: "math-fun",
-        title: "Math Fun",
-        description: "Quick + − × ÷ practice for all grades"
-      },
-      { id: "mini-craft", title: "Mini Craft", description: "Mini Craft!" },
-      { id: "kanji-fun", title: "Kanji Fun", description: "Kanji Fun!" },
-      { id: "fraction-game-fun", title: "Fraction Game", description: "Fraction Game" },
-      {
-        id: "stick-intersections",
-        title: "Stick Intersections",
-        description: "Three.js demo: 10 sticks showing the 45 possible crossings"
-      },
-      {
-        id: "multi-quiz-math",
-        title: "Multi Quiz Math Lab",
-        description: "Pick any of 30 PhIMO review questions, with 3D context where needed"
-      },
-      {
-        id: "multiplication-3d",
-        title: "3D Multiplication Test",
-        description: "Countdown x-table drill with neon cubes and saved high scores"
-      },
-      {
-        id: "multiple-math-quiz",
-        title: "3D Math Quiz (3–9 × 3–9)",
-        description: "Timed multiple-choice multiplication practice in Three.js"
-      },
-      { id: "math-car-run", title: "Two Cars Meeting", description: "Two Cars Meeting – Math Simulator" },
-      { id: "work-together-lab", title: "Work Together", description: "Work Together – Math Lab" }
-    ];
-    // ----------------------------------------------------------
-
-    function buildGamesGrid() {
-      const gamesDiv = document.getElementById("games");
-
-      // Handle GitHub Pages base path (user site / project site)
-      // e.g. /           or /my-repo
-      const path = window.location.pathname;
-      const basePath = path
-        .replace(/\/index\.html$/, "")  // remove /index.html
-        .replace(/\/$/, "");            // remove trailing /
-
-      const gamesBase = basePath + "/games";
-
-      const loginLink = document.getElementById("login-link");
-      if (loginLink) {
-        loginLink.href = `${basePath}/login/`;
-      }
-
-      games.forEach(game => {
-        const gameUrl = `${gamesBase}/${game.id}/index.html`;
-        const safeDesc = (game.description || "").replace(/</g, "&lt;");
-
-        const card = document.createElement("div");
-        card.className = "card";
-        card.innerHTML = `
-          <a href="${gameUrl}">
-            <div class="card-title">${game.title}</div>
-            <div class="card-desc">${safeDesc}</div>
-          </a>
-        `;
-        gamesDiv.appendChild(card);
-      });
-    }
-
-    buildGamesGrid();
-  </script>
-</body>
-</html>
+<p class="footer-note">
+  To add a new game, create a folder in <code>/games/</code> and add it to <code>_data/games.yml</code>.
+</p>
