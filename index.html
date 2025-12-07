@@ -49,6 +49,37 @@ title: "Andi & Anna Games Room"
   </div>
 </section>
 
+<section id="apps" class="mt-12 space-y-4">
+  <div class="flex items-center justify-between gap-4">
+    <div>
+      <p class="text-sm font-semibold text-blue-600">App center</p>
+      <h2 class="text-2xl font-bold text-slate-900">Launch mini-apps</h2>
+      <p class="text-slate-600">Handy utilities that live alongside the games.</p>
+    </div>
+    <span class="inline-flex items-center gap-2 rounded-full bg-indigo-100 text-indigo-700 px-3 py-1 text-sm font-semibold ring-1 ring-indigo-200">Featured</span>
+  </div>
+  <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    {% for app in site.data.apps %}
+    <a
+      href="{{ app.path | relative_url }}"
+      class="group block h-full overflow-hidden rounded-2xl bg-white shadow-md ring-1 ring-slate-200 transition hover:-translate-y-1 hover:shadow-xl"
+    >
+      <div class="bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-500 px-5 py-4 text-white">
+        <p class="text-xs font-semibold uppercase tracking-wide text-indigo-100">{{ app.category | default: 'App' }}</p>
+        <h3 class="text-lg font-bold">{{ app.title }}</h3>
+      </div>
+      <div class="p-5 space-y-3">
+        <p class="text-sm text-slate-600">{{ app.description | escape }}</p>
+        <div class="flex items-center justify-between text-sm font-semibold text-indigo-700">
+          <span class="inline-flex items-center gap-2">Open app</span>
+          <span class="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-200">{{ app.badge | default: 'Live' }}</span>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
 <section id="games" class="space-y-4">
   <div class="flex items-center justify-between gap-4">
     <div>
