@@ -51,23 +51,16 @@ description: "Inline-editable Salesforce-style sheet for tracking opportunities,
           </select>
         </label>
       </div>
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-slate-200 text-sm" aria-live="polite">
-          <thead class="bg-slate-50">
-            <tr>
-              <th class="px-3 py-2 text-left font-semibold text-slate-700">Owner</th>
-              <th class="px-3 py-2 text-left font-semibold text-slate-700">Account</th>
-              <th class="px-3 py-2 text-left font-semibold text-slate-700">Opportunity</th>
-              <th class="px-3 py-2 text-left font-semibold text-slate-700">Amount ($)</th>
-              <th class="px-3 py-2 text-left font-semibold text-slate-700">Stage</th>
-              <th class="px-3 py-2 text-left font-semibold text-slate-700">Close Date</th>
-              <th class="px-3 py-2 text-left font-semibold text-slate-700">Notes</th>
-              <th class="px-3 py-2 text-left font-semibold text-slate-700">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="sheet-body" class="divide-y divide-slate-100 bg-white"></tbody>
-        </table>
+      <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <div id="sheet" class="min-h-[420px]"></div>
       </div>
+      <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@5.4.0/dist/jspreadsheet.min.css"
+      />
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsuites@4.17.2/dist/jsuites.min.css" />
+      <script src="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@5.4.0/dist/jspreadsheet.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/jsuites@4.17.2/dist/jsuites.min.js"></script>
     </div>
 
     <div class="space-y-4">
@@ -155,21 +148,24 @@ description: "Inline-editable Salesforce-style sheet for tracking opportunities,
       }
     ];
 
-    const body = document.getElementById('sheet-body');
     const stageFilter = document.getElementById('stage-filter');
     const summary = document.getElementById('summary');
     const addForm = document.getElementById('add-form');
     const exportCsvBtn = document.getElementById('export-csv');
     const copyBtn = document.getElementById('copy-clipboard');
+    const sheetContainer = document.getElementById('sheet');
 
-    const fillStageSelect = (selectEl, { includeAll } = {}) => {
+    const columnKeys = ['owner', 'account', 'opportunity', 'amount', 'stage', 'closeDate', 'notes'];
+
+    const setStageOptions = (selectEl, includeAll = false) => {
+      if (!selectEl) return;
       selectEl.innerHTML = '';
 
       if (includeAll) {
-        const anyOption = document.createElement('option');
-        anyOption.value = '';
-        anyOption.textContent = 'All stages';
-        selectEl.appendChild(anyOption);
+        const any = document.createElement('option');
+        any.value = '';
+        any.textContent = 'All stages';
+        selectEl.appendChild(any);
       }
 
       stageOptions.forEach((stage) => {
@@ -180,84 +176,13 @@ description: "Inline-editable Salesforce-style sheet for tracking opportunities,
       });
     };
 
-    fillStageSelect(stageFilter, { includeAll: true });
-    fillStageSelect(addForm.elements.namedItem('stage'));
+    setStageOptions(stageFilter, true);
+    setStageOptions(addForm.elements.namedItem('stage'));
+
+    let filteredRows = data;
 
     const formatCurrency = (value) => {
       return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(Number(value || 0));
-    };
-
-    const renderRows = () => {
-      const filter = stageFilter.value;
-      body.innerHTML = '';
-
-      data
-        .filter((row) => (filter ? row.stage === filter : true))
-        .forEach((row) => {
-          const tr = document.createElement('tr');
-          tr.className = 'hover:bg-slate-50';
-
-          const cells = [
-            { key: 'owner', type: 'text' },
-            { key: 'account', type: 'text' },
-            { key: 'opportunity', type: 'text' },
-            { key: 'amount', type: 'number', formatter: formatCurrency },
-            { key: 'stage', type: 'select' },
-            { key: 'closeDate', type: 'date' },
-            { key: 'notes', type: 'textarea' }
-          ];
-
-          cells.forEach(({ key, type, formatter }) => {
-            const td = document.createElement('td');
-            td.className = 'px-3 py-2 align-top';
-
-            if (type === 'select') {
-              const select = document.createElement('select');
-              select.className = 'min-w-[140px] rounded-lg border border-slate-200 px-2 py-1 text-sm focus:border-blue-500 focus:ring-blue-500';
-              fillStageSelect(select);
-              select.value = row[key];
-              select.addEventListener('change', (e) => updateRow(row.id, key, e.target.value));
-              td.appendChild(select);
-            } else if (type === 'textarea') {
-              const textarea = document.createElement('textarea');
-              textarea.rows = 2;
-              textarea.className = 'w-full rounded-lg border border-slate-200 px-2 py-1 text-sm focus:border-blue-500 focus:ring-blue-500';
-              textarea.value = row[key];
-              textarea.addEventListener('input', (e) => updateRow(row.id, key, e.target.value));
-              td.appendChild(textarea);
-            } else {
-              const input = document.createElement('input');
-              input.type = type;
-              input.value = row[key];
-              input.className = 'w-full rounded-lg border border-slate-200 px-2 py-1 text-sm focus:border-blue-500 focus:ring-blue-500';
-              input.addEventListener('input', (e) => updateRow(row.id, key, type === 'number' ? Number(e.target.value || 0) : e.target.value));
-              td.appendChild(input);
-
-              if (formatter && type === 'number') {
-                const hint = document.createElement('p');
-                hint.className = 'mt-1 text-xs text-slate-500';
-                hint.textContent = formatter(row[key]);
-                td.appendChild(hint);
-              }
-            }
-
-            tr.appendChild(td);
-          });
-
-          const actionTd = document.createElement('td');
-          actionTd.className = 'px-3 py-2';
-          const deleteBtn = document.createElement('button');
-          deleteBtn.type = 'button';
-          deleteBtn.className = 'text-sm font-semibold text-rose-600 hover:text-rose-700';
-          deleteBtn.textContent = 'Remove';
-          deleteBtn.addEventListener('click', () => removeRow(row.id));
-          actionTd.appendChild(deleteBtn);
-          tr.appendChild(actionTd);
-
-          body.appendChild(tr);
-        });
-
-      renderSummary();
     };
 
     const renderSummary = () => {
@@ -291,19 +216,73 @@ description: "Inline-editable Salesforce-style sheet for tracking opportunities,
       });
     };
 
-    const updateRow = (id, key, value) => {
-      const row = data.find((item) => item.id === id);
-      if (!row) return;
-      row[key] = value;
-      renderRows();
-    };
+    const mapToGridData = (rows) =>
+      rows.map((row) => [row.owner, row.account, row.opportunity, row.amount, row.stage, row.closeDate, row.notes]);
 
-    const removeRow = (id) => {
-      const index = data.findIndex((item) => item.id === id);
-      if (index >= 0) {
-        data.splice(index, 1);
-        renderRows();
+    const sheet = jspreadsheet(sheetContainer, {
+      data: mapToGridData(data),
+      columns: [
+        { title: 'Owner', width: 140 },
+        { title: 'Account', width: 160 },
+        { title: 'Opportunity', width: 200 },
+        {
+          title: 'Amount ($)',
+          type: 'numeric',
+          mask: '$ #,##0',
+          decimal: '.',
+          thousands: ',',
+          width: 120
+        },
+        { title: 'Stage', type: 'dropdown', source: stageOptions, width: 150 },
+        { title: 'Close Date', type: 'calendar', options: { format: 'YYYY-MM-DD' }, width: 140 },
+        { title: 'Notes', type: 'text', wordWrap: true, width: 260 }
+      ],
+      allowInsertColumn: false,
+      allowDeleteColumn: false,
+      allowDeleteRow: true,
+      tableOverflow: true,
+      tableHeight: '420px',
+      contextMenu: (obj, x, y) => {
+        const items = [];
+
+        if (y !== null && filteredRows[y]) {
+          items.push({
+            title: 'Delete row',
+            onclick: () => {
+              const index = data.indexOf(filteredRows[y]);
+              if (index >= 0) {
+                data.splice(index, 1);
+                refreshSheet();
+                renderSummary();
+              }
+            }
+          });
+        }
+
+        return items;
+      },
+      onafterchanges: (_, records) => {
+        let requiresFilterRefresh = false;
+        records.forEach(({ x, y, value }) => {
+          const row = filteredRows[y];
+          if (!row) return;
+          const key = columnKeys[x];
+          row[key] = key === 'amount' ? Number(value) || 0 : value;
+          if (key === 'stage') {
+            requiresFilterRefresh = true;
+          }
+        });
+        if (requiresFilterRefresh && stageFilter.value) {
+          refreshSheet();
+        }
+        renderSummary();
       }
+    });
+
+    const refreshSheet = () => {
+      const filter = stageFilter.value;
+      filteredRows = filter ? data.filter((row) => row.stage === filter) : data;
+      sheet.setData(mapToGridData(filteredRows));
     };
 
     addForm.addEventListener('submit', (event) => {
@@ -316,10 +295,11 @@ description: "Inline-editable Salesforce-style sheet for tracking opportunities,
       addForm.reset();
       const stageSelect = addForm.elements.namedItem('stage');
       if (stageSelect) stageSelect.value = stageOptions[0];
-      renderRows();
+      refreshSheet();
+      renderSummary();
     });
 
-    stageFilter.addEventListener('change', renderRows);
+    stageFilter.addEventListener('change', refreshSheet);
 
     const toCsv = () => {
       const headers = ['Owner', 'Account', 'Opportunity', 'Amount', 'Stage', 'Close Date', 'Notes'];
@@ -352,6 +332,6 @@ description: "Inline-editable Salesforce-style sheet for tracking opportunities,
       }
     });
 
-    renderRows();
+    renderSummary();
   })();
 </script>
