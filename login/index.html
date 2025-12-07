@@ -141,6 +141,11 @@
       margin-top: 6px;
     }
 
+    .actions.stacked {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
     button {
       cursor: pointer;
       border: none;
@@ -296,6 +301,43 @@
       </div>
 
       <div class="card">
+        <h2>SSO via Salesforce Provider</h2>
+        <p class="description">Launch OAuth with a Connected App and your Salesforce SSO provider to capture a session ID (access token).</p>
+        <form id="sso-form">
+          <div class="field">
+            <label for="sso-login-url">Login / My Domain URL</label>
+            <input id="sso-login-url" type="url" value="https://login.salesforce.com" required />
+            <p class="hint">Use your My Domain for SSO (e.g. <code>https://mydomain.my.salesforce.com</code>).</p>
+          </div>
+          <div class="field">
+            <label for="sso-client-id">Connected App Client ID</label>
+            <input id="sso-client-id" type="text" autocomplete="off" required />
+            <p class="hint">Uses the user-agent OAuth flow. Ensure the callback URL matches this page.</p>
+          </div>
+          <div class="field">
+            <label for="sso-redirect">Redirect URI</label>
+            <input id="sso-redirect" type="url" />
+            <p class="hint">Defaults to this page URL; update only if your Connected App expects a different callback.</p>
+          </div>
+          <div class="field">
+            <label for="sso-provider">SSO Provider (optional)</label>
+            <input id="sso-provider" type="text" placeholder="e.g. MySAMLProvider" />
+            <p class="hint">Adds <code>sso=&lt;provider&gt;</code> to the authorize URL to jump directly to your provider.</p>
+          </div>
+          <div class="field">
+            <label for="sso-scope">OAuth scopes</label>
+            <input id="sso-scope" type="text" value="api refresh_token web openid" />
+          </div>
+          <div class="actions stacked">
+            <button type="submit">🔑 Start SSO Login</button>
+            <button type="button" class="secondary" id="sso-reset">Clear SSO settings</button>
+          </div>
+        </form>
+        <div id="sso-status" class="status">Use a Connected App to authorize via SSO.</div>
+        <div class="output" id="sso-output" aria-live="polite">OAuth details and session ID will appear here.</div>
+      </div>
+
+      <div class="card">
         <h2>Signup (create Lead)</h2>
         <p class="description">After logging in, create a Lead to capture a signup with a single click.</p>
         <form id="signup-form">
@@ -342,6 +384,15 @@
     const clearButton = document.getElementById('clear-btn');
     const signupStatus = document.getElementById('signup-status');
     const signupOutput = document.getElementById('signup-output');
+    const ssoForm = document.getElementById('sso-form');
+    const ssoStatus = document.getElementById('sso-status');
+    const ssoOutput = document.getElementById('sso-output');
+    const ssoReset = document.getElementById('sso-reset');
+    const ssoLoginUrl = document.getElementById('sso-login-url');
+    const ssoClientId = document.getElementById('sso-client-id');
+    const ssoRedirect = document.getElementById('sso-redirect');
+    const ssoProvider = document.getElementById('sso-provider');
+    const ssoScope = document.getElementById('sso-scope');
 
     let connection = null;
 
@@ -358,6 +409,83 @@
     function updateSignupOutput(data) {
       signupOutput.textContent = JSON.stringify(data, null, 2);
     }
+
+    function updateSsoOutput(data) {
+      ssoOutput.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+    }
+
+    function parseHash(hash) {
+      const params = new URLSearchParams((hash || '').replace(/^#/, ''));
+      return Object.fromEntries(params.entries());
+    }
+
+    function defaultRedirectUri() {
+      return window.location.href.split('#')[0];
+    }
+
+    async function handleOAuthResult(params) {
+      if (params.access_token && params.instance_url) {
+        try {
+          connection = new jsforce.Connection({
+            instanceUrl: params.instance_url,
+            accessToken: params.access_token
+          });
+          const identity = await connection.identity();
+          setStatus(loginStatus, `Logged in via SSO as ${identity.display_name} (${identity.username})`, 'ok');
+          setStatus(ssoStatus, 'SSO success: session established.', 'ok');
+          updateSessionOutput({
+            instanceUrl: connection.instanceUrl,
+            accessToken: connection.accessToken,
+            identity,
+            via: 'sso'
+          });
+          updateSsoOutput(params);
+          logoutButton.disabled = false;
+          signupButton.disabled = false;
+          signupStatus.textContent = 'Ready to create Leads.';
+          window.history.replaceState(null, '', defaultRedirectUri());
+        } catch (error) {
+          console.error(error);
+          setStatus(ssoStatus, `SSO session validation failed: ${error.message}`, 'error');
+          updateSsoOutput({ error: error.message, params });
+        }
+      } else if (params.error) {
+        setStatus(ssoStatus, `SSO failed: ${params.error_description || params.error}`, 'error');
+        updateSsoOutput(params);
+      }
+    }
+
+    ssoRedirect.value = defaultRedirectUri();
+
+    ssoForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const loginUrl = ssoLoginUrl.value.trim().replace(/\/$/, '');
+      const clientId = ssoClientId.value.trim();
+      const redirectUri = (ssoRedirect.value || defaultRedirectUri()).trim();
+      const scope = ssoScope.value.trim() || 'api refresh_token web openid';
+      const provider = ssoProvider.value.trim();
+
+      if (!loginUrl || !clientId) {
+        setStatus(ssoStatus, 'Login URL and Client ID are required.', 'error');
+        return;
+      }
+
+      const state = `sso-${Date.now()}`;
+      const authorizeUrl = `${loginUrl}/services/oauth2/authorize?response_type=token&client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&state=${encodeURIComponent(state)}&prompt=login${provider ? `&sso=${encodeURIComponent(provider)}` : ''}`;
+
+      setStatus(ssoStatus, 'Redirecting to Salesforce for SSO…');
+      updateSsoOutput({ authorizeUrl, state, scope, provider: provider || 'default' });
+      window.location.href = authorizeUrl;
+    });
+
+    ssoReset.addEventListener('click', () => {
+      ssoForm.reset();
+      ssoRedirect.value = defaultRedirectUri();
+      setStatus(ssoStatus, 'Use a Connected App to authorize via SSO.');
+      updateSsoOutput('Cleared SSO configuration.');
+    });
+
+    handleOAuthResult(parseHash(window.location.hash));
 
     loginForm.addEventListener('submit', async (event) => {
       event.preventDefault();
@@ -407,6 +535,8 @@
       logoutButton.disabled = true;
       signupButton.disabled = true;
       signupStatus.textContent = 'Login first to enable signup.';
+      setStatus(ssoStatus, 'Use a Connected App to authorize via SSO.');
+      updateSsoOutput('Session cleared.');
     });
 
     signupForm.addEventListener('submit', async (event) => {
