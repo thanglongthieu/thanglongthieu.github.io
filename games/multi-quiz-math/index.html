@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Multi Quiz Math Lab</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0b1021;
+      --panel: #111a34;
+      --accent: #4cc9f0;
+      --text: #e6e9ef;
+      --muted: #9aa4c7;
+      --success: #7bd88f;
+      --danger: #ff6b6b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at 20% 20%, rgba(76,201,240,0.12), transparent 30%),
+                  radial-gradient(circle at 80% 0%, rgba(116,235,213,0.12), transparent 35%),
+                  var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+    header {
+      padding: 18px 24px 12px;
+      background: linear-gradient(135deg, rgba(76,201,240,0.16), rgba(12,21,45,0.95));
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    h1 { margin: 0 0 4px; font-size: 26px; letter-spacing: 0.5px; }
+    p.lead { margin: 0; color: var(--muted); max-width: 800px; }
+
+    main { padding: 18px 24px 28px; display: grid; gap: 16px; grid-template-columns: 360px 1fr; align-items: start; }
+    .panel {
+      background: rgba(17,26,52,0.8);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 16px;
+      padding: 16px;
+      backdrop-filter: blur(6px);
+      box-shadow: 0 6px 30px rgba(0,0,0,0.25);
+    }
+    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    label { font-weight: 600; }
+    select, input[type="number"], button, textarea {
+      font: inherit;
+      color: var(--text);
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 10px 12px;
+      border-radius: 12px;
+    }
+    select, input, textarea { width: 100%; }
+    textarea { min-height: 80px; resize: vertical; }
+    button {
+      cursor: pointer;
+      background: linear-gradient(120deg, var(--accent), #9d4edd);
+      color: #0b0f1d;
+      font-weight: 700;
+      border: none;
+      transition: transform 0.1s ease, filter 0.2s;
+    }
+    button:hover { filter: brightness(1.08); }
+    button:active { transform: translateY(1px) scale(0.99); }
+    .question-text { font-size: 17px; line-height: 1.6; margin: 12px 0 10px; }
+    .options { display: grid; gap: 10px; }
+    .option-btn {
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 12px 14px;
+      text-align: left;
+      font-weight: 600;
+      transition: transform 0.08s ease, box-shadow 0.16s;
+    }
+    .option-btn:hover { box-shadow: 0 4px 16px rgba(76,201,240,0.25); }
+    .option-btn.correct { border-color: rgba(123,216,143,0.8); background: rgba(123,216,143,0.14); }
+    .option-btn.wrong { border-color: rgba(255,107,107,0.8); background: rgba(255,107,107,0.14); }
+
+    .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 999px; font-size: 12px; background: rgba(255,255,255,0.06); color: var(--muted); }
+    .muted { color: var(--muted); font-size: 14px; }
+    .answer-card { margin-top: 12px; padding: 12px; background: rgba(255,255,255,0.04); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); }
+    .answer-card strong { color: var(--success); }
+
+    #three-wrap { display: grid; gap: 10px; }
+    #three-container { width: 100%; height: 420px; background: radial-gradient(circle at 20% 30%, rgba(76,201,240,0.08), rgba(0,0,0,0.9)); border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); overflow: hidden; }
+    canvas { display: block; }
+    .pill { border-radius: 999px; padding: 6px 10px; background: rgba(255,255,255,0.06); color: var(--text); font-size: 12px; }
+    footer { padding: 12px 24px 20px; color: var(--muted); font-size: 13px; }
+
+    @media (max-width: 960px) {
+      main { grid-template-columns: 1fr; }
+      #three-container { height: 320px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Multi Quiz Math Lab</h1>
+    <p class="lead">Pick any problem from the list, answer it, and see a quick visual if the prompt calls for 3D context.</p>
+  </header>
+
+  <main>
+    <section class="panel" aria-label="Question selector">
+      <div class="row" style="margin-bottom: 10px;">
+        <label for="questionSelect">Question picklist</label>
+        <select id="questionSelect"></select>
+      </div>
+      <div class="question-text" id="questionText"></div>
+      <div class="muted" id="meta"></div>
+
+      <div id="optionsArea" class="options"></div>
+
+      <div id="openArea" style="display:none; gap: 8px;">
+        <input id="openInput" type="text" inputmode="text" placeholder="Type your answer" />
+        <button id="checkBtn">Check answer</button>
+      </div>
+
+      <div class="row" style="margin-top:12px; justify-content: space-between;">
+        <div class="badge" id="feedback"></div>
+        <button id="showSolutionBtn">Show solution</button>
+      </div>
+
+      <div class="answer-card" id="solutionCard" style="display:none;"></div>
+    </section>
+
+    <section class="panel" aria-label="3D view">
+      <div id="three-wrap">
+        <div class="row" style="justify-content: space-between; align-items: center;">
+          <div class="pill" id="threeLabel">3D context hidden</div>
+          <div class="muted">Interactive visuals only appear for questions that mention a figure or shape.</div>
+        </div>
+        <div id="three-container"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Built for fast review: multiple choice questions 1–10 and open-ended problems 11–30 from the provided PhIMO 2024 Primary 5 set.
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script>
+    const questions = [
+      {
+        id: 1,
+        label: "1. Sticks intersections (MCQ)",
+        type: "mcq",
+        question: "Sabrina has 10 sticks. What is the maximum number of intersections she can make out of these sticks?",
+        options: ["28", "36", "45", "55"],
+        answer: "45",
+        solution: "Every intersection uses 2 sticks, so count the number of distinct pairs: 10 choose 2 = 45.",
+        needs3d: true,
+        render3d(scene) {
+          const group = new THREE.Group();
+          const stickGeo = new THREE.CylinderGeometry(0.025, 0.025, 5, 12);
+          const colors = [0x4cc9f0, 0xff6b6b, 0xf9c74f, 0xb197fc, 0x7bd88f];
+          for (let i = 0; i < 10; i++) {
+            const mat = new THREE.MeshStandardMaterial({ color: colors[i % colors.length], metalness: 0.1, roughness: 0.4 });
+            const stick = new THREE.Mesh(stickGeo, mat);
+            const angle = (i / 10) * Math.PI * 2;
+            stick.rotation.z = angle;
+            stick.position.y = -0.5 + (i % 2 === 0 ? -0.2 : 0.2);
+            group.add(stick);
+          }
+          scene.add(group);
+          return group;
+        }
+      },
+      {
+        id: 2,
+        label: "2. Factors count (MCQ)",
+        type: "mcq",
+        question: "Which of the following numbers has exactly 4 factors?",
+        options: ["1369", "1849", "2401", "6859"],
+        answer: "6859",
+        solution: "6859 = 19^3, so it has 3+1 = 4 factors. The others have 3 or 5 factors.",
+      },
+      {
+        id: 3,
+        label: "3. Hearts pattern (MCQ)",
+        type: "mcq",
+        question: "According to the pattern of repeating triples, how many hearts appear from the first to the 350th figure?",
+        options: ["91", "105", "110", "136"],
+        answer: "110",
+        solution: "Blocks of three repeat. Up to 315 shapes (3×(1+…+14)) then 35 extra; hearts total 1+2+…+14+5 = 110.",
+      },
+      {
+        id: 4,
+        label: "4. n(n+1) missing term (MCQ)",
+        type: "mcq",
+        question: "In the shown multiplication grid, the missing number follows n(n+1). What is it?",
+        options: ["350", "720", "840", "930"],
+        answer: "930",
+        solution: "Row uses 30×31 = 930.",
+      },
+      {
+        id: 5,
+        label: "5. Operation for prime (MCQ)",
+        type: "mcq",
+        question: "Choose an operation to place in the blank so 14 □ 3 + 17 – 6 is prime.",
+        options: ["+", "–", "×", "÷"],
+        answer: "–",
+        solution: "14×3 + 17 – 6 = 53 (prime). Other operations miss primeness.",
+      },
+      {
+        id: 6,
+        label: "6. Trapezium area (MCQ)",
+        type: "mcq",
+        question: "What is the area of the trapezium shown (legs 3 and 8 units with height 4)?",
+        options: ["32", "38", "42", "44"],
+        answer: "38",
+        solution: "Split into a 3×4 right triangle plus an 8×4 rectangle: 6 + 32 = 38 square units.",
+      },
+      {
+        id: 7,
+        label: "7. Squares to form a big square (MCQ)",
+        type: "mcq",
+        question: "A figure of 4 identical squares forms an L-shape. How many more of that figure are needed to tile a square?",
+        options: ["2", "3", "4", "5"],
+        answer: "3",
+        solution: "Three more L-shaped tetriminos (total four) tile a larger square.",
+        needs3d: true,
+        render3d(scene) {
+          const group = new THREE.Group();
+          const unit = 0.7;
+          const squareGeo = new THREE.BoxGeometry(unit, 0.1, unit);
+          const colors = [0x4cc9f0, 0x7bd88f, 0xffafcc, 0xff6b6b];
+          const positions = [
+            [0,0,0], [unit,0,0], [0,0,unit], [0,0, -unit]
+          ];
+          positions.forEach((pos, idx) => {
+            const mat = new THREE.MeshStandardMaterial({ color: colors[idx % colors.length], roughness: 0.4 });
+            const sq = new THREE.Mesh(squareGeo, mat);
+            sq.position.set(pos[0], -0.5, pos[2]);
+            group.add(sq);
+          });
+          const outline = new THREE.BoxHelper(new THREE.Mesh(new THREE.BoxGeometry(unit*2, 0.11, unit*2)), 0xffffff);
+          outline.position.set(unit/2, -0.5, 0);
+          group.add(outline);
+          scene.add(group);
+          return group;
+        }
+      },
+      {
+        id: 8,
+        label: "8. Sum 67 three numbers (MCQ)",
+        type: "mcq",
+        question: "Three distinct numbers A, B, C sum to 67. What is the least possible value of the greatest number?",
+        options: ["23", "24", "63", "64"],
+        answer: "24",
+        solution: "Keep numbers close: 21 + 22 + 24 = 67 so the maximum can be as low as 24.",
+      },
+      {
+        id: 9,
+        label: "9. Yue's 11th birthday (MCQ)",
+        type: "mcq",
+        question: "Yue was born Saturday, June 25, 2011. What day is his 11th birthday?",
+        options: ["Thursday", "Friday", "Saturday", "Sunday"],
+        answer: "Saturday",
+        solution: "Counting leap days between 2011–2022 adds 14 days, landing again on Saturday.",
+      },
+      {
+        id: 10,
+        label: "10. Remove digits (MCQ)",
+        type: "mcq",
+        question: "From 123456789101112…373839 remove 64 digits to maximize the remaining number. What is it?",
+        options: ["99919", "99989", "99991", "99998"],
+        answer: "99989",
+        solution: "Keep as many 9s at the front as possible; the optimal remaining digits read 99989.",
+      },
+      {
+        id: 11,
+        label: "11. Perfect cube build", 
+        type: "open",
+        question: "At least how many cubes are needed to turn the shown stack into a perfect cube?",
+        answer: "108",
+        solution: "A 5×5×5 cube needs 125 unit cubes. With 17 present, add 108 more.",
+        needs3d: true,
+        render3d(scene) {
+          const group = new THREE.Group();
+          const unit = 0.32;
+          const boxGeo = new THREE.BoxGeometry(unit, unit, unit);
+          for (let x=0; x<5; x++) {
+            for (let y=0; y<5; y++) {
+              for (let z=0; z<5; z++) {
+                const idx = x*25 + y*5 + z;
+                const isExisting = idx % 7 === 0 || idx % 11 === 0;
+                if (!isExisting && Math.random() > 0.25) continue; // sprinkle existing cubes
+                const mat = new THREE.MeshStandardMaterial({ color: isExisting ? 0x7bd88f : 0x2b2f4c, roughness: 0.5, emissive: isExisting ? 0x14361a : 0x000000 });
+                const cube = new THREE.Mesh(boxGeo, mat);
+                cube.position.set((x-2)*unit, (y-2)*unit, (z-2)*unit);
+                group.add(cube);
+              }
+            }
+          }
+          const frame = new THREE.BoxHelper(new THREE.Mesh(new THREE.BoxGeometry(unit*5.2, unit*5.2, unit*5.2)), 0x4cc9f0);
+          group.add(frame);
+          scene.add(group);
+          return group;
+        }
+      },
+      { id: 12, label: "12. Even squares remainder", type: "open", question: "Least 3-digit number leaving remainder 1 when divided by 4, 16, and 36?", answer: "145", solution: "LCM(4,16,36)=144; add 1 → 145." },
+      { id: 13, label: "13. Flag signals", type: "open", question: "How many distinct signals can be made using 6 flags when 2 share a color?", answer: "360", solution: "6!/2! = 360 permutations." },
+      { id: 14, label: "14. Aquarium capacity", type: "open", question: "A tank is 1/6 full. After adding 1260 gallons it is 2/5 full. What is the total capacity?", answer: "5400", solution: "(2/5 - 1/6)×V=1260 ⇒ V=5400 gallons." },
+      { id: 15, label: "15. Painting together", type: "open", question: "Anna (6h), Ben (8h), Charlie (12h) paint together. Time to finish?", answer: "8/3", solution: "Rates sum to 1/6+1/8+1/12=3/8 walls per hour ⇒ 8/3 hours." },
+      { id: 16, label: "16. Remainder mod 2310", type: "open", question: "Remainder of 3×5×7×11×13×17 when divided by 2310?", answer: "1155", solution: "Half of 2310 because the product = 13×(2310/2)." },
+      { id: 17, label: "17. Pyramid faces", type: "open", question: "A pyramid has as many edges as another pyramid has faces (2024). How many faces does the first pyramid have?", answer: "1013", solution: "Edges = 2(F−1) ⇒ 2024 = 2(F−1) ⇒ F=1013." },
+      { id: 18, label: "18. Right trapezoid angle X", type: "open", question: "In a trapezoid with two right angles and a 50° angle, what is X?", answer: "60", solution: "Interior sum 360° ⇒ 360−90−90−50=130 ⇒ X=60°." },
+      { id: 19, label: "19. Perfect square averages", type: "open", question: "Numbers 225, 100, A, B, C average to 86. Smallest possible value of the smallest missing perfect square?", answer: "1", solution: "Total sum 430. The missing squares must add to 105, and 1 + 4 + 100 works with the smallest square being 1." },
+      { id: 20, label: "20. Removing Kier from group score", type: "open", question: "Group average 55. Removing Kier's 50 raises average to 56. How many people?", answer: "6", solution: "55N = 56(N−1)+50 ⇒ N=6." },
+      { id: 21, label: "21. Ron & Kris painting", type: "open", question: "Aj paints in 7h, which is 2h slower than Ron. Ron is twice as fast as Kris. How long for Ron+Kris together?", answer: "10/3", solution: "Ron=5h, Kris=10h ⇒ combined rate 1/5+1/10=3/10 ⇒ 10/3 hours." },
+      { id: 22, label: "22. 7 even numbers", type: "open", question: "Largest of 7 consecutive even numbers is 4× smallest. What is their average?", answer: "10", solution: "Let smallest=2n. Largest=2n+12=4(2n) ⇒ n=2 ⇒ average of arithmetic sequence =10." },
+      { id: 23, label: "23. Third card black", type: "open", question: "Six cards: 3 black, 3 red. Shuffled stack—probability the third card is black?", answer: "1/6", solution: "A specific card landing third has 1/6 chance; counting permutations yields 1/6 overall." },
+      { id: 24, label: "24. Cupcake calculator", type: "open", question: "Cupcakes cost 3, sell for 5. After giving 40% of earnings to mom, how many cupcakes fund a 900 peso calculator?", answer: "750", solution: "Profit per cake=2. Keep 60% ⇒ 1.2 per cake. Need 900 ⇒ 900/1.2=750." },
+      { id: 25, label: "25. Product by 5 game", type: "open", question: "Lucho starts, each turn says 5× previous. Kier eventually says 10000 which is twice Lucho's last. Starting number?", answer: "8", solution: "Backtrack dividing by 5 then halving: 10000/2=5000→1000→200→40→8." },
+      { id: 26, label: "26. Midpoint triangle area", type: "open", question: "A, B, C, D, E are midpoints of triangle XYZ segments forming a central star. If shaded area is 4 cm², what is area of △XYZ?", answer: "128", solution: "Each halving multiplies by 2; five halvings from the shaded region gives 4×2^5 = 128 cm².", needs3d: true,
+        render3d(scene) {
+          const group = new THREE.Group();
+          const triShape = new THREE.Shape();
+          triShape.moveTo(0,1.2);
+          triShape.lineTo(-1.3,-1);
+          triShape.lineTo(1.3,-1);
+          triShape.lineTo(0,1.2);
+          const extrude = new THREE.ExtrudeGeometry(triShape, { depth: 0.12, bevelEnabled: false });
+          const tri = new THREE.Mesh(extrude, new THREE.MeshStandardMaterial({ color: 0x1f2a44, roughness: 0.6 }));
+          tri.position.y = -0.6;
+          group.add(tri);
+          const midMat = new THREE.MeshStandardMaterial({ color: 0x4cc9f0, emissive: 0x0c5b7a });
+          const dotGeo = new THREE.SphereGeometry(0.05, 16, 16);
+          const mids = [new THREE.Vector3(0,-1,0), new THREE.Vector3(0.65,0.1,0), new THREE.Vector3(-0.65,0.1,0), new THREE.Vector3(0.33, -0.45,0), new THREE.Vector3(-0.33,-0.45,0)];
+          mids.forEach(p=>{ const m = new THREE.Mesh(dotGeo, midMat); m.position.copy(p); group.add(m); });
+          const lines = new THREE.BufferGeometry().setFromPoints([
+            mids[0], mids[2], mids[1], mids[0], mids[3], mids[1], mids[4], mids[2], mids[3]
+          ]);
+          const line = new THREE.Line(lines, new THREE.LineBasicMaterial({ color: 0xffafcc }));
+          line.position.y = -0.54;
+          group.add(line);
+          scene.add(group);
+          return group;
+        }
+      },
+      { id: 27, label: "27. Sybil's age", type: "open", question: "x^2 − 22x + 121 = 0 gives Sybil's age. Solve for x.", answer: "11", solution: "(x−11)^2 = 0 ⇒ x=11." },
+      { id: 28, label: "28. Dice product probability", type: "open", question: "Roll two dice. Probability product is one-digit or odd?", answer: "5/9", solution: "Favorable outcomes 20 of 36 ⇒ 20/36 = 5/9." },
+      { id: 29, label: "29. 6^2022 mod 1295", type: "open", question: "Find remainder of 3^2022 × 2^2022 divided by 1295.", answer: "36", solution: "1295 = 5×7×37. Using cycles, remainder reduces to 6^2 = 36." },
+      { id: 30, label: "30. Pattern guessing chance", type: "open", question: "Kyle guesses a 4-symbol pattern. Probability he gets it on the 4th try?", answer: "1/24", solution: "Total orders 4! = 24; independent tries keep probability 1/24 on any single attempt." }
+    ];
+
+    const questionSelect = document.getElementById('questionSelect');
+    const questionText = document.getElementById('questionText');
+    const meta = document.getElementById('meta');
+    const optionsArea = document.getElementById('optionsArea');
+    const openArea = document.getElementById('openArea');
+    const openInput = document.getElementById('openInput');
+    const checkBtn = document.getElementById('checkBtn');
+    const feedback = document.getElementById('feedback');
+    const showSolutionBtn = document.getElementById('showSolutionBtn');
+    const solutionCard = document.getElementById('solutionCard');
+    const threeContainer = document.getElementById('three-container');
+    const threeLabel = document.getElementById('threeLabel');
+
+    let renderer, scene, camera, light, currentGroup;
+
+    function initThree() {
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(threeContainer.clientWidth, threeContainer.clientHeight);
+      threeContainer.appendChild(renderer.domElement);
+
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x050912);
+
+      camera = new THREE.PerspectiveCamera(50, threeContainer.clientWidth / threeContainer.clientHeight, 0.1, 50);
+      camera.position.set(2.5, 2.2, 3.5);
+
+      const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+      scene.add(ambient);
+      light = new THREE.DirectionalLight(0xffffff, 0.8);
+      light.position.set(2,4,3);
+      scene.add(light);
+
+      const grid = new THREE.GridHelper(10, 20, 0x4cc9f0, 0x1d2a46);
+      grid.position.y = -0.55;
+      scene.add(grid);
+
+      const animate = () => {
+        renderer.render(scene, camera);
+        requestAnimationFrame(animate);
+      };
+      animate();
+
+      window.addEventListener('resize', () => {
+        if (!renderer) return;
+        camera.aspect = threeContainer.clientWidth / threeContainer.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(threeContainer.clientWidth, threeContainer.clientHeight);
+      });
+    }
+
+    function setFeedback(text, ok=false) {
+      feedback.textContent = text;
+      feedback.style.color = ok ? 'var(--success)' : 'var(--muted)';
+    }
+
+    function clearVisual() {
+      if (currentGroup && scene) {
+        scene.remove(currentGroup);
+        currentGroup.traverse?.(obj => {
+          if (obj.geometry) obj.geometry.dispose();
+          if (obj.material) {
+            if (Array.isArray(obj.material)) obj.material.forEach(m=>m.dispose());
+            else obj.material.dispose();
+          }
+        });
+        currentGroup = null;
+      }
+    }
+
+    function loadQuestion(id) {
+      const q = questions.find(q => q.id === Number(id));
+      if (!q) return;
+      solutionCard.style.display = 'none';
+      solutionCard.innerHTML = '';
+      setFeedback('');
+
+      questionText.textContent = q.question;
+      meta.textContent = `${q.type === 'mcq' ? 'Multiple choice' : 'Open-ended'} • Answer key ready`;
+
+      optionsArea.innerHTML = '';
+      openArea.style.display = q.type === 'open' ? 'grid' : 'none';
+      openInput.value = '';
+
+      if (q.type === 'mcq') {
+        q.options.forEach((opt, idx) => {
+          const btn = document.createElement('button');
+          btn.className = 'option-btn';
+          btn.textContent = `${String.fromCharCode(97+idx)}. ${opt}`;
+          btn.addEventListener('click', () => {
+            const correct = opt === q.answer;
+            btn.classList.add(correct ? 'correct' : 'wrong');
+            setFeedback(correct ? 'Correct!' : `Try again — correct answer is ${q.answer}.`, correct);
+          });
+          optionsArea.appendChild(btn);
+        });
+      }
+
+      if (q.type === 'open') {
+        checkBtn.onclick = () => {
+          const guess = openInput.value.trim().toLowerCase();
+          const expected = String(q.answer).trim().toLowerCase();
+          const correct = guess === expected;
+          setFeedback(correct ? 'Correct!' : `Keep working — expected ${q.answer}.`, correct);
+        };
+      }
+
+      showSolutionBtn.onclick = () => {
+        solutionCard.style.display = 'block';
+        solutionCard.innerHTML = `<div><strong>Answer:</strong> ${q.answer}</div><div class="muted" style="margin-top:6px;">${q.solution}</div>`;
+      };
+
+      clearVisual();
+      if (q.needs3d && q.render3d) {
+        if (!renderer) initThree();
+        threeContainer.style.display = '';
+        threeLabel.textContent = '3D context enabled';
+        currentGroup = q.render3d(scene);
+        camera.position.set(2.5, 2.2, 3.5);
+        camera.lookAt(0,0,0);
+      } else {
+        threeLabel.textContent = '3D context hidden';
+        threeContainer.style.display = 'none';
+        clearVisual();
+      }
+    }
+
+    // Build picklist
+    questions.forEach(q => {
+      const opt = document.createElement('option');
+      opt.value = q.id;
+      opt.textContent = q.label;
+      questionSelect.appendChild(opt);
+    });
+
+    questionSelect.addEventListener('change', (e) => loadQuestion((e.target).value));
+
+    // Initial load first question
+    loadQuestion(questions[0].id);
+    questionSelect.value = String(questions[0].id);
+  </script>
+</body>
+</html>
