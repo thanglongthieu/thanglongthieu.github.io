@@ -4,7 +4,7 @@ title: "Salesforce Sheet | Pipeline Console"
 description: "Inline-editable Salesforce-style sheet for tracking opportunities, stages, and exports."
 ---
 <section class="space-y-8">
-  <div class="flex flex-wrap items-center justify-between gap-4">
+  <div class="flex flex-wrap items-center justify-between gap-4" id="about">
     <div>
       <p class="text-sm font-semibold text-blue-600">Salesforce utility</p>
       <h1 class="text-3xl font-bold text-slate-900">Salesforce Sheet</h1>
@@ -56,11 +56,11 @@ description: "Inline-editable Salesforce-style sheet for tracking opportunities,
       </div>
       <link
         rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@5.4.0/dist/jspreadsheet.min.css"
+        href="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@5.4.4/dist/jspreadsheet.min.css"
       />
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsuites@4.17.2/dist/jsuites.min.css" />
-      <script src="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@5.4.0/dist/jspreadsheet.min.js"></script>
-      <script src="https://cdn.jsdelivr.net/npm/jsuites@4.17.2/dist/jsuites.min.js"></script>
+      <script defer src="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@5.4.4/dist/jspreadsheet.min.js"></script>
+      <script defer src="https://cdn.jsdelivr.net/npm/jsuites@4.17.2/dist/jsuites.min.js"></script>
     </div>
 
     <div class="space-y-4">
@@ -113,11 +113,13 @@ description: "Inline-editable Salesforce-style sheet for tracking opportunities,
 
 <script>
   (() => {
+    const safeId = () => (window.crypto?.randomUUID ? window.crypto.randomUUID() : `row-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+
     const stageOptions = ['Prospecting', 'Discovery', 'Proposal', 'Negotiation', 'Closed Won', 'Closed Lost'];
 
     const data = [
       {
-        id: crypto.randomUUID(),
+        id: safeId(),
         owner: 'Andi Adams',
         account: 'Northern Trails',
         opportunity: 'Service Cloud rollout',
@@ -127,7 +129,7 @@ description: "Inline-editable Salesforce-style sheet for tracking opportunities,
         notes: 'Mapping support channels'
       },
       {
-        id: crypto.randomUUID(),
+        id: safeId(),
         owner: 'Anna Lee',
         account: 'S-Force Retail',
         opportunity: 'Commerce + OMS expansion',
@@ -137,7 +139,7 @@ description: "Inline-editable Salesforce-style sheet for tracking opportunities,
         notes: 'Needs ROI deck and sandbox demo'
       },
       {
-        id: crypto.randomUUID(),
+        id: safeId(),
         owner: 'Kai Brown',
         account: 'Blue Horizon',
         opportunity: 'Analytics Cloud pilot',
@@ -176,14 +178,12 @@ description: "Inline-editable Salesforce-style sheet for tracking opportunities,
       });
     };
 
-    setStageOptions(stageFilter, true);
-    setStageOptions(addForm.elements.namedItem('stage'));
-
-    let filteredRows = data;
-
     const formatCurrency = (value) => {
       return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(Number(value || 0));
     };
+
+    const mapToGridData = (rows) =>
+      rows.map((row) => [row.owner, row.account, row.opportunity, row.amount, row.stage, row.closeDate, row.notes]);
 
     const renderSummary = () => {
       const totals = data.reduce(
@@ -216,84 +216,124 @@ description: "Inline-editable Salesforce-style sheet for tracking opportunities,
       });
     };
 
-    const mapToGridData = (rows) =>
-      rows.map((row) => [row.owner, row.account, row.opportunity, row.amount, row.stage, row.closeDate, row.notes]);
+    const stageSelect = addForm.elements.namedItem('stage');
+    setStageOptions(stageFilter, true);
+    setStageOptions(stageSelect);
 
-    const sheet = jspreadsheet(sheetContainer, {
-      data: mapToGridData(data),
-      columns: [
-        { title: 'Owner', width: 140 },
-        { title: 'Account', width: 160 },
-        { title: 'Opportunity', width: 200 },
-        {
-          title: 'Amount ($)',
-          type: 'numeric',
-          mask: '$ #,##0',
-          decimal: '.',
-          thousands: ',',
-          width: 120
-        },
-        { title: 'Stage', type: 'dropdown', source: stageOptions, width: 150 },
-        { title: 'Close Date', type: 'calendar', options: { format: 'YYYY-MM-DD' }, width: 140 },
-        { title: 'Notes', type: 'text', wordWrap: true, width: 260 }
-      ],
-      allowInsertColumn: false,
-      allowDeleteColumn: false,
-      allowDeleteRow: true,
-      tableOverflow: true,
-      tableHeight: '420px',
-      contextMenu: (obj, x, y) => {
-        const items = [];
-
-        if (y !== null && filteredRows[y]) {
-          items.push({
-            title: 'Delete row',
-            onclick: () => {
-              const index = data.indexOf(filteredRows[y]);
-              if (index >= 0) {
-                data.splice(index, 1);
-                refreshSheet();
-                renderSummary();
-              }
-            }
-          });
-        }
-
-        return items;
-      },
-      onafterchanges: (_, records) => {
-        let requiresFilterRefresh = false;
-        records.forEach(({ x, y, value }) => {
-          const row = filteredRows[y];
-          if (!row) return;
-          const key = columnKeys[x];
-          row[key] = key === 'amount' ? Number(value) || 0 : value;
-          if (key === 'stage') {
-            requiresFilterRefresh = true;
-          }
-        });
-        if (requiresFilterRefresh && stageFilter.value) {
-          refreshSheet();
-        }
-        renderSummary();
-      }
-    });
+    let filteredRows = data;
+    let sheet;
 
     const refreshSheet = () => {
+      if (!sheet) return;
       const filter = stageFilter.value;
       filteredRows = filter ? data.filter((row) => row.stage === filter) : data;
       sheet.setData(mapToGridData(filteredRows));
     };
 
+    const handleLoadFailure = (message) => {
+      sheetContainer.innerHTML = `<div class="p-4 text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg">${message}</div>`;
+    };
+
+    const waitForSpreadsheet = () =>
+      new Promise((resolve, reject) => {
+        let attempts = 0;
+        const maxAttempts = 80;
+
+        const poll = () => {
+          const lib = window.jspreadsheet?.default || window.jspreadsheet || window.jSpreadsheet || window.jexcel;
+          if (lib) {
+            resolve(lib);
+            return;
+          }
+
+          if (attempts++ > maxAttempts) {
+            reject(new Error('jspreadsheet failed to load'));
+            return;
+          }
+
+          requestAnimationFrame(poll);
+        };
+
+        poll();
+      });
+
+    waitForSpreadsheet()
+      .then((spreadsheetLib) => {
+        sheet = spreadsheetLib(sheetContainer, {
+          data: mapToGridData(data),
+          columns: [
+            { title: 'Owner', width: 140 },
+            { title: 'Account', width: 160 },
+            { title: 'Opportunity', width: 200 },
+            {
+              title: 'Amount ($)',
+              type: 'numeric',
+              mask: '$ #,##0',
+              decimal: '.',
+              thousands: ',',
+              width: 120
+            },
+            { title: 'Stage', type: 'dropdown', source: stageOptions, width: 150 },
+            { title: 'Close Date', type: 'calendar', options: { format: 'YYYY-MM-DD' }, width: 140 },
+            { title: 'Notes', type: 'text', wordWrap: true, width: 260 }
+          ],
+          allowInsertColumn: false,
+          allowDeleteColumn: false,
+          allowDeleteRow: true,
+          tableOverflow: true,
+          tableHeight: '420px',
+          contextMenu: (obj, x, y) => {
+            const items = [];
+
+            if (y !== null && filteredRows[y]) {
+              items.push({
+                title: 'Delete row',
+                onclick: () => {
+                  const index = data.indexOf(filteredRows[y]);
+                  if (index >= 0) {
+                    data.splice(index, 1);
+                    refreshSheet();
+                    renderSummary();
+                  }
+                }
+              });
+            }
+
+            return items;
+          },
+          onafterchanges: (_, records) => {
+            let requiresFilterRefresh = false;
+            records.forEach(({ x, y, value }) => {
+              const row = filteredRows[y];
+              if (!row) return;
+              const key = columnKeys[x];
+              row[key] = key === 'amount' ? Number(value) || 0 : value;
+              if (key === 'stage') {
+                requiresFilterRefresh = true;
+              }
+            });
+            if (requiresFilterRefresh && stageFilter.value) {
+              refreshSheet();
+            }
+            renderSummary();
+          }
+        });
+
+        renderSummary();
+      })
+      .catch((err) => {
+        console.error(err);
+        handleLoadFailure('The spreadsheet engine did not load. Please refresh to retry.');
+      });
+
     addForm.addEventListener('submit', (event) => {
       event.preventDefault();
       const formData = new FormData(addForm);
       const newRow = Object.fromEntries(formData.entries());
-      newRow.id = crypto.randomUUID();
+      newRow.id = safeId();
       newRow.amount = Number(newRow.amount) || 0;
       data.unshift(newRow);
       addForm.reset();
-      const stageSelect = addForm.elements.namedItem('stage');
       if (stageSelect) stageSelect.value = stageOptions[0];
       refreshSheet();
       renderSummary();
