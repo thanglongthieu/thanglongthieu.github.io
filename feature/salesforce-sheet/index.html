@@ -56,11 +56,9 @@ description: "Inline-editable Salesforce-style sheet for tracking opportunities,
       </div>
       <link
         rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@5.4.4/dist/jspreadsheet.min.css"
+        href="https://unpkg.com/tabulator-tables@5.6.2/dist/css/tabulator.min.css"
       />
-      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsuites@4.17.2/dist/jsuites.min.css" />
-      <script defer src="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@5.4.4/dist/jspreadsheet.min.js"></script>
-      <script defer src="https://cdn.jsdelivr.net/npm/jsuites@4.17.2/dist/jsuites.min.js"></script>
+      <script defer src="https://unpkg.com/tabulator-tables@5.6.2/dist/js/tabulator.min.js"></script>
     </div>
 
     <div class="space-y-4">
@@ -157,8 +155,6 @@ description: "Inline-editable Salesforce-style sheet for tracking opportunities,
     const copyBtn = document.getElementById('copy-clipboard');
     const sheetContainer = document.getElementById('sheet');
 
-    const columnKeys = ['owner', 'account', 'opportunity', 'amount', 'stage', 'closeDate', 'notes'];
-
     const setStageOptions = (selectEl, includeAll = false) => {
       if (!selectEl) return;
       selectEl.innerHTML = '';
@@ -181,9 +177,6 @@ description: "Inline-editable Salesforce-style sheet for tracking opportunities,
     const formatCurrency = (value) => {
       return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(Number(value || 0));
     };
-
-    const mapToGridData = (rows) =>
-      rows.map((row) => [row.owner, row.account, row.opportunity, row.amount, row.stage, row.closeDate, row.notes]);
 
     const renderSummary = () => {
       const totals = data.reduce(
@@ -227,7 +220,7 @@ description: "Inline-editable Salesforce-style sheet for tracking opportunities,
       if (!sheet) return;
       const filter = stageFilter.value;
       filteredRows = filter ? data.filter((row) => row.stage === filter) : data;
-      sheet.setData(mapToGridData(filteredRows));
+      sheet.setData(filteredRows);
     };
 
     const handleLoadFailure = (message) => {
@@ -240,14 +233,14 @@ description: "Inline-editable Salesforce-style sheet for tracking opportunities,
         const maxAttempts = 80;
 
         const poll = () => {
-          const lib = window.jspreadsheet?.default || window.jspreadsheet || window.jSpreadsheet || window.jexcel;
+          const lib = window.Tabulator || window.tabulator;
           if (lib) {
             resolve(lib);
             return;
           }
 
           if (attempts++ > maxAttempts) {
-            reject(new Error('jspreadsheet failed to load'));
+            reject(new Error('Tabulator failed to load'));
             return;
           }
 
@@ -258,63 +251,69 @@ description: "Inline-editable Salesforce-style sheet for tracking opportunities,
       });
 
     waitForSpreadsheet()
-      .then((spreadsheetLib) => {
-        sheet = spreadsheetLib(sheetContainer, {
-          data: mapToGridData(data),
+      .then((Tabulator) => {
+        sheet = new Tabulator(sheetContainer, {
+          data: data,
+          height: 420,
+          layout: 'fitColumns',
+          columnDefaults: {
+            headerSort: false,
+            resizable: true
+          },
           columns: [
-            { title: 'Owner', width: 140 },
-            { title: 'Account', width: 160 },
-            { title: 'Opportunity', width: 200 },
+            { title: 'Owner', field: 'owner', width: 140, editor: 'input' },
+            { title: 'Account', field: 'account', width: 160, editor: 'input' },
+            { title: 'Opportunity', field: 'opportunity', width: 200, editor: 'input' },
             {
               title: 'Amount ($)',
-              type: 'numeric',
-              mask: '$ #,##0',
-              decimal: '.',
-              thousands: ',',
-              width: 120
+              field: 'amount',
+              width: 120,
+              formatter: 'money',
+              formatterParams: { symbol: '$', thousand: ',', precision: 0 },
+              editor: 'number',
+              editorParams: { min: 0, step: 100 }
             },
-            { title: 'Stage', type: 'dropdown', source: stageOptions, width: 150 },
-            { title: 'Close Date', type: 'calendar', options: { format: 'YYYY-MM-DD' }, width: 140 },
-            { title: 'Notes', type: 'text', wordWrap: true, width: 260 }
+            {
+              title: 'Stage',
+              field: 'stage',
+              width: 150,
+              editor: 'select',
+              editorParams: { values: stageOptions }
+            },
+            {
+              title: 'Close Date',
+              field: 'closeDate',
+              width: 140,
+              editor: 'input',
+              editorParams: { elementAttributes: { type: 'date' } }
+            },
+            { title: 'Notes', field: 'notes', width: 260, editor: 'textarea', formatter: 'textarea' }
           ],
-          allowInsertColumn: false,
-          allowDeleteColumn: false,
-          allowDeleteRow: true,
-          tableOverflow: true,
-          tableHeight: '420px',
-          contextMenu: (obj, x, y) => {
-            const items = [];
-
-            if (y !== null && filteredRows[y]) {
-              items.push({
-                title: 'Delete row',
-                onclick: () => {
-                  const index = data.indexOf(filteredRows[y]);
-                  if (index >= 0) {
-                    data.splice(index, 1);
-                    refreshSheet();
-                    renderSummary();
-                  }
+          rowContextMenu: [
+            {
+              label: 'Delete row',
+              action: (e, row) => {
+                const rowData = row.getData();
+                const index = data.indexOf(rowData);
+                if (index >= 0) {
+                  data.splice(index, 1);
+                  refreshSheet();
+                  renderSummary();
                 }
-              });
+              }
+            }
+          ],
+          cellEdited: (cell) => {
+            const rowData = cell.getRow().getData();
+            const key = cell.getField();
+            if (key === 'amount') {
+              rowData.amount = Number(rowData.amount) || 0;
             }
 
-            return items;
-          },
-          onafterchanges: (_, records) => {
-            let requiresFilterRefresh = false;
-            records.forEach(({ x, y, value }) => {
-              const row = filteredRows[y];
-              if (!row) return;
-              const key = columnKeys[x];
-              row[key] = key === 'amount' ? Number(value) || 0 : value;
-              if (key === 'stage') {
-                requiresFilterRefresh = true;
-              }
-            });
-            if (requiresFilterRefresh && stageFilter.value) {
+            if (key === 'stage' && stageFilter.value) {
               refreshSheet();
             }
+
             renderSummary();
           }
         });
