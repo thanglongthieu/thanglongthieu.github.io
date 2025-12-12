@@ -201,7 +201,7 @@
 
     const canvas = document.getElementById('three-canvas');
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-    renderer.setPixelRatio(window.devicePixelRatio || 1);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 
     const sidebarWidth = () => Math.min(Math.max(340, window.innerWidth * 0.38), 420);
     const viewportWidth = () => Math.max(320, window.innerWidth - sidebarWidth());
@@ -309,6 +309,9 @@
       camera.updateProjectionMatrix();
     }
     window.addEventListener('resize', onResize);
+
+    const resizeObserver = new ResizeObserver(() => onResize());
+    resizeObserver.observe(canvas.parentElement);
 
     const toggleBtn = document.getElementById('toggle-missing');
     toggleBtn.addEventListener('click', () => {
