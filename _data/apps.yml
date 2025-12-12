@@ -1,8 +1,3 @@
-- title: Salesforce Sheet
-  path: /feature/salesforce-sheet/
-  description: Spreadsheet-style opportunity console with inline editing, filtering, and CSV export.
-  category: Salesforce
-  badge: New
 - title: Photo to 3D Depth
   path: /feature/photo-to-3d/
   description: Upload an image and convert it into a sculpted 3D relief with live depth and smoothing controls.
