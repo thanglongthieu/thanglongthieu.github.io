@@ -16,15 +16,15 @@ title: "Beautiful Apps Studio"
     <div class="flex flex-wrap items-center gap-3 pt-2">
       <a
         class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-400 via-blue-500 to-indigo-500 px-5 py-3 text-sm font-semibold text-slate-900 shadow-lg shadow-blue-500/30"
-        href="{{ '/feature/salesforce-sheet/' | relative_url }}"
+        href="{{ '/feature/photo-to-3d/' | relative_url }}"
       >
-        🚀 Open Salesforce Sheet
+        🚀 Open Photo → 3D Depth
       </a>
       <a
         class="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-white hover:border-emerald-200/60"
-        href="{{ '/login/' | relative_url }}"
+        href="{{ '/#apps' | relative_url }}"
       >
-        🔐 Team portal
+        🎨 Browse the studio
       </a>
       <div class="flex -space-x-2 overflow-hidden">
         <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-lg">🎛️</span>
@@ -36,7 +36,7 @@ title: "Beautiful Apps Studio"
   <div class="grid gap-4 sm:grid-cols-2">
     <div class="rounded-2xl bg-white/5 border border-white/10 p-5 shadow-lg shadow-indigo-900/30">
       <p class="text-sm font-semibold text-emerald-200">App collection</p>
-      <p class="text-3xl font-bold text-white">{{ site.data.apps | size }} flagship tool</p>
+      <p class="text-3xl font-bold text-white">{{ site.data.apps | size }} flagship tool{% if site.data.apps.size != 1 %}s{% endif %}</p>
       <p class="text-white/70 mt-2">Hand-built experiences that keep teams focused.</p>
     </div>
     <div class="rounded-2xl bg-gradient-to-br from-indigo-500 via-blue-600 to-cyan-500 shadow-xl p-5 text-white">
@@ -87,26 +87,26 @@ title: "Beautiful Apps Studio"
 </section>
 
 <section class="mt-14 grid gap-8 lg:grid-cols-2">
-  <div class="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-lg shadow-indigo-900/30">
-    <p class="text-sm font-semibold text-blue-200">Flagship</p>
-    <h3 class="text-2xl font-bold text-white">Salesforce Sheet</h3>
-    <p class="mt-2 text-white/70">A Salesforce-inspired spreadsheet console with inline editing, stage filtering, clipboard export, and CSV downloads.</p>
+  <div class="rounded-3xl border border-white/10 bg-gradient-to-br from-indigo-600/70 via-blue-700/50 to-slate-900 p-6 shadow-xl shadow-indigo-900/50">
+    <p class="text-sm font-semibold text-emerald-200">Featured experience</p>
+    <h3 class="text-2xl font-bold text-white">Photo → 3D Depth</h3>
+    <p class="mt-2 text-white/80">Transform any picture into a sculpted surface with Three.js lighting, smoothing controls, and instant orbit navigation.</p>
     <ul class="mt-4 space-y-2 text-sm text-white/80">
-      <li class="flex items-center gap-2"><span class="text-emerald-300">●</span>Dropdown-driven stages and calendar dates.</li>
-      <li class="flex items-center gap-2"><span class="text-emerald-300">●</span>Inline math for amounts with friendly currency formatting.</li>
-      <li class="flex items-center gap-2"><span class="text-emerald-300">●</span>Instant export to CSV or clipboard for sharing.</li>
+      <li class="flex items-center gap-2"><span class="text-emerald-300">●</span>Height-map extrusion that turns pixels into relief geometry.</li>
+      <li class="flex items-center gap-2"><span class="text-emerald-300">●</span>Depth, smoothing, and rotation toggles tuned for tactile previews.</li>
+      <li class="flex items-center gap-2"><span class="text-emerald-300">●</span>One-click sample gradients to explore shapes before uploading.</li>
     </ul>
     <div class="mt-5 flex flex-wrap gap-3">
-      <a href="{{ '/feature/salesforce-sheet/' | relative_url }}" class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-400 via-blue-500 to-indigo-500 px-4 py-2 text-sm font-semibold text-slate-900 shadow-md shadow-blue-500/30">Open sheet</a>
-      <a href="{{ '/feature/salesforce-sheet/' | relative_url }}#about" class="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white">See how it works</a>
+      <a href="{{ '/feature/photo-to-3d/' | relative_url }}" class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-400 via-blue-500 to-indigo-500 px-4 py-2 text-sm font-semibold text-slate-900 shadow-md shadow-blue-500/30">Open depth studio</a>
+      <a href="{{ '/feature/photo-to-3d/' | relative_url }}#scene-shell" class="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white">See the canvas</a>
     </div>
   </div>
-  <div class="rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/80 via-indigo-900/50 to-slate-800 p-6 shadow-xl shadow-indigo-900/50">
+  <div class="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-lg shadow-indigo-900/30">
     <p class="text-sm font-semibold text-purple-200">Why it feels better</p>
     <div class="mt-3 grid gap-4 sm:grid-cols-2">
       <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
         <p class="text-white font-semibold">Glass panels</p>
-        <p class="text-sm text-white/70">Cards float with soft borders and blur to highlight the data you care about.</p>
+        <p class="text-sm text-white/70">Cards float with soft borders and blur to highlight the creative work you showcase.</p>
       </div>
       <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
         <p class="text-white font-semibold">Responsive from day one</p>
