@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Japanese Pronunciation Coach</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0b1020;
+      --panel: rgba(255, 255, 255, 0.06);
+      --panel-border: rgba(255, 255, 255, 0.1);
+      --text: #e7edff;
+      --muted: #b9c4dd;
+      --accent: #5fc7ff;
+      --danger: #ff6b6b;
+      --card-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: radial-gradient(circle at 20% 20%, #0f1731, #050814 70%);
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      padding: 20px;
+    }
+
+    a.back-link {
+      position: fixed;
+      top: 18px;
+      left: 18px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--panel-border);
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    a.back-link:hover { background: rgba(255, 255, 255, 0.12); }
+
+    .card {
+      width: min(1100px, 100%);
+      background: rgba(13, 18, 37, 0.86);
+      border: 1px solid var(--panel-border);
+      border-radius: 18px;
+      padding: clamp(20px, 4vw, 32px);
+      box-shadow: var(--card-shadow);
+      backdrop-filter: blur(8px);
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: baseline;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.6rem, 2vw, 2.2rem);
+      letter-spacing: 0.02em;
+    }
+
+    .pill {
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--muted);
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      font-size: 0.9rem;
+    }
+
+    p.description {
+      margin: 0 0 12px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+      margin-top: 12px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+
+    label {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: 0.01em;
+    }
+
+    .target-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      min-width: 180px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      font-size: 1rem;
+    }
+
+    input[type="text"]:focus { outline: 2px solid rgba(95, 199, 255, 0.4); }
+
+    .chip-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+    .chip {
+      padding: 6px 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.08);
+      cursor: pointer;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .chip:hover { background: rgba(255, 255, 255, 0.14); }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    button.primary {
+      padding: 12px 16px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #5fc7ff, #6d8bff);
+      color: #081021;
+      cursor: pointer;
+      transition: transform 0.1s ease, box-shadow 0.2s ease;
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.25);
+    }
+
+    button.primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    button.primary:active { transform: translateY(1px); }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+    .dot.live { background: #4ade80; box-shadow: 0 0 0 6px rgba(74, 222, 128, 0.1); }
+
+    .transcript, .analysis {
+      min-height: 76px;
+      border-radius: 12px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px dashed rgba(255, 255, 255, 0.12);
+      color: var(--text);
+      line-height: 1.5;
+      word-break: break-word;
+      font-size: 1.05rem;
+    }
+
+    .analysis .match { color: #7cf1b4; font-weight: 700; }
+    .analysis .mismatch { color: var(--danger); font-weight: 700; }
+    .analysis .gap { color: var(--muted); opacity: 0.7; }
+
+    .metrics { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+
+    .tag {
+      padding: 6px 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.07);
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    .hint { color: var(--muted); margin-top: 8px; font-size: 0.95rem; line-height: 1.4; }
+
+    @media (max-width: 640px) {
+      body { padding: 12px; }
+      a.back-link { position: static; margin-bottom: 10px; display: inline-block; }
+      .card { padding: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <a href="/" class="back-link">← Back to games</a>
+  <div class="card">
+    <header>
+      <h1>Japanese Pronunciation Coach</h1>
+      <span class="pill">Voice input • 日本語</span>
+    </header>
+    <p class="description">Speak a Japanese phrase into your microphone. The app listens in <strong>ja-JP</strong>, shows what it heard, and highlights any characters that don't match your target phrase in red.</p>
+
+    <div class="grid">
+      <div class="panel">
+        <label for="target">Target phrase</label>
+        <div class="target-row">
+          <input id="target" type="text" placeholder="e.g. こんにちは" value="こんにちは" />
+          <button class="primary" id="start-btn" type="button">🎙️ Start listening</button>
+        </div>
+        <div class="chip-row" aria-label="Sample phrases">
+          <button class="chip" data-phrase="こんにちは">こんにちは</button>
+          <button class="chip" data-phrase="ありがとうございます">ありがとうございます</button>
+          <button class="chip" data-phrase="東京へ行きます">東京へ行きます</button>
+          <button class="chip" data-phrase="美しい景色ですね">美しい景色ですね</button>
+        </div>
+        <div class="controls">
+          <span class="status" id="status"><span class="dot" id="status-dot"></span><span id="status-text">Idle</span></span>
+          <span class="hint">Tip: stay close to the mic and speak clearly for the best results.</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <label>What we heard</label>
+        <div class="transcript" id="transcript">Waiting for your voice…</div>
+        <div class="metrics" id="metrics">
+          <span class="tag">Accuracy: —</span>
+          <span class="tag">Matches: —</span>
+        </div>
+        <p class="hint">Characters shown in <span style="color:#7cf1b4; font-weight:700;">green</span> matched the target; characters in <span style="color:var(--danger); font-weight:700;">red</span> need clearer pronunciation.</p>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:14px;">
+      <label>Pronunciation feedback</label>
+      <div class="analysis" id="analysis">Speak to see a character-by-character comparison.</div>
+    </div>
+  </div>
+
+  <script>
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const startBtn = document.getElementById('start-btn');
+    const statusText = document.getElementById('status-text');
+    const statusDot = document.getElementById('status-dot');
+    const transcriptEl = document.getElementById('transcript');
+    const analysisEl = document.getElementById('analysis');
+    const targetInput = document.getElementById('target');
+    const metricsEl = document.getElementById('metrics');
+    const chips = Array.from(document.querySelectorAll('.chip'));
+
+    let recognition;
+    let listening = false;
+
+    function renderMetrics(matches, total) {
+      const accuracy = total === 0 ? 0 : Math.round((matches / total) * 100);
+      metricsEl.innerHTML = `
+        <span class="tag">Accuracy: ${total ? accuracy + '%' : '—'}</span>
+        <span class="tag">Matches: ${total ? matches + ' / ' + total : '—'}</span>
+      `;
+    }
+
+    function diffText(target, spoken) {
+      const targetChars = [...target];
+      const spokenChars = [...spoken];
+      const length = Math.max(targetChars.length, spokenChars.length);
+      let matches = 0;
+      let html = '';
+
+      for (let i = 0; i < length; i++) {
+        const expected = targetChars[i];
+        const actual = spokenChars[i];
+
+        if (expected === undefined) {
+          html += `<span class="mismatch">${actual}</span>`;
+          continue;
+        }
+
+        if (actual === undefined) {
+          html += `<span class="gap">□</span>`;
+          continue;
+        }
+
+        if (expected === actual) {
+          matches += 1;
+          html += `<span class="match">${actual}</span>`;
+        } else {
+          html += `<span class="mismatch">${actual}</span>`;
+        }
+      }
+
+      return { html, matches, total: length };
+    }
+
+    function updateStatus(text, live = false) {
+      statusText.textContent = text;
+      statusDot.classList.toggle('live', live);
+    }
+
+    function startListening() {
+      if (!SpeechRecognition) {
+        updateStatus('Speech recognition is not supported', false);
+        startBtn.disabled = true;
+        return;
+      }
+
+      if (!recognition) {
+        recognition = new SpeechRecognition();
+        recognition.lang = 'ja-JP';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.addEventListener('start', () => {
+          listening = true;
+          startBtn.disabled = true;
+          startBtn.textContent = 'Listening…';
+          updateStatus('Listening in Japanese', true);
+        });
+
+        recognition.addEventListener('result', (event) => {
+          const transcript = event.results[0][0].transcript.trim();
+          transcriptEl.textContent = transcript || 'No speech detected.';
+
+          const target = targetInput.value.trim();
+          if (!target) {
+            analysisEl.textContent = 'Enter a target phrase to see pronunciation feedback.';
+            renderMetrics(0, 0);
+            return;
+          }
+
+          const { html, matches, total } = diffText(target, transcript);
+          analysisEl.innerHTML = html || 'No speech detected.';
+          renderMetrics(matches, total);
+        });
+
+        recognition.addEventListener('error', (event) => {
+          updateStatus(`Error: ${event.error}`, false);
+          startBtn.disabled = false;
+          startBtn.textContent = '🎙️ Start listening';
+        });
+
+        recognition.addEventListener('end', () => {
+          listening = false;
+          startBtn.disabled = false;
+          startBtn.textContent = '🎙️ Start listening';
+          if (!statusText.textContent.startsWith('Error')) {
+            updateStatus('Idle', false);
+          }
+        });
+      }
+
+      if (!listening) {
+        recognition.start();
+      }
+    }
+
+    startBtn.addEventListener('click', startListening);
+
+    chips.forEach((chip) => {
+      chip.addEventListener('click', () => {
+        targetInput.value = chip.dataset.phrase;
+      });
+    });
+
+    if (!SpeechRecognition) {
+      transcriptEl.textContent = 'Speech recognition is not available in this browser.';
+      analysisEl.textContent = 'Try Chrome or Edge to use the microphone.';
+      updateStatus('Unsupported', false);
+      startBtn.disabled = true;
+    }
+  </script>
+</body>
+</html>

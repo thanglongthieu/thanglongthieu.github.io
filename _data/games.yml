@@ -40,3 +40,6 @@
 - id: work-together-lab
   title: Work Together
   description: "Work Together – Math Lab"
+- id: japanese-pronunciation
+  title: Japanese Pronunciation Coach
+  description: "Voice input that highlights mispronounced Japanese characters in red"
