@@ -116,7 +116,9 @@
       align-items: center;
     }
 
-    input[type="text"] {
+    input[type="text"],
+    input[type="search"],
+    select {
       flex: 1;
       min-width: 180px;
       padding: 10px 12px;
@@ -127,7 +129,18 @@
       font-size: 1rem;
     }
 
-    input[type="text"]:focus { outline: 2px solid rgba(95, 199, 255, 0.4); }
+    input[type="text"]:focus,
+    input[type="search"]:focus,
+    select:focus {
+      outline: 2px solid rgba(95, 199, 255, 0.4);
+    }
+
+    .picker-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
 
     .chip-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 
@@ -203,6 +216,18 @@
     .analysis .mismatch { color: var(--danger); font-weight: 700; }
     .analysis .gap { color: var(--muted); opacity: 0.7; }
 
+    .preview { min-height: 56px; border-radius: 12px; padding: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.12); line-height: 1.5; font-size: 1.05rem; }
+
+    .preview ruby { font-size: 1.05rem; }
+
+    .preview rt { color: var(--muted); font-size: 0.85rem; }
+
+    .toggle-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; align-items: center; color: var(--muted); }
+
+    .toggle-row label { font-weight: 600; display: inline-flex; gap: 6px; align-items: center; margin: 0; }
+
+    .grammar { background: rgba(255, 255, 255, 0.12); color: #b9e6ff; padding: 2px 4px; border-radius: 6px; }
+
     .metrics { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
 
     .tag {
@@ -240,12 +265,28 @@
           <input id="target" type="text" placeholder="e.g. こんにちは" value="こんにちは" />
           <button class="primary" id="start-btn" type="button">🎙️ Start listening</button>
         </div>
-        <div class="chip-row" aria-label="Sample phrases">
-          <button class="chip" data-phrase="こんにちは">こんにちは</button>
-          <button class="chip" data-phrase="ありがとうございます">ありがとうございます</button>
-          <button class="chip" data-phrase="東京へ行きます">東京へ行きます</button>
-          <button class="chip" data-phrase="美しい景色ですね">美しい景色ですね</button>
+        <div class="toggle-row" aria-label="Furigana and grammar options">
+          <label><input type="checkbox" id="furigana-toggle" /> Use Furigana</label>
+          <label><input type="checkbox" id="grammar-toggle" checked /> Highlight target grammar</label>
         </div>
+        <div class="preview" id="target-preview" aria-live="polite">こんにちは</div>
+        <div class="picker-row">
+          <div>
+            <label for="grade-select">Grade picklist (1-5)</label>
+            <select id="grade-select">
+              <option value="1">Grade 1</option>
+              <option value="2">Grade 2</option>
+              <option value="3">Grade 3</option>
+              <option value="4">Grade 4</option>
+              <option value="5">Grade 5</option>
+            </select>
+          </div>
+          <div>
+            <label for="phrase-search">Search famous topics</label>
+            <input id="phrase-search" type="search" placeholder="Filter the 10 phrases for this grade" />
+          </div>
+        </div>
+        <div class="chip-row" aria-label="Sample phrases" id="phrase-chips"></div>
         <div class="controls">
           <span class="status" id="status"><span class="dot" id="status-dot"></span><span id="status-text">Idle</span></span>
           <span class="hint">Tip: stay close to the mic and speak clearly for the best results.</span>
@@ -271,6 +312,68 @@
 
   <script>
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const gradePhrases = {
+      1: [
+        '朝早く起きた小学生のゆうたは、窓を開けて大きく深呼吸をしました。外は少し冷たい空気で、鳥の声が聞こえます。今日は町の掃除を手伝う予定なので、手袋とゴミ袋を準備しました。',
+        '公園に向かう道には落ち葉がたくさんあり、ゆうたは一枚ずつ拾い集めました。近所のおばあさんが「ありがとうね」と声をかけてくれて、ゆうたは照れくさそうに笑いました。',
+        '学校の図書室では新しい絵本が並びました。カラフルな表紙を見ていると、友だちが「一緒に読もうよ」と誘ってくれました。ページをめくるたびに、動物たちの冒険が続きます。',
+        '雨の日の放課後、教室の窓ガラスに水滴が流れました。ゆうたは机を片付けながら、外の雨音を静かに聞いています。先生が「今日は早めに帰りましょう」と優しく声をかけました。',
+        '運動会の朝、グラウンドには白いラインが引かれ、みんなが元気な声で準備体操をしました。ゆうたはリレーのバトンを握り、順番を待ちながらドキドキしています。',
+        '夕方になると、商店街の明かりが少しずつ灯ります。パン屋さんの前を通ると甘い匂いがして、ゆうたはおこづかいで小さなパンを買いました。家族へのお土産にしたいと思っています。',
+        '冬休み、家の庭に小さな雪だるまを作りました。手袋をつけて雪を丸め、マフラーのかわりに赤いリボンを巻きました。完成した雪だるまに、ゆうたは「こんにちは」と話しかけました。',
+        '夏祭りの夜、神社の境内には赤い提灯が並び、太鼓の音が響きます。ゆうたは金魚すくいに挑戦し、小さな金魚を紙のポイですくいました。家に持って帰れるかどうか、少し心配です。',
+        '図工の時間、ゆうたは粘土で小さな動物を作りました。耳やしっぽを丁寧につけて、友だちと作品を見せ合いました。先生が「想像力がすばらしいね」とほめてくれました。',
+        '夕焼けの空を見上げると、オレンジ色の光が町を包んでいました。ゆうたは学校からの帰り道、影が長く伸びていることに気づきます。家に帰ったら、今日の出来事を日記に書こうと思いました。',
+      ],
+      2: [
+        'まゆは家族と一緒に海へ行きました。白い砂浜を歩くと、波の音が足元まで届きます。貝殻を拾い集めていると、小さなカニが砂の中から顔を出して、まゆたちをじっと見ていました。',
+        '学校の図書館で、まゆは歴史の絵本を見つけました。ページをめくるたびに昔の暮らしが描かれていて、かまどでごはんを炊く様子が印象的でした。読み終わると、もっと知りたいと感じました。',
+        '秋の遠足で山に登ると、色とりどりの紅葉が山道を飾っていました。まゆは友だちと並んで歩き、途中の休憩所でお弁当を広げました。おにぎりを頬ばりながら、下に広がる町を眺めました。',
+        '理科の授業で植物の観察をしました。まゆは朝顔のつるがどのように伸びるのかを毎日記録しました。ある朝、小さな紫色の花が咲いているのを見つけて、とても嬉しくなりました。',
+        '家の近くの川沿いには桜の木が並んでいます。春になると淡いピンクの花びらが風に舞い、まゆは両手を広げて受け止めようとしました。川面に浮かぶ花びらは、流れに合わせてゆっくり動いていました。',
+        '社会の時間に町の安全について学びました。まゆは避難場所の地図を見ながら、家族と集合場所を確認しました。学校の先生は「もしものときに備えることが大切です」と教えてくれました。',
+        '放課後の音楽室では、合唱の練習が行われています。まゆは隣の友だちと声を合わせ、曲の最後まで集中して歌いました。ピアノの音に合わせて響く声が、部屋いっぱいに広がりました。',
+        '夏の夜、まゆはベランダに出て星空を眺めました。星座早見表を片手に、北斗七星を探しています。街の明かりが少ない日に見ると、星がより一層はっきり見えることに気づきました。',
+        '家庭科で針と糸の使い方を学びました。まゆは小さな巾着袋を縫い、最後に紐を通しました。少し曲がった縫い目も、自分で仕上げた証拠だと思うと愛着がわきました。',
+        '冬の朝、学校の校庭は霜で白くなっていました。まゆは息を吐くと白い煙のようになり、友だちと競争して長い息を吐きました。寒さに負けず、みんなで元気に走り回りました。',
+      ],
+      3: [
+        'ゆきは歴史博物館で古い道具の展示を見学しました。木でできた舟や石の矢じりを見て、昔の人々が自然と工夫しながら暮らしていたことを感じました。帰り道、今の生活との違いについて友だちと語り合いました。',
+        '町の商店街で行われる夏祭りには、長い行列ができていました。ゆきは友だちと屋台を巡り、りんご飴を買って少しずつかじりました。太鼓の音が響くと、踊りの輪が広がり、みんなで手拍子を合わせました。',
+        '理科の授業で天気の変化を調べました。ゆきは一週間の気温と雲の形をノートに記録し、グラフにまとめました。発表の日、クラスメイトから「見やすいね」と言われて自信がつきました。',
+        '学校のクラブ活動で演劇に挑戦しました。ゆきは台本を何度も読み、声の出し方や間の取り方を練習しました。本番の日、緊張しながらも舞台に立ち、セリフをはっきりと言い切ることができました。',
+        '図工の時間に紙粘土で町の模型を作りました。ゆきは図書館や公園を小さく再現し、色を塗って飾りました。完成した模型をクラスで並べると、みんなの町が一つの大きな街になって面白かったです。',
+        '図書室で借りた冒険小説は、夜遅くまでページをめくりたくなるほどでした。主人公が困難に立ち向かう姿に、ゆきは自分も頑張ろうと励まされました。読書カードの感想欄には、その気持ちを書き込みました。',
+        '社会科で学んだ都道府県の特色を調べるため、ゆきは長野県のりんご作りを選びました。りんごの収穫時期や農家の工夫をまとめ、写真付きの資料を作りました。発表で「もっと食べてみたい」と声が上がりました。',
+        '体育の授業で縄跳びの長縄に挑戦しました。ゆきはタイミングを測って飛び込み、何回も続けて跳ぶことができました。失敗しても友だちと声をかけ合い、少しずつ記録を伸ばしました。',
+        '休日、ゆきは家族と電車に乗って美術館へ行きました。絵画の前に立つと、色づかいの美しさに目を奪われます。感想をノートに書きながら、一枚一枚ゆっくりと鑑賞しました。',
+        '秋の夕暮れ、川沿いの道を歩くと、空がピンク色から紫色へと変わっていきました。ゆきはその景色をスケッチブックに描き、日付と場所を書き添えました。絵を見返すと、その日の空気まで思い出せるようでした。',
+      ],
+      4: [
+        'だいちは環境委員会の活動で学校周辺の植物調査を行いました。種類ごとに葉の形や花の色を記録し、日当たりによる違いをまとめています。発表では、植物が育つ条件を理解することの大切さを伝えました。',
+        '社会科の授業で、防災マップを作成するプロジェクトが始まりました。だいちは町の避難場所や危険箇所を調べ、地図にマークしました。家に帰ると家族にも説明し、非常持ち出し袋の中身を一緒に確認しました。',
+        '読書感想文のために選んだ本は、旅をしながら成長する少年の物語でした。だいちは主人公の迷いや決意に共感し、自分の夢についても考えました。感想文では、心に残った場面を引用しながら丁寧にまとめました。',
+        '理科で電気のはたらきを学び、豆電球とスイッチを使った回路を組み立てました。スイッチを押すと光が灯り、だいちは仕組みを理解できたことに喜びました。友だちと協力して回路図を清書しました。',
+        '音楽で合奏に取り組み、だいちはリコーダーのパートを担当しました。指使いと息の強さを何度も練習し、テンポを合わせる難しさを感じました。練習の成果が出て、みんなで曲を最後まで通せた瞬間は拍手が湧きました。',
+        '冬になると、だいちは近くの湖で渡り鳥の観察をします。双眼鏡を使って数を数え、種類ごとの特徴をノートに書きました。静かな湖面に映る鳥たちの姿は美しく、自然の大切さを改めて感じました。',
+        '家庭科では献立作りに挑戦し、栄養バランスを考えながらメニューを決めました。だいちは味噌汁に旬の野菜を入れ、彩りを工夫しました。家族に振る舞うと「おいしいね」と言われ、達成感がありました。',
+        '図工で版画を制作し、下絵から彫りの作業までを丁寧に進めました。彫刻刀の角度に気をつけながら線を彫り、インクをつけて紙に刷ると、自分の描いた風景が鮮やかに現れました。完成品は教室に展示されました。',
+        '英語の授業で自己紹介のスピーチを準備しました。だいちは趣味や好きな本について英語で書き、発音を何度も練習しました。本番では緊張しながらも、聞き手に伝わるようにゆっくり話すことを心がけました。',
+        '歴史で学んだ平安時代について、だいちは図鑑を読んで貴族の暮らしを調べました。十二単の色合わせや和歌の文化に興味を持ち、ノートにまとめました。授業で発表すると、クラスメイトから多くの質問が出ました。',
+      ],
+      5: [
+        'みさきは卒業研究として、地域の伝統工芸を調べることにしました。工房を訪ねて職人さんに話を聞き、作品ができるまでの工程をノートに記録しました。取材を通じて、技を受け継ぐ難しさと誇りを感じました。',
+        '理科の授業で地球温暖化について学び、みさきは自分にできる行動を考えました。家庭での節電やリサイクルを家族に提案し、小さな積み重ねが地球を守るとまとめたポスターを教室に貼りました。',
+        '歴史では江戸時代の町人文化を学び、みさきは浮世絵の魅力に興味を持ちました。図録を読みながら、色彩の鮮やかさや人々の生活が生き生きと描かれていることに気づき、感想をレポートにまとめました。',
+        'みさきは読書クラブで、海外の冒険小説を英語版で読む挑戦をしました。辞書を引きながら少しずつ読み進め、物語の舞台が頭に浮かぶようになりました。難しい表現も、友だちと協力して理解しました。',
+        '社会の授業で、公共交通が環境に与える影響について調べました。みさきはバスや電車の利用が二酸化炭素を減らすことを学び、学校で共有するために簡単なチラシを作成しました。',
+        '体育祭の準備で、みさきは応援団のリーダーに選ばれました。仲間と一緒に振り付けを考え、声の出し方を練習しました。本番では、みんなの声が一つになり、チームの士気が高まりました。',
+        '家庭科で地産地消の料理を作る課題がありました。みさきは地元で採れた野菜を使い、栄養バランスを考えた献立を組み立てました。調理の手順を計画し、班のメンバーと役割分担してスムーズに進めました。',
+        '総合学習で未来の町について考えるワークショップに参加しました。みさきは、自然エネルギーを活用したエコな町を描き、図や説明文を交えたプレゼン資料を作りました。発表後、友だちのアイデアともつなげて議論しました。',
+        '音楽で合唱曲の指揮に挑戦し、拍の取り方や曲の表情を研究しました。みさきは指揮の動きを動画で見て練習し、クラスメイトにわかりやすく合図を送ることを目指しました。練習を重ねるうちに、歌声が揃っていきました。',
+        '卒業を控え、みさきは小学校での思い出をクラス新聞にまとめました。行事で撮った写真を選び、印象的なエピソードを文章にしました。読み返すと、多くの人に支えられて成長してきたことを実感しました。',
+      ],
+    };
     const startBtn = document.getElementById('start-btn');
     const statusText = document.getElementById('status-text');
     const statusDot = document.getElementById('status-dot');
@@ -278,7 +381,95 @@
     const analysisEl = document.getElementById('analysis');
     const targetInput = document.getElementById('target');
     const metricsEl = document.getElementById('metrics');
-    const chips = Array.from(document.querySelectorAll('.chip'));
+    const chipRow = document.getElementById('phrase-chips');
+    const gradeSelect = document.getElementById('grade-select');
+    const phraseSearch = document.getElementById('phrase-search');
+    const targetPreview = document.getElementById('target-preview');
+    const furiganaToggle = document.getElementById('furigana-toggle');
+    const grammarToggle = document.getElementById('grammar-toggle');
+    const segmenter = 'Segmenter' in Intl ? new Intl.Segmenter('ja', { granularity: 'word' }) : null;
+    const grammarParticles = ['は', 'が', 'を', 'に', 'で', 'と', 'も', 'へ', 'から', 'まで', 'より', 'ので', 'だ', 'です', 'ます', 'なら', 'ならば', 'けれど', 'けれども'];
+    const particleRegex = new RegExp(`(${grammarParticles.join('|')})`, 'g');
+
+    function escapeHTML(str) {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function applyGrammarMarkup(text) {
+      return text.replace(particleRegex, '<span class="grammar">$1</span>');
+    }
+
+    function toHiragana(text) {
+      return text.replace(/[ァ-ン]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0x60));
+    }
+
+    function buildFurigana(text) {
+      if (!text) return '';
+      const parts = segmenter ? Array.from(segmenter.segment(text), (s) => s.segment) : [text];
+
+      return parts
+        .map((segment) => {
+          const reading = toHiragana(segment);
+          const safeSegment = escapeHTML(segment);
+          const base = grammarToggle.checked ? applyGrammarMarkup(safeSegment) : safeSegment;
+          return `<ruby>${base}<rt>${escapeHTML(reading)}</rt></ruby>`;
+        })
+        .join('');
+    }
+
+    function renderTargetPreview() {
+      const text = targetInput.value;
+      if (!text) {
+        targetPreview.textContent = 'Enter a target phrase to see it formatted.';
+        return;
+      }
+
+      if (furiganaToggle.checked) {
+        targetPreview.innerHTML = buildFurigana(text);
+        return;
+      }
+
+      const safeText = escapeHTML(text);
+      targetPreview.innerHTML = grammarToggle.checked ? applyGrammarMarkup(safeText) : safeText;
+    }
+
+    function renderPhraseChips() {
+      const grade = gradeSelect.value;
+      const searchTerm = phraseSearch.value.trim();
+      const phrases = gradePhrases[grade] || [];
+      const filtered = searchTerm
+        ? phrases.filter((phrase) => phrase.includes(searchTerm))
+        : phrases;
+
+      chipRow.innerHTML = '';
+
+      if (!filtered.length) {
+        const emptyState = document.createElement('span');
+        emptyState.className = 'hint';
+        emptyState.textContent = 'No matches. Try a different search or grade.';
+        chipRow.appendChild(emptyState);
+        return;
+      }
+
+      filtered.forEach((phrase) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'chip';
+        button.dataset.phrase = phrase;
+        button.textContent = phrase;
+        button.addEventListener('click', () => {
+          targetInput.value = phrase;
+          targetInput.focus();
+          renderTargetPreview();
+        });
+        chipRow.appendChild(button);
+      });
+    }
 
     let recognition;
     let listening = false;
@@ -326,6 +517,16 @@
     function updateStatus(text, live = false) {
       statusText.textContent = text;
       statusDot.classList.toggle('live', live);
+    }
+
+    function stopListening() {
+      if (recognition && listening) {
+        recognition.stop();
+        listening = false;
+        startBtn.disabled = false;
+        startBtn.textContent = '🎙️ Start listening';
+        updateStatus('Idle', false);
+      }
     }
 
     function startListening() {
@@ -387,11 +588,21 @@
 
     startBtn.addEventListener('click', startListening);
 
-    chips.forEach((chip) => {
-      chip.addEventListener('click', () => {
-        targetInput.value = chip.dataset.phrase;
-      });
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        stopListening();
+      }
     });
+
+    window.addEventListener('pagehide', stopListening);
+
+    gradeSelect.addEventListener('change', renderPhraseChips);
+    phraseSearch.addEventListener('input', renderPhraseChips);
+    targetInput.addEventListener('input', renderTargetPreview);
+    furiganaToggle.addEventListener('change', renderTargetPreview);
+    grammarToggle.addEventListener('change', renderTargetPreview);
+    renderPhraseChips();
+    renderTargetPreview();
 
     if (!SpeechRecognition) {
       transcriptEl.textContent = 'Speech recognition is not available in this browser.';
