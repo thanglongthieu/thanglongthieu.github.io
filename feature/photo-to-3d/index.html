@@ -1,0 +1,360 @@
+---
+layout: default
+title: "Photo to 3D Depth | Three.js Studio"
+description: "Upload a picture and turn it into a 3D relief using a live height map, lights, and Three.js controls."
+---
+<section class="space-y-6">
+  <div class="flex flex-wrap items-center justify-between gap-4">
+    <div class="space-y-2">
+      <p class="text-sm font-semibold text-emerald-300">3D utility</p>
+      <h1 class="text-3xl font-bold text-white">Photo → 3D Depth</h1>
+      <p class="text-white/75 max-w-2xl">
+        Load any picture and watch it become a sculpted surface. Three.js rebuilds your image as a height map with lighting,
+        orbit controls, and live depth tuning.
+      </p>
+    </div>
+    <a
+      href="{{ '/' | relative_url }}"
+      class="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:border-emerald-200/70"
+    >
+      ← Back home
+    </a>
+  </div>
+
+  <div class="grid gap-6 lg:grid-cols-3">
+    <div class="lg:col-span-2 space-y-4 rounded-3xl border border-white/10 bg-white/5 p-5 shadow-lg shadow-indigo-900/40">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p class="text-sm font-semibold text-blue-200">Viewport</p>
+          <h2 class="text-xl font-bold text-white">Three.js depth canvas</h2>
+        </div>
+        <div class="flex items-center gap-2 text-sm text-white/80">
+          <span class="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_0_4px_rgba(16,185,129,0.15)]"></span>
+          Live preview
+        </div>
+      </div>
+      <div id="scene-shell" class="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-950/70 min-h-[420px]">
+        <div id="renderer" class="h-full"></div>
+        <div id="loading" class="absolute inset-0 flex items-center justify-center bg-slate-950/80 text-white/80">
+          Preparing Three.js...
+        </div>
+      </div>
+      <div class="grid gap-3 md:grid-cols-3">
+        <label class="flex flex-col gap-2 text-sm font-semibold text-white/80">
+          Depth amount
+          <input id="depth-scale" type="range" min="0" max="1" step="0.01" value="0.35" class="accent-emerald-400" />
+          <div class="flex items-center justify-between text-xs text-white/60">
+            <span>Flat</span>
+            <span id="depth-value">0.35</span>
+          </div>
+        </label>
+        <label class="flex flex-col gap-2 text-sm font-semibold text-white/80">
+          Smoothing
+          <input id="smoothing" type="range" min="0" max="1" step="0.05" value="0.15" class="accent-blue-400" />
+          <div class="flex items-center justify-between text-xs text-white/60">
+            <span>Sharp</span>
+            <span id="smooth-value">0.15</span>
+          </div>
+        </label>
+        <div class="flex items-center gap-3">
+          <button
+            id="reset-view"
+            type="button"
+            class="flex-1 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:border-emerald-200/70"
+          >
+            Reset view
+          </button>
+          <button
+            id="pause-rotation"
+            type="button"
+            class="rounded-xl bg-gradient-to-r from-indigo-500 to-blue-500 px-4 py-2 text-sm font-semibold text-slate-900 shadow-md shadow-blue-500/30"
+          >
+            Pause
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="space-y-4 rounded-3xl border border-white/10 bg-white/5 p-5 shadow-lg shadow-indigo-900/40">
+      <div class="space-y-3">
+        <p class="text-sm font-semibold text-emerald-300">Image source</p>
+        <label class="flex flex-col gap-2 text-sm font-semibold text-white/80">
+          Upload a photo
+          <input
+            id="image-input"
+            type="file"
+            accept="image/*"
+            class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-white focus:border-emerald-300 focus:outline-none"
+          />
+        </label>
+        <button
+          id="sample-image"
+          type="button"
+          class="w-full rounded-xl bg-gradient-to-r from-emerald-400 via-blue-400 to-indigo-500 px-4 py-2 text-sm font-semibold text-slate-900 shadow-md shadow-emerald-500/30"
+        >
+          Load a sample gradient
+        </button>
+      </div>
+
+      <div class="space-y-2 rounded-2xl border border-white/10 bg-white/5 p-4">
+        <p class="text-sm font-semibold text-blue-200">How it works</p>
+        <ul class="list-disc space-y-1 pl-5 text-sm text-white/70">
+          <li>The image is resized to a square canvas, keeping its composition centered.</li>
+          <li>Brightness is translated into a displacement map to push geometry forward and backward.</li>
+          <li>Orbit controls let you inspect the relief, while sliders tune depth and smoothing.</li>
+        </ul>
+      </div>
+
+      <div class="space-y-2 rounded-2xl border border-white/10 bg-white/5 p-4">
+        <p class="text-sm font-semibold text-purple-200">Tips</p>
+        <ul class="list-disc space-y-1 pl-5 text-sm text-white/70">
+          <li>High-contrast black and white photos produce crisp ridges.</li>
+          <li>Portraits work well with gentle smoothing (0.1 - 0.2) and moderate depth.</li>
+          <li>Use Reset view after zooming to center the mesh.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script type="module">
+  import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js';
+  import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/controls/OrbitControls.js';
+
+  const sceneShell = document.getElementById('scene-shell');
+  const rendererHost = document.getElementById('renderer');
+  const loading = document.getElementById('loading');
+  const imageInput = document.getElementById('image-input');
+  const sampleBtn = document.getElementById('sample-image');
+  const depthInput = document.getElementById('depth-scale');
+  const smoothingInput = document.getElementById('smoothing');
+  const depthValue = document.getElementById('depth-value');
+  const smoothValue = document.getElementById('smooth-value');
+  const resetBtn = document.getElementById('reset-view');
+  const pauseBtn = document.getElementById('pause-rotation');
+
+  const targetSize = 768;
+  const colorCanvas = document.createElement('canvas');
+  const heightCanvas = document.createElement('canvas');
+  colorCanvas.width = heightCanvas.width = targetSize;
+  colorCanvas.height = heightCanvas.height = targetSize;
+  const colorCtx = colorCanvas.getContext('2d');
+  const heightCtx = heightCanvas.getContext('2d');
+
+  let scene, camera, renderer, controls, mesh;
+  let colorTexture, heightTexture;
+  let animationId = null;
+  let autoRotate = true;
+  let loadedImage = null;
+
+  const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+  const drawImageCover = (ctx, image) => {
+    const { width: iw, height: ih } = image;
+    const scale = Math.max(targetSize / iw, targetSize / ih);
+    const sw = iw * scale;
+    const sh = ih * scale;
+    const dx = (targetSize - sw) / 2;
+    const dy = (targetSize - sh) / 2;
+
+    ctx.clearRect(0, 0, targetSize, targetSize);
+    ctx.drawImage(image, dx, dy, sw, sh);
+  };
+
+  const buildTextures = (smoothAmount = Number(smoothingInput.value)) => {
+    if (!loadedImage) return;
+
+    drawImageCover(colorCtx, loadedImage);
+
+    heightCtx.clearRect(0, 0, targetSize, targetSize);
+    heightCtx.filter = `blur(${(Number(smoothAmount) * 6).toFixed(2)}px)`;
+    heightCtx.drawImage(colorCanvas, 0, 0, targetSize, targetSize);
+    heightCtx.filter = 'none';
+
+    const imageData = heightCtx.getImageData(0, 0, targetSize, targetSize);
+    const data = imageData.data;
+
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      const height = Math.pow(luminance, 0.95) * 255;
+      data[i] = data[i + 1] = data[i + 2] = height;
+      data[i + 3] = 255;
+    }
+
+    heightCtx.putImageData(imageData, 0, 0);
+
+    if (colorTexture) colorTexture.dispose();
+    if (heightTexture) heightTexture.dispose();
+
+    colorTexture = new THREE.CanvasTexture(colorCanvas);
+    colorTexture.colorSpace = THREE.SRGBColorSpace;
+    colorTexture.anisotropy = 8;
+
+    heightTexture = new THREE.CanvasTexture(heightCanvas);
+    heightTexture.anisotropy = 8;
+    heightTexture.wrapS = heightTexture.wrapT = THREE.ClampToEdgeWrapping;
+
+    mesh.material.map = colorTexture;
+    mesh.material.displacementMap = heightTexture;
+    mesh.material.needsUpdate = true;
+  };
+
+  const initScene = () => {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color('#06080f');
+
+    const aspect = sceneShell.clientWidth / sceneShell.clientHeight;
+    camera = new THREE.PerspectiveCamera(40, aspect, 0.1, 100);
+    camera.position.set(0, 0.75, 2.1);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(sceneShell.clientWidth, sceneShell.clientHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
+    renderer.setClearColor(0x06080f, 1);
+    rendererHost.appendChild(renderer.domElement);
+
+    const geometry = new THREE.PlaneGeometry(1.4, 1.4, 256, 256);
+    const material = new THREE.MeshStandardMaterial({
+      color: '#ffffff',
+      displacementScale: Number(depthInput.value),
+      metalness: 0.1,
+      roughness: 0.9,
+      wireframe: false,
+      side: THREE.DoubleSide,
+    });
+
+    mesh = new THREE.Mesh(geometry, material);
+    mesh.rotation.x = -0.4;
+    scene.add(mesh);
+
+    const ambient = new THREE.AmbientLight(0xb5c7ff, 0.55);
+    const keyLight = new THREE.DirectionalLight(0x7fd9ff, 1.1);
+    keyLight.position.set(1.2, 1.4, 1.2);
+    const rimLight = new THREE.DirectionalLight(0xffb3f8, 0.6);
+    rimLight.position.set(-1.1, 1.2, -0.8);
+    scene.add(ambient, keyLight, rimLight);
+
+    const grid = new THREE.GridHelper(6, 24, 0x22304d, 0x111827);
+    grid.position.y = -0.85;
+    scene.add(grid);
+
+    controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.target.set(0, 0, 0);
+
+    window.addEventListener('resize', handleResize);
+  };
+
+  const handleResize = () => {
+    if (!renderer || !camera) return;
+    const { clientWidth, clientHeight } = sceneShell;
+    camera.aspect = clientWidth / clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(clientWidth, clientHeight);
+  };
+
+  const animate = () => {
+    animationId = requestAnimationFrame(animate);
+    if (autoRotate && mesh) {
+      mesh.rotation.y += 0.0025;
+    }
+    controls?.update();
+    renderer?.render(scene, camera);
+  };
+
+  const loadSampleImage = () => {
+    const sample = new Image();
+    sample.onload = () => {
+      loadedImage = sample;
+      buildTextures();
+      loading.classList.add('hidden');
+    };
+
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = targetSize;
+    const ctx = canvas.getContext('2d');
+    const gradient = ctx.createLinearGradient(0, 0, targetSize, targetSize);
+    gradient.addColorStop(0, '#111827');
+    gradient.addColorStop(0.45, '#2563eb');
+    gradient.addColorStop(0.75, '#22d3ee');
+    gradient.addColorStop(1, '#e0f2fe');
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, targetSize, targetSize);
+
+    ctx.globalCompositeOperation = 'soft-light';
+    ctx.fillStyle = '#ffffff';
+    for (let i = 0; i < 12; i++) {
+      const radius = 30 + i * 18;
+      ctx.beginPath();
+      ctx.arc(targetSize / 2, targetSize / 2, radius, 0, Math.PI * 2);
+      ctx.globalAlpha = 0.03 + i * 0.005;
+      ctx.fill();
+    }
+
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.strokeStyle = '#ffffff30';
+    ctx.lineWidth = 6;
+    ctx.strokeRect(targetSize * 0.18, targetSize * 0.18, targetSize * 0.64, targetSize * 0.64);
+
+    sample.src = canvas.toDataURL('image/png');
+  };
+
+  const handleFile = (file) => {
+    if (!file) return;
+    const image = new Image();
+    image.onload = () => {
+      URL.revokeObjectURL(image.src);
+      loadedImage = image;
+      buildTextures();
+      loading.classList.add('hidden');
+    };
+    image.src = URL.createObjectURL(file);
+  };
+
+  depthInput.addEventListener('input', () => {
+    const value = Number(depthInput.value);
+    depthValue.textContent = value.toFixed(2);
+    if (mesh?.material) {
+      mesh.material.displacementScale = clamp(value, 0, 1.5);
+    }
+  });
+
+  smoothingInput.addEventListener('input', () => {
+    const value = Number(smoothingInput.value);
+    smoothValue.textContent = value.toFixed(2);
+    buildTextures(value);
+  });
+
+  imageInput.addEventListener('change', (event) => {
+    const [file] = event.target.files || [];
+    handleFile(file);
+  });
+
+  sampleBtn.addEventListener('click', () => loadSampleImage());
+
+  resetBtn.addEventListener('click', () => {
+    controls.reset();
+    autoRotate = true;
+    pauseBtn.textContent = 'Pause';
+  });
+
+  pauseBtn.addEventListener('click', () => {
+    autoRotate = !autoRotate;
+    pauseBtn.textContent = autoRotate ? 'Pause' : 'Resume';
+  });
+
+  initScene();
+  animate();
+  loadSampleImage();
+
+  loading.classList.add('hidden');
+</script>
