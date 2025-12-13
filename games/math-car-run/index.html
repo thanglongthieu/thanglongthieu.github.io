@@ -120,81 +120,28 @@
 
   .sim-area {
     position: relative;
-    height: 110px;
-    border-radius: 10px;
-    background: linear-gradient(#1c1c2e 0, #1c1c2e 50%, #111 50%, #111 100%);
-    box-shadow: 0 0 10px rgba(0,0,0,0.7);
+    height: 220px;
+    border-radius: 12px;
+    background: radial-gradient(circle at 50% 12%, rgba(90,120,255,0.28), transparent 40%),
+      linear-gradient(#0b0e1e 0%, #050912 50%, #04060d 100%);
+    box-shadow: 0 0 14px rgba(0,0,0,0.8);
     overflow: hidden;
   }
 
-  .road {
+  .sim-area::after {
+    content: '';
     position: absolute;
-    left: 10px;
-    right: 10px;
-    bottom: 35px;
-    height: 36px;
-    background: #333;
-    border-radius: 18px;
-    box-shadow: inset 0 0 6px rgba(0,0,0,0.8);
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 32% 18%, rgba(255,255,255,0.1) 0 1px, transparent 45%),
+      radial-gradient(circle at 70% 24%, rgba(255,255,255,0.08) 0 1px, transparent 45%);
+    opacity: 0.25;
+    pointer-events: none;
   }
 
-  .road-line {
+  #threeRoot {
     position: absolute;
-    left: 14px;
-    right: 14px;
-    top: 15px;
-    height: 5px;
-    background-image: linear-gradient(90deg,
-      #ddd 0, #ddd 26px,
-      transparent 26px, transparent 40px);
-    background-size: 40px 5px;
-    opacity: 0.9;
-  }
-
-  .car {
-    position: absolute;
-    bottom: 48px;
-    width: 26px;
-    height: 16px;
-    border-radius: 5px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 13px;
-    color: #000;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.6);
-  }
-
-  .car1 { background: #ffcc00; }
-  .car2 { background: #ff453a; }
-
-  .car-label {
-    position: absolute;
-    bottom: 68px;
-    font-size: 11px;
-    color: #fff;
-    opacity: 0.9;
-    transform: translateX(-50%);
-    white-space: nowrap;
-  }
-
-  .meet-marker {
-    position: absolute;
-    bottom: 37px;
-    width: 2px;
-    height: 42px;
-    background: #0a84ff;
-    display: none;
-  }
-
-  .meet-text {
-    position: absolute;
-    bottom: 84px;
-    font-size: 11px;
-    color: #0a84ff;
-    transform: translateX(-50%);
-    white-space: nowrap;
-    display: none;
+    inset: 0;
   }
 
   /* Graph */
@@ -226,7 +173,7 @@
 <div class="app">
   <div>
     <div class="title">🚗 Two Cars – Simple Random Demo</div>
-    <div class="subtitle">Tap “New Question” to see a new problem and its solution.</div>
+    <div class="subtitle">Tap “New Question” to see a new problem, solution, and 3D meetup preview.</div>
   </div>
 
   <!-- Question + solution -->
@@ -253,17 +200,9 @@
 
   <!-- Simulation -->
   <div class="card sim-card">
-    <div class="sim-title">Simulation – cars move until they meet (not to scale)</div>
+    <div class="sim-title">Simulation – real 3D scene showing where the cars meet (not to scale)</div>
     <div class="sim-area" id="simArea">
-      <div class="road">
-        <div class="road-line"></div>
-      </div>
-      <div class="car car1" id="car1">1</div>
-      <div class="car car2" id="car2">2</div>
-      <div class="car-label" id="label1">Car 1 (A→B)</div>
-      <div class="car-label" id="label2">Car 2 (B→A)</div>
-      <div class="meet-marker" id="meetMarker"></div>
-      <div class="meet-text" id="meetText">Meet here</div>
+      <div id="threeRoot"></div>
     </div>
   </div>
 
@@ -279,6 +218,7 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js"></script>
 <script>
   // DOM
   const qText1 = document.getElementById('qText1');
@@ -295,12 +235,7 @@
   const positionLine = document.getElementById('positionLine');
 
   const simArea = document.getElementById('simArea');
-  const car1El = document.getElementById('car1');
-  const car2El = document.getElementById('car2');
-  const label1El = document.getElementById('label1');
-  const label2El = document.getElementById('label2');
-  const meetMarkerEl = document.getElementById('meetMarker');
-  const meetTextEl = document.getElementById('meetText');
+  const threeRoot = document.getElementById('threeRoot');
 
   const graphCard = document.getElementById('graphCard');
   const graphCanvas = document.getElementById('graphCanvas');
@@ -313,13 +248,16 @@
   let lastTHours = null;
   let lastD1 = null;
 
-  // Animation
-  let animReq = null;
+  // Three.js scene
+  let renderer, scene, camera;
+  let car1Mesh, car2Mesh, meetMarkerMesh;
+  let laneSegments = [];
   let simStartTime = 0;
   const simDuration = 5000; // ms
-  let roadLeft = 0;
-  let roadRight = 0;
-  let meetingX = 0;
+  let meetingZ = 0;
+  let simActive = false;
+  const trackLength = 22;
+  const laneSpeed = 7.5;
 
   // Helpers
   function formatTimeFromHours(tHours) {
@@ -332,78 +270,143 @@
     return `${hours} h ${minutes.toFixed(1)} min`;
   }
 
-  function stopAnimation() {
-    if (animReq !== null) {
-      cancelAnimationFrame(animReq);
-      animReq = null;
+  function initThree() {
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(threeRoot.clientWidth, threeRoot.clientHeight);
+    renderer.shadowMap.enabled = true;
+    threeRoot.appendChild(renderer.domElement);
+
+    scene = new THREE.Scene();
+    scene.background = null;
+    scene.fog = new THREE.Fog(0x04060d, 12, 30);
+
+    camera = new THREE.PerspectiveCamera(42, threeRoot.clientWidth / threeRoot.clientHeight, 0.1, 60);
+    camera.position.set(0, 7, 13);
+    camera.lookAt(0, 0, 0);
+
+    const ambient = new THREE.HemisphereLight(0x8fb3ff, 0x0b0b14, 1.05);
+    scene.add(ambient);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.75);
+    dirLight.position.set(4, 8, 6);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.set(512, 512);
+    scene.add(dirLight);
+
+    const roadGeo = new THREE.PlaneGeometry(8, trackLength);
+    const roadMat = new THREE.MeshStandardMaterial({ color: 0x1b1f2c, roughness: 0.8, metalness: 0.05 });
+    const road = new THREE.Mesh(roadGeo, roadMat);
+    road.receiveShadow = true;
+    road.rotation.x = -Math.PI / 2;
+    scene.add(road);
+
+    const shoulderGeo = new THREE.PlaneGeometry(9.4, trackLength);
+    const shoulderMat = new THREE.MeshBasicMaterial({ color: 0x10131f, side: THREE.DoubleSide, transparent: true, opacity: 0.55 });
+    const shoulder = new THREE.Mesh(shoulderGeo, shoulderMat);
+    shoulder.rotation.x = -Math.PI / 2;
+    shoulder.position.y = 0.001;
+    scene.add(shoulder);
+
+    const lineGeo = new THREE.BoxGeometry(0.18, 0.02, 1.3);
+    const lineMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x2549ff, emissiveIntensity: 0.35 });
+    for (let i = 0; i < 12; i++) {
+      const seg = new THREE.Mesh(lineGeo, lineMat);
+      seg.castShadow = false;
+      seg.receiveShadow = true;
+      seg.position.set(0, 0.02, -trackLength / 2 + i * 2);
+      scene.add(seg);
+      laneSegments.push(seg);
     }
+
+    const carGeo = new THREE.BoxGeometry(1.2, 0.7, 2.2);
+    const car1Mat = new THREE.MeshStandardMaterial({ color: 0xffcc00, emissive: 0x6b4b00, metalness: 0.3, roughness: 0.35 });
+    const car2Mat = new THREE.MeshStandardMaterial({ color: 0xff453a, emissive: 0x5c0b08, metalness: 0.3, roughness: 0.35 });
+    car1Mesh = new THREE.Mesh(carGeo, car1Mat);
+    car2Mesh = new THREE.Mesh(carGeo, car2Mat);
+    [car1Mesh, car2Mesh].forEach((m, idx) => {
+      m.castShadow = true;
+      m.position.set(idx === 0 ? -1.2 : 1.2, 0.36, idx === 0 ? -trackLength / 2 : trackLength / 2);
+      scene.add(m);
+    });
+
+    const markerGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.6, 16);
+    const markerMat = new THREE.MeshStandardMaterial({ color: 0x5ca3ff, emissive: 0x2c8bff, emissiveIntensity: 0.9 });
+    meetMarkerMesh = new THREE.Mesh(markerGeo, markerMat);
+    meetMarkerMesh.castShadow = true;
+    meetMarkerMesh.position.set(0, 0.32, 0);
+    meetMarkerMesh.visible = false;
+    scene.add(meetMarkerMesh);
+
+    const glowGeo = new THREE.CircleGeometry(0.6, 24);
+    const glowMat = new THREE.MeshBasicMaterial({ color: 0x0a84ff, transparent: true, opacity: 0.16 });
+    const glow = new THREE.Mesh(glowGeo, glowMat);
+    glow.rotation.x = -Math.PI / 2;
+    glow.position.y = 0.01;
+    meetMarkerMesh.add(glow);
+
+    let lastTime = performance.now();
+    function renderFrame(now) {
+      const delta = (now - lastTime) / 1000;
+      lastTime = now;
+
+      laneSegments.forEach((seg) => {
+        seg.position.z += delta * laneSpeed;
+        if (seg.position.z > trackLength / 2) {
+          seg.position.z -= trackLength;
+        }
+      });
+
+      if (simActive) {
+        const elapsed = now - simStartTime;
+        const alpha = Math.min(1, elapsed / simDuration);
+        const startZ1 = -trackLength / 2;
+        const startZ2 = trackLength / 2;
+        car1Mesh.position.z = startZ1 + (meetingZ - startZ1) * alpha;
+        car2Mesh.position.z = startZ2 + (meetingZ - startZ2) * alpha;
+
+        const wiggle = Math.sin(now * 0.004) * 0.06;
+        car1Mesh.rotation.y = wiggle;
+        car2Mesh.rotation.y = -wiggle;
+
+        if (alpha >= 1) {
+          simActive = false;
+        }
+      }
+
+      renderer.render(scene, camera);
+      requestAnimationFrame(renderFrame);
+    }
+
+    requestAnimationFrame(renderFrame);
   }
 
-  function layoutPositions() {
-    const road = simArea.querySelector('.road');
-    const roadRect = road.getBoundingClientRect();
-    const simRect = simArea.getBoundingClientRect();
-
-    roadLeft = roadRect.left - simRect.left;
-    roadRight = roadRect.right - simRect.left;
-
-    const startX1 = roadLeft;
-    const startX2 = roadRight;
-
-    car1El.style.left = `${startX1 - car1El.offsetWidth / 2}px`;
-    car2El.style.left = `${startX2 - car2El.offsetWidth / 2}px`;
-
-    label1El.style.left = `${startX1}px`;
-    label2El.style.left = `${startX2}px`;
-
-    meetMarkerEl.style.display = 'none';
-    meetTextEl.style.display = 'none';
+  function resizeRenderer() {
+    if (!renderer || !camera) return;
+    const width = threeRoot.clientWidth;
+    const height = threeRoot.clientHeight;
+    renderer.setSize(width, height);
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
   }
 
   function startSimulation() {
     if (!(lastDistance > 0 && lastSpeed1 > 0 && lastSpeed2 > 0 &&
           lastTHours > 0 && lastD1 >= 0)) return;
-
-    stopAnimation();
-    layoutPositions();
-
-    const roadLengthPx = roadRight - roadLeft;
-    const startX1 = roadLeft;
-    const startX2 = roadRight;
+    if (!car1Mesh || !car2Mesh || !meetMarkerMesh) return;
 
     const ratio = lastDistance > 0 ? lastD1 / lastDistance : 0.5;
     const clampedRatio = Math.max(0, Math.min(1, ratio));
 
-    meetingX = roadLeft + clampedRatio * roadLengthPx;
+    meetingZ = -trackLength / 2 + clampedRatio * trackLength;
+    meetMarkerMesh.position.z = meetingZ;
+    meetMarkerMesh.visible = true;
 
-    meetMarkerEl.style.left = `${meetingX - 1}px`;
-    meetTextEl.style.left = `${meetingX}px`;
-    meetMarkerEl.style.display = 'block';
-    meetTextEl.style.display = 'block';
+    car1Mesh.position.z = -trackLength / 2;
+    car2Mesh.position.z = trackLength / 2;
 
     simStartTime = performance.now();
-
-    function step(now) {
-      const elapsed = now - simStartTime;
-      const alpha = Math.min(1, elapsed / simDuration);
-
-      const x1 = startX1 + (meetingX - startX1) * alpha;
-      const x2 = startX2 + (meetingX - startX2) * alpha;
-
-      car1El.style.left = `${x1 - car1El.offsetWidth / 2}px`;
-      car2El.style.left = `${x2 - car2El.offsetWidth / 2}px`;
-
-      label1El.style.left = `${x1}px`;
-      label2El.style.left = `${x2}px`;
-
-      if (alpha < 1) {
-        animReq = requestAnimationFrame(step);
-      } else {
-        animReq = null;
-      }
-    }
-
-    animReq = requestAnimationFrame(step);
+    simActive = true;
   }
 
   function resizeGraphCanvas() {
@@ -620,12 +623,13 @@
   });
 
   window.addEventListener('load', () => {
-    layoutPositions();
+    initThree();
+    resizeRenderer();
     generateRandomQuestion(); // show one immediately
   });
 
   window.addEventListener('resize', () => {
-    layoutPositions();
+    resizeRenderer();
     drawGraph();
   });
 </script>
