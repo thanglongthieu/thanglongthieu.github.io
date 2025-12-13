@@ -151,12 +151,12 @@
         <button class="hud-toggle" type="button">Hide details</button>
       </div>
       <div class="hud-body">
-        <p>Orbit a neon postcard of Tokyo that mixes icons of the city with soft night lighting and moving trains.</p>
+        <p>Orbit a neon postcard of Tokyo that mixes icons of the city with soft night lighting, moving trains, and a micro-scale skyline built from countless blocks.</p>
         <ul>
           <li>Tokyo Tower: illuminated lattice, beacon glow, and tall antenna.</li>
           <li>Shinkansen loop: three white-blue cars circling a raised copper rail.</li>
           <li>Sumo dohyo: earthen ring with two wrestlers and four warm lantern pillars.</li>
-          <li>Sakura & skyline: pink blossoms tucked between pastel mid-rises.</li>
+          <li>Vintage voxel city: millions of tiny bricks stacked into retro rooftops and backstreets.</li>
         </ul>
         <div class="hint">Drag to look around • Scroll to zoom • Double-click to focus.</div>
         <small>Everything is lit with hemisphere light, a directional moon beam, and lantern strings for extra glow.</small>
@@ -192,6 +192,7 @@
       { label: 'Tokyo Tower', position: new THREE.Vector3(-6, 22, 2), className: '' },
       { label: 'Shinkansen Loop', position: new THREE.Vector3(16, 4, 0), className: 'secondary' },
       { label: 'Sumo Dohyo', position: new THREE.Vector3(10, 4, -10), className: '' },
+      { label: 'Vintage Voxel Core', position: new THREE.Vector3(0, 6, 4), className: 'secondary' },
       { label: 'Sakura Grove', position: new THREE.Vector3(12, 5, 10), className: 'secondary' }
     ];
     const bannerElements = bannerItems.map(item => {
@@ -253,6 +254,89 @@
     const gridHelper = new THREE.GridHelper(140, 28, 0x3fa9f5, 0x11324a);
     gridHelper.position.y = 0.01;
     scene.add(gridHelper);
+
+    function createVoxelDistrict() {
+      const group = new THREE.Group();
+
+      const blockGeom = new THREE.BoxGeometry(0.6, 0.6, 0.6);
+      const blockMat = new THREE.MeshStandardMaterial({
+        vertexColors: true,
+        roughness: 0.7,
+        metalness: 0.08,
+        emissive: 0x0f1827,
+        emissiveIntensity: 0.35
+      });
+
+      const palette = [0xf3d9b1, 0xe4a677, 0xa66b49, 0x6b4d57, 0x2c2438];
+      const blockCount = 52000;
+      const instanced = new THREE.InstancedMesh(blockGeom, blockMat, blockCount);
+      instanced.castShadow = true;
+      instanced.receiveShadow = true;
+
+      const dummy = new THREE.Object3D();
+      const color = new THREE.Color();
+      const districtRadius = 16;
+      let index = 0;
+
+      while (index < blockCount) {
+        const radius = Math.random() * districtRadius;
+        const angle = Math.random() * Math.PI * 2;
+        const stack = 2 + Math.floor(Math.random() * 12);
+        const baseX = Math.cos(angle) * radius * (0.35 + Math.random() * 0.12);
+        const baseZ = Math.sin(angle) * radius * (0.35 + Math.random() * 0.12);
+        const taper = 0.82 + Math.random() * 0.22;
+
+        for (let h = 0; h < stack && index < blockCount; h++) {
+          const scale = 0.58 * Math.pow(taper, h);
+          dummy.position.set(baseX, 0.28 + h * 0.55, baseZ);
+          dummy.scale.set(scale, 0.54 + Math.random() * 0.08, scale);
+          dummy.rotation.y = (Math.random() * Math.PI) / 5;
+          dummy.updateMatrix();
+          instanced.setMatrixAt(index, dummy.matrix);
+
+          const paletteColor = palette[(h + Math.floor(radius)) % palette.length];
+          color.setHex(paletteColor).offsetHSL(0, 0, (Math.random() - 0.5) * 0.06);
+          instanced.setColorAt(index, color);
+          index++;
+        }
+      }
+
+      instanced.count = index;
+      instanced.instanceMatrix.needsUpdate = true;
+      instanced.instanceColor.needsUpdate = true;
+      group.add(instanced);
+
+      const glow = new THREE.Mesh(
+        new THREE.CylinderGeometry(7, 12, 0.3, 24, 1, true),
+        new THREE.MeshStandardMaterial({
+          color: 0x1e2b3c,
+          emissive: 0x193045,
+          roughness: 1,
+          transparent: true,
+          opacity: 0.65
+        })
+      );
+      glow.rotation.x = Math.PI / 2;
+      glow.position.y = 0.12;
+      glow.receiveShadow = true;
+      group.add(glow);
+
+      const beacon = new THREE.PointLight(0xffc399, 1.4, 28, 2);
+      beacon.position.set(0, 7, 0);
+      group.add(beacon);
+
+      const rim = new THREE.SpotLight(0xffe6c4, 0.65, 38, Math.PI / 4, 0.35, 2);
+      rim.position.set(-8, 12, -8);
+      rim.target.position.set(0, 0, 0);
+      rim.castShadow = true;
+      group.add(rim, rim.target);
+
+      return group;
+    }
+
+    const voxelDistrict = createVoxelDistrict();
+    voxelDistrict.position.set(-2, 0, 4);
+    scene.add(voxelDistrict);
 
     function randomBuildings() {
       const group = new THREE.Group();
