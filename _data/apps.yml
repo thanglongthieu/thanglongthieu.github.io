@@ -3,3 +3,8 @@
   description: Upload an image and convert it into a sculpted 3D relief with live depth and smoothing controls.
   category: 3D Utility
   badge: Live
+- title: Gemini Chat Studio
+  path: /feature/gemini-chat/
+  description: Chat with Google’s Gemini using your API key, quick prompts, and saved conversation history.
+  category: AI Chat
+  badge: New

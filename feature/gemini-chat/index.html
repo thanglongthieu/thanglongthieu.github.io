@@ -1,0 +1,353 @@
+---
+layout: default
+title: "Gemini Chat Studio | AI Assistant"
+description: "Chat with Gemini using your own API key, quick prompts, and a beautiful conversational UI."
+---
+<section class="space-y-8">
+  <div class="flex flex-wrap items-center justify-between gap-4">
+    <div class="space-y-2">
+      <p class="text-sm font-semibold text-emerald-300">AI assistant</p>
+      <h1 class="text-3xl font-bold text-white">Gemini Chat Studio</h1>
+      <p class="text-white/75 max-w-2xl">
+        Talk with Gemini using your own API key. Keep context across turns, drop in quick prompts, and see replies in a polished
+        chat layout.
+      </p>
+    </div>
+    <a
+      href="{{ '/' | relative_url }}"
+      class="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:border-emerald-200/70"
+    >
+      ← Back home
+    </a>
+  </div>
+
+  <div class="grid gap-6 lg:grid-cols-3">
+    <div class="lg:col-span-2 space-y-4 rounded-3xl border border-white/10 bg-white/5 p-5 shadow-lg shadow-indigo-900/40">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p class="text-sm font-semibold text-blue-200">Conversation</p>
+          <h2 class="text-xl font-bold text-white">Chat with Gemini</h2>
+        </div>
+        <div class="flex items-center gap-3 text-sm text-white/80">
+          <span id="status-pill" class="inline-flex items-center gap-2 rounded-full bg-emerald-500/20 px-3 py-1 text-emerald-200 ring-1 ring-emerald-300/40">
+            Ready
+          </span>
+          <button
+            id="reset-chat"
+            type="button"
+            class="rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:border-emerald-200/60"
+          >
+            Reset chat
+          </button>
+        </div>
+      </div>
+
+      <div id="chat-log" class="flex max-h-[520px] min-h-[320px] flex-col gap-3 overflow-y-auto rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+        <div class="flex items-start gap-3 rounded-2xl bg-white/5 p-3">
+          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-blue-500 text-slate-900 font-bold">G</div>
+          <div class="space-y-1">
+            <p class="text-sm font-semibold text-white">Gemini</p>
+            <p class="text-sm text-white/80">Hi! Add your Gemini API key on the right and ask anything. I’ll keep the conversation context across turns.</p>
+          </div>
+        </div>
+      </div>
+
+      <form id="chat-form" class="space-y-3">
+        <label class="flex flex-col gap-2 text-sm font-semibold text-white/80">
+          Ask or paste a task
+          <textarea
+            id="user-prompt"
+            rows="3"
+            class="w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-emerald-300 focus:outline-none"
+            placeholder="e.g., Outline a product launch plan for a new app."
+            required
+          ></textarea>
+        </label>
+        <div class="flex flex-wrap items-center gap-3">
+          <label class="flex items-center gap-2 text-sm text-white/70">
+            <input id="keep-history" type="checkbox" class="h-4 w-4 rounded border-white/30 bg-white/10 text-emerald-400 focus:ring-emerald-400" checked />
+            Keep conversation history
+          </label>
+          <label class="flex items-center gap-2 text-sm text-white/70">
+            <input id="precise-tone" type="checkbox" class="h-4 w-4 rounded border-white/30 bg-white/10 text-blue-400 focus:ring-blue-400" />
+            Prefer concise answers
+          </label>
+          <span id="form-error" class="text-sm text-amber-200"></span>
+          <div class="ms-auto flex items-center gap-2">
+            <button
+              type="button"
+              id="stop-request"
+              class="hidden rounded-xl border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:border-rose-200/60"
+            >
+              Stop
+            </button>
+            <button
+              type="submit"
+              id="send-btn"
+              class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-400 via-blue-500 to-indigo-500 px-5 py-2 text-sm font-semibold text-slate-900 shadow-md shadow-blue-500/30"
+            >
+              Send
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="space-y-4 rounded-3xl border border-white/10 bg-white/5 p-5 shadow-lg shadow-indigo-900/40">
+      <div class="space-y-3">
+        <p class="text-sm font-semibold text-emerald-300">API key</p>
+        <label class="flex flex-col gap-2 text-sm font-semibold text-white/80">
+          Gemini API key (kept in your browser only)
+          <input
+            id="api-key"
+            type="password"
+            class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-white placeholder:text-white/40 focus:border-emerald-300 focus:outline-none"
+            placeholder="Paste your key to enable the chat"
+          />
+        </label>
+        <div class="flex flex-wrap items-center gap-3 text-sm">
+          <button
+            id="save-key"
+            type="button"
+            class="rounded-xl bg-gradient-to-r from-emerald-400 via-blue-400 to-indigo-500 px-4 py-2 font-semibold text-slate-900 shadow-md shadow-emerald-500/30"
+          >
+            Save to this browser
+          </button>
+          <button
+            id="clear-key"
+            type="button"
+            class="rounded-xl border border-white/20 bg-white/10 px-4 py-2 font-semibold text-white hover:border-rose-200/60"
+          >
+            Clear
+          </button>
+          <span id="key-status" class="text-emerald-200"></span>
+        </div>
+        <p class="text-xs text-white/60">
+          Your key never leaves this device except when sent directly to the Gemini API. You can create a key from the Google AI Studio
+          dashboard.
+        </p>
+      </div>
+
+      <div class="space-y-2 rounded-2xl border border-white/10 bg-white/5 p-4">
+        <p class="text-sm font-semibold text-blue-200">Quick prompts</p>
+        <div class="flex flex-wrap gap-2">
+          <button data-prompt="Summarize the latest message into three bullet points with action items." class="prompt-chip">Summarize</button>
+          <button data-prompt="Draft a friendly onboarding email for new users of our Beautiful Apps Studio dashboard." class="prompt-chip">Onboarding email</button>
+          <button data-prompt="Brainstorm 5 playful UI ideas inspired by glassmorphism and neon gradients." class="prompt-chip">UI ideas</button>
+          <button data-prompt="Rewrite this paragraph in a concise, professional tone:" class="prompt-chip">Rewrite</button>
+        </div>
+      </div>
+
+      <div class="space-y-2 rounded-2xl border border-white/10 bg-white/5 p-4">
+        <p class="text-sm font-semibold text-purple-200">How it works</p>
+        <ul class="list-disc space-y-1 pl-5 text-sm text-white/70">
+          <li>The page sends your message and history to Gemini’s <code class="rounded bg-white/10 px-1">generateContent</code> endpoint.</li>
+          <li>Responses stream back as JSON, and the UI renders them as chat bubbles.</li>
+          <li>Use Reset chat to clear local history and start fresh.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script type="module">
+  const MODEL = 'gemini-1.5-flash-latest';
+  const chatLog = document.getElementById('chat-log');
+  const userPrompt = document.getElementById('user-prompt');
+  const chatForm = document.getElementById('chat-form');
+  const statusPill = document.getElementById('status-pill');
+  const sendBtn = document.getElementById('send-btn');
+  const stopBtn = document.getElementById('stop-request');
+  const resetBtn = document.getElementById('reset-chat');
+  const keepHistory = document.getElementById('keep-history');
+  const preciseTone = document.getElementById('precise-tone');
+  const formError = document.getElementById('form-error');
+  const apiKeyInput = document.getElementById('api-key');
+  const saveKeyBtn = document.getElementById('save-key');
+  const clearKeyBtn = document.getElementById('clear-key');
+  const keyStatus = document.getElementById('key-status');
+  const promptChips = document.querySelectorAll('.prompt-chip');
+
+  let history = [];
+  let activeController = null;
+
+  const savedKey = localStorage.getItem('gemini-api-key');
+  if (savedKey) {
+    apiKeyInput.value = savedKey;
+    keyStatus.textContent = 'Key saved locally.';
+  }
+
+  const setStatus = (text, tone = 'ready') => {
+    statusPill.textContent = text;
+    const toneClasses = {
+      ready: 'bg-emerald-500/20 text-emerald-200 ring-emerald-300/40',
+      working: 'bg-blue-500/20 text-blue-100 ring-blue-300/40',
+      error: 'bg-rose-500/20 text-rose-100 ring-rose-300/40',
+    };
+    statusPill.className = `inline-flex items-center gap-2 rounded-full px-3 py-1 ring-1 ${toneClasses[tone] ?? toneClasses.ready}`;
+  };
+
+  const addBubble = (role, text) => {
+    const wrapper = document.createElement('div');
+    wrapper.className = `flex items-start gap-3 ${role === 'user' ? 'flex-row-reverse text-right' : ''}`;
+
+    const avatar = document.createElement('div');
+    avatar.className = 'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-bold';
+    avatar.textContent = role === 'user' ? 'You' : 'G';
+    if (role === 'user') {
+      avatar.classList.add('bg-white/15', 'text-white');
+    } else {
+      avatar.classList.add('bg-gradient-to-br', 'from-emerald-400', 'to-blue-500', 'text-slate-900');
+    }
+
+    const bubble = document.createElement('div');
+    bubble.className = `max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${role === 'user' ? 'bg-white/10 text-white shadow-sm shadow-blue-900/20' : 'bg-slate-900/70 text-white/90 border border-white/10 shadow-md shadow-indigo-900/30'}`;
+    bubble.innerText = text;
+
+    wrapper.appendChild(avatar);
+    wrapper.appendChild(bubble);
+    chatLog.appendChild(wrapper);
+    chatLog.scrollTo({ top: chatLog.scrollHeight, behavior: 'smooth' });
+  };
+
+  const setLoadingState = (isLoading) => {
+    sendBtn.disabled = isLoading;
+    stopBtn.classList.toggle('hidden', !isLoading);
+    sendBtn.textContent = isLoading ? 'Sending...' : 'Send';
+  };
+
+  const resetConversation = () => {
+    history = [];
+    chatLog.innerHTML = '';
+    addBubble('model', 'Chat reset. Add your Gemini API key and ask me anything.');
+    setStatus('Ready');
+  };
+
+  const handleGeminiRequest = async (prompt) => {
+    const apiKey = apiKeyInput.value.trim();
+    if (!apiKey) {
+      formError.textContent = 'Add your Gemini API key to continue.';
+      apiKeyInput.focus();
+      return;
+    }
+
+    formError.textContent = '';
+    const payload = {
+      contents: [
+        ...(keepHistory.checked ? history : []),
+        { role: 'user', parts: [{ text: preciseTone.checked ? `${prompt}\n\nKeep it concise.` : prompt }] },
+      ],
+      generationConfig: {
+        temperature: preciseTone.checked ? 0.35 : 0.75,
+        topP: 0.95,
+        topK: 40,
+        maxOutputTokens: 512,
+      },
+    };
+
+    const controller = new AbortController();
+    activeController = controller;
+    try {
+      setStatus('Thinking...', 'working');
+      setLoadingState(true);
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Request failed: ${response.status} ${errorText}`);
+      }
+
+      const data = await response.json();
+      const candidate = data.candidates?.[0];
+      const reply = candidate?.content?.parts?.map((part) => part.text).join('\n').trim();
+
+      const message = reply || 'No response returned. Try a different prompt.';
+      if (keepHistory.checked) {
+        history.push({ role: 'user', parts: [{ text: prompt }] });
+        history.push({ role: 'model', parts: [{ text: message }] });
+      } else {
+        history = [];
+      }
+      addBubble('model', message);
+      setStatus('Ready');
+    } catch (error) {
+      if (controller.signal.aborted) {
+        setStatus('Cancelled', 'error');
+        addBubble('model', 'Request cancelled.');
+      } else {
+        console.error(error);
+        setStatus('Error', 'error');
+        formError.textContent = 'Could not complete the request. Check your key or try again.';
+        addBubble('model', 'Something went wrong. Please verify your API key and try again.');
+      }
+    } finally {
+      activeController = null;
+      setLoadingState(false);
+    }
+  };
+
+  chatForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const prompt = userPrompt.value.trim();
+    if (!prompt) return;
+    addBubble('user', prompt);
+    userPrompt.value = '';
+    handleGeminiRequest(prompt);
+  });
+
+  stopBtn.addEventListener('click', () => {
+    if (activeController) {
+      activeController.abort();
+    }
+  });
+
+  resetBtn.addEventListener('click', resetConversation);
+
+  saveKeyBtn.addEventListener('click', () => {
+    const key = apiKeyInput.value.trim();
+    if (!key) {
+      keyStatus.textContent = 'Paste a key first.';
+      keyStatus.className = 'text-amber-200';
+      return;
+    }
+    localStorage.setItem('gemini-api-key', key);
+    keyStatus.textContent = 'Key saved locally.';
+    keyStatus.className = 'text-emerald-200';
+  });
+
+  clearKeyBtn.addEventListener('click', () => {
+    apiKeyInput.value = '';
+    localStorage.removeItem('gemini-api-key');
+    keyStatus.textContent = 'Key cleared.';
+    keyStatus.className = 'text-white/70';
+  });
+
+  promptChips.forEach((chip) => {
+    chip.classList.add(
+      'rounded-full',
+      'border',
+      'border-white/15',
+      'bg-white/5',
+      'px-3',
+      'py-1.5',
+      'text-xs',
+      'font-semibold',
+      'text-white',
+      'hover:border-emerald-200/60',
+      'transition'
+    );
+    chip.addEventListener('click', () => {
+      const value = chip.getAttribute('data-prompt') || '';
+      userPrompt.value = value;
+      userPrompt.focus();
+    });
+  });
+</script>
