@@ -1,0 +1,83 @@
+---
+layout: default
+title: About
+permalink: /about/
+description: "What the Research Studio is, how it works, and how to add an experiment or a lab note."
+---
+<div class="wrap">
+  <header class="page-head page-head--rule">
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="{{ '/' | relative_url }}">Studio</a><span aria-hidden="true">/</span><span>About</span></nav>
+    <h1 class="title-1">About the studio</h1>
+    <p class="lede">
+      Research Studio started as a family games room of math drills, kanji games, and Three.js toys. It is now organised
+      as what it had quietly become: a set of small experiments, each built around a question.
+    </p>
+  </header>
+
+  <div class="note-layout">
+{%- capture prose -%}
+
+## Principles
+
+**Questions over features.** Every experiment in the [registry]({{ '/experiments/' | relative_url }}) carries the open
+question it was built to poke at. If a prototype stops being interesting as a question, it stays playable but stops
+growing.
+
+**Small and static.** Each experiment is a single HTML page with its dependencies pulled from a CDN. There is no build
+step to break, no server to keep alive, and everything works on a phone.
+
+**Local-first.** The [Research Notebook]({{ '/feature/research-notebook/' | relative_url }}) and the
+[Research Assistant]({{ '/feature/gemini-chat/' | relative_url }}) keep their data in your browser's storage. The
+assistant talks directly to Google's Gemini API with *your* key; nothing passes through a studio server, because there
+isn't one.
+
+**Write it down.** Observations go into the notebook as they happen. The ones that hold up become
+[lab notes]({{ '/notes/' | relative_url }}), written method-first with the open questions left in.
+
+## Tracks
+
+{% for t in site.data.tracks %}{% assign members = site.data.experiments | where: "track", t.id %}
+- **{{ t.code }} · [{{ t.name }}]({{ '/experiments/?track=' | append: t.id | relative_url }})** — {{ t.summary }} *({{ members | size }} experiments)*
+{% endfor %}
+
+## How the site is built
+
+The site is plain [Jekyll](https://jekyllrb.com/) served by GitHub Pages:
+
+| Path | What lives there |
+| --- | --- |
+| `_data/experiments.yml` | The experiment registry: track, kind, summary, question, stack. |
+| `_data/tracks.yml` | The four research tracks. |
+| `_notes/` | Lab notes (Markdown), published under `/notes/`. |
+| `feature/` | Tools that use the studio layout (notebook, assistant, Photo → 3D). |
+| `games/` | Self-contained experiment pages, kept at their original URLs. |
+| `assets/` | The studio stylesheet, script, and mark. |
+
+### Add an experiment
+
+1. Create `games/<id>/index.html` — any self-contained page works.
+2. Add an entry to `_data/experiments.yml` with `id`, `title`, `path`, `track`, `kind`, `summary`, `question`, and `stack`.
+3. Push. The home page, the index, and the hero figure pick it up on the next build.
+
+### Write a lab note
+
+Add a Markdown file to `_notes/` with `title`, `date`, `track`, `summary`, and an optional `experiments` list of ids. The
+note layout links those experiments in the sidebar.
+
+{%- endcapture %}
+    <div class="prose">
+      {{ prose | markdownify }}
+    </div>
+    <aside class="note-aside" aria-label="Studio facts">
+      <div class="panel">
+        <dl class="kv">
+          <dt>Since</dt><dd>{% assign first = site.data.experiments | sort: "added" | first %}{{ first.added | date: "%B %Y" }}</dd>
+          <dt>Experiments</dt><dd>{{ site.data.experiments | size }}</dd>
+          <dt>Notes</dt><dd>{{ site.notes | size }}</dd>
+          <dt>Stack</dt><dd>Jekyll · GitHub Pages · Three.js · Web Speech API · Gemini API</dd>
+          <dt>Source</dt><dd><a href="https://github.com/{{ site.repository }}">{{ site.repository }}</a></dd>
+        </dl>
+      </div>
+    </aside>
+  </div>
+</div>

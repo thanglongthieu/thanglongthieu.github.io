@@ -1,0 +1,10 @@
+{%- assign note = include.note -%}
+{%- assign track = site.data.tracks | where: "id", note.track | first -%}
+<li class="note-row track-{{ note.track }}">
+  <time datetime="{{ note.date | date_to_xmlschema }}">{{ note.date | date: "%d %b %Y" }}</time>
+  <h3><a href="{{ note.url | relative_url }}">{{ note.title }}</a></h3>
+  {%- if track %}
+  <span class="note-row__track"><span class="dot" aria-hidden="true"></span>{{ track.code }} · {{ track.short }}</span>
+  {%- endif %}
+  <p>{{ note.summary }}</p>
+</li>

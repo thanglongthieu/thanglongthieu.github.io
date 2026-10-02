@@ -1,0 +1,239 @@
+# The studio's experiment registry — the single source of truth for every card on the site.
+#
+#   id        folder name / stable slug
+#   path      where the experiment lives (kept stable so old links keep working)
+#   track     one of the ids in _data/tracks.yml
+#   kind      tool | scene | simulation | drill | game
+#   question  the open question the experiment is built to poke at
+#   stack     main browser technologies it relies on
+#   featured  shown on the home page when true
+
+# ── T4 · Tools for Thinking ───────────────────────────────────────────────
+- id: research-notebook
+  title: Research Notebook
+  path: /feature/research-notebook/
+  track: tools
+  kind: tool
+  added: 2026-10-02
+  updated: 2026-10-02
+  summary: "Capture questions, hypotheses, observations, and sources in a local-first notebook. Filter by type or tag, link entries to experiments, and export to Markdown or JSON."
+  question: "Does writing a hypothesis down before playing change what you notice?"
+  stack: [localStorage, Vanilla JS]
+  featured: true
+
+- id: gemini-chat
+  title: Research Assistant
+  path: /feature/gemini-chat/
+  track: tools
+  kind: tool
+  added: 2026-01-02
+  updated: 2026-10-02
+  summary: "Bring your own Gemini API key. Research prompt recipes, any model your key can reach, readable Markdown replies, and one-click saving into the notebook."
+  question: "Which prompt shapes produce answers you can actually check?"
+  stack: [Gemini API, localStorage]
+  featured: true
+
+# ── T1 · Spatial Computing ────────────────────────────────────────────────
+- id: photo-to-3d
+  title: Photo → 3D Depth
+  path: /feature/photo-to-3d/
+  track: spatial
+  kind: tool
+  added: 2025-12-12
+  updated: 2026-10-02
+  summary: "Upload a picture and rebuild it as a displaced mesh: brightness becomes height, with live depth and smoothing controls and a downloadable height map."
+  question: "How much 3D structure can brightness alone suggest?"
+  stack: [Three.js, Canvas 2D]
+  featured: true
+
+- id: tokyo-city-3d
+  title: Tokyo City 3D
+  path: /games/tokyo-city-3d/
+  track: spatial
+  kind: scene
+  added: 2025-12-06
+  updated: 2025-12-13
+  summary: "A neon postcard of Tokyo — Tokyo Tower, a Shinkansen loop, a sumo dohyo, lanterns, and sakura — built from voxel-scale blocks with a toggleable details HUD."
+  question: "How few blocks does it take for a city to feel recognisable?"
+  stack: [Three.js]
+  featured: true
+
+- id: train-3d
+  title: Train 3D Ride
+  path: /games/train-3d/
+  track: spatial
+  kind: scene
+  added: 2025-12-06
+  updated: 2025-12-12
+  summary: "A bright toy engine loops a mountain pass. Drag to orbit and zoom in on the engine details."
+  question: "Does a predictable, looping motion invite closer looking?"
+  stack: [Three.js]
+
+- id: three-triangle
+  title: Three.js Spaceship
+  path: /games/three-triangle/
+  track: spatial
+  kind: scene
+  added: 2025-12-06
+  updated: 2025-12-12
+  summary: "A rotatable spaceship with glowing engines over a star field, lit dynamically and sized for full-screen phones."
+  question: "What is the smallest scene that still reads as 3D on a phone?"
+  stack: [Three.js]
+
+- id: mini-craft
+  title: Mini Craft
+  path: /games/mini-craft/
+  track: spatial
+  kind: game
+  added: 2025-11-29
+  updated: 2025-11-29
+  summary: "A 2D block sandbox with large mobs, health regeneration, combat effects, and save/load."
+  question: "Which rules make an open-ended world feel alive?"
+  stack: [Canvas 2D, localStorage]
+
+# ── T2 · Mathematical Thinking ────────────────────────────────────────────
+- id: stick-intersections
+  title: Stick Intersections
+  path: /games/stick-intersections/
+  track: math
+  kind: simulation
+  added: 2025-12-06
+  updated: 2025-12-12
+  summary: "Ten sticks, at most 45 crossings: a Three.js demo of why every pair can meet exactly once — C(10, 2)."
+  question: "Can a 3D picture make a counting argument obvious?"
+  stack: [Three.js]
+  featured: true
+
+- id: cube-perfect
+  title: Perfect Cube Builder
+  path: /games/cube-perfect/
+  track: math
+  kind: simulation
+  added: 2025-12-06
+  updated: 2025-12-12
+  summary: "Explore a three-floor stack in 3D and work out how many unit cubes it takes to complete the smallest perfect cube that contains it."
+  question: "Does rotating a shape help or hurt counting hidden cubes?"
+  stack: [Three.js]
+
+- id: math-car-run
+  title: Two Cars Meeting
+  path: /games/math-car-run/
+  track: math
+  kind: simulation
+  added: 2025-11-29
+  updated: 2025-12-13
+  summary: "Random meeting-point problems for two cars, with formula hints, a distance–time graph, and a 3D preview of the meetup."
+  question: "Do graphs or animations help more with relative-motion problems?"
+  stack: [Three.js, Canvas 2D]
+
+- id: work-together-lab
+  title: Work Together Lab
+  path: /games/work-together-lab/
+  track: math
+  kind: simulation
+  added: 2025-11-29
+  updated: 2025-11-29
+  summary: "Randomised work-rate problems (A alone, B alone, together) with worked solutions, read-aloud questions, and running stats."
+  question: "Does hearing a word problem read aloud change how it is parsed?"
+  stack: [Canvas 2D, Web Speech API]
+
+- id: multi-quiz-math
+  title: Multi Quiz Math Lab
+  path: /games/multi-quiz-math/
+  track: math
+  kind: drill
+  added: 2025-12-07
+  updated: 2025-12-07
+  summary: "Thirty PhIMO review questions. Answer any one and get a quick 3D visual when the problem needs spatial context."
+  question: "When does a visual hint help, and when does it give the answer away?"
+  stack: [Three.js]
+
+- id: multiplication-3d
+  title: 3D Multiplication Test
+  path: /games/multiplication-3d/
+  track: math
+  kind: drill
+  added: 2025-12-06
+  updated: 2025-12-06
+  summary: "A countdown times-table drill with neon cubes and saved high scores."
+  question: "Does a visible clock speed up recall or just add noise?"
+  stack: [Three.js, localStorage]
+
+- id: multiple-math-quiz
+  title: "3D Math Quiz (3–9 × 3–9)"
+  path: /games/multiple-math-quiz/
+  track: math
+  kind: drill
+  added: 2025-12-06
+  updated: 2025-12-06
+  summary: "Timed multiple-choice multiplication practice with the answers as 3D buttons."
+  question: "Are 3D answer targets slower to hit than flat ones?"
+  stack: [Three.js, localStorage]
+
+- id: math-fun
+  title: Math Challenge
+  path: /games/math-fun/
+  track: math
+  kind: drill
+  added: 2025-11-29
+  updated: 2025-11-29
+  summary: "Pick a level, then answer as many + − × ÷ questions as you can in 60 seconds."
+  question: "Which operation slows players down most at each level?"
+  stack: [Vanilla JS]
+
+- id: fraction-game-fun
+  title: Fraction Party
+  path: /games/fraction-game-fun/
+  track: math
+  kind: drill
+  added: 2025-11-29
+  updated: 2025-11-29
+  summary: "Multiple-choice fraction rounds with instant feedback and a saved best score."
+  question: "Which fraction comparisons are hardest to see at a glance?"
+  stack: [Vanilla JS, localStorage]
+
+- id: number-fun
+  title: "Smart Grid: Odd One Out"
+  path: /games/number-fun/
+  track: math
+  kind: game
+  added: 2025-11-29
+  updated: 2025-11-29
+  summary: "Find the one number that breaks the pattern in a 3×3 grid before the timer runs out. Each round brings a new pattern and less time."
+  question: "How fast do people spot a broken pattern, and which patterns hide best?"
+  stack: [Vanilla JS, localStorage]
+
+- id: rock-paper-scissor-fun
+  title: Rock · Paper · Scissors
+  path: /games/rock-paper-scissor-fun/
+  track: math
+  kind: game
+  added: 2025-11-29
+  updated: 2025-11-29
+  summary: "Play against the CPU with a running tally of wins, losses, and draws."
+  question: "How random are people really when they try to be?"
+  stack: [Vanilla JS]
+
+# ── T3 · Language & Speech ────────────────────────────────────────────────
+- id: japanese-pronunciation
+  title: Japanese Pronunciation Coach
+  path: /games/japanese-pronunciation/
+  track: language
+  kind: tool
+  added: 2025-12-12
+  updated: 2025-12-12
+  summary: "Speak a Japanese phrase and see mismatched characters highlighted in red. Toggle furigana and preview grammar highlights."
+  question: "Is character-level feedback more useful than a single score?"
+  stack: [Web Speech API]
+  featured: true
+
+- id: kanji-fun
+  title: Kanji Fun
+  path: /games/kanji-fun/
+  track: language
+  kind: game
+  added: 2025-11-29
+  updated: 2025-11-29
+  summary: "Match readings and meanings to kanji in a card quiz, or catch the right kanji with a sliding car."
+  question: "Does movement help or hurt kanji recall?"
+  stack: [Canvas 2D]

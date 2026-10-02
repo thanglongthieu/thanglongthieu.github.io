@@ -1,0 +1,72 @@
+---
+layout: default
+title: Experiments
+description: "Every prototype the Research Studio has built — 3D scenes, math simulations, drills, games, and tools — filterable by research track and kind."
+---
+{%- assign experiments = site.data.experiments -%}
+{%- assign kinds = "tool,scene,simulation,drill,game" | split: "," -%}
+
+<div class="wrap" data-filter-root>
+  <header class="page-head">
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="{{ '/' | relative_url }}">Studio</a><span aria-hidden="true">/</span><span>Experiments</span></nav>
+    <h1 class="title-1">Experiments</h1>
+    <p class="lede">
+      Every prototype the studio has built, each a single static page. Filter by research track or kind, or search for
+      a question, an idea, or a technology.
+    </p>
+  </header>
+
+  <div class="filters" role="search" aria-label="Filter experiments">
+    <div class="filters__row">
+      <label class="search">
+        <span class="visually-hidden">Search experiments</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input class="input" type="search" placeholder="Search kanji, Three.js, counting…" data-filter-search autocomplete="off">
+      </label>
+      <span class="spacer"></span>
+      <span class="filters__status" data-filter-status aria-live="polite">Showing {{ experiments | size }} of {{ experiments | size }} experiments</span>
+    </div>
+    <div class="filters__row filters__row--scroll" role="group" aria-label="Track">
+      <span class="filters__label">Track</span>
+      <button class="chip" type="button" data-filter-track="all" aria-pressed="true">All <span class="chip__count">{{ experiments | size }}</span></button>
+      {%- for t in site.data.tracks %}
+      {%- assign members = experiments | where: "track", t.id %}
+      <button class="chip track-{{ t.id }}" type="button" data-filter-track="{{ t.id }}" aria-pressed="false"><span class="dot" aria-hidden="true"></span>{{ t.name }} <span class="chip__count">{{ members | size }}</span></button>
+      {%- endfor %}
+    </div>
+    <div class="filters__row filters__row--scroll" role="group" aria-label="Kind">
+      <span class="filters__label">Kind</span>
+      <button class="chip" type="button" data-filter-kind="all" aria-pressed="true">All kinds</button>
+      {%- for k in kinds %}
+      {%- assign members = experiments | where: "kind", k %}
+      <button class="chip" type="button" data-filter-kind="{{ k }}" aria-pressed="false">{{ k | capitalize }} <span class="chip__count">{{ members | size }}</span></button>
+      {%- endfor %}
+    </div>
+  </div>
+
+  <div class="grid">
+    {%- for exp in experiments %}
+    {% include experiment-card.html exp=exp heading="h2" %}
+    {%- endfor %}
+  </div>
+
+  <div class="empty-state" data-filter-empty hidden>
+    <p>No experiment matches those filters yet — which might be a question worth building.</p>
+    <p style="margin-top: 14px"><button class="btn btn--sm" type="button" data-filter-reset>Clear filters</button></p>
+  </div>
+
+  <section class="section" aria-labelledby="add-title" style="margin-top: 32px">
+    <div class="section-head">
+      <div class="section-head__text">
+        <span class="eyebrow">Contributing</span>
+        <h2 class="title-2" id="add-title">Adding an experiment</h2>
+        <p>
+          Drop a self-contained page into <code>games/&lt;id&gt;/index.html</code> (or <code>feature/</code> for a tool that
+          uses the studio layout), then register it in <code>_data/experiments.yml</code> with a track, a kind, and — most
+          importantly — the question it is meant to poke at. The home page, this index, and the hero figure update on the next build.
+        </p>
+      </div>
+      <a class="link-arrow" href="https://github.com/{{ site.repository }}/blob/main/_data/experiments.yml">Open the registry</a>
+    </div>
+  </section>
+</div>

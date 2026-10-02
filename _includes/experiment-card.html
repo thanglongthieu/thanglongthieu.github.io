@@ -1,0 +1,19 @@
+{%- assign exp = include.exp -%}
+{%- assign track = site.data.tracks | where: "id", exp.track | first -%}
+{%- assign heading = include.heading | default: "h3" -%}
+{%- capture search -%}{{ exp.title }} {{ exp.summary }} {{ exp.question }} {{ track.name }} {{ exp.kind }} {{ exp.stack | join: " " }}{%- endcapture -%}
+<article class="card track-{{ exp.track }}" data-track="{{ exp.track }}" data-kind="{{ exp.kind }}" data-search="{{ search | downcase | escape }}">
+  <div class="card__meta">
+    <span class="card__track"><span class="dot" aria-hidden="true"></span>{{ track.code }} · {{ track.short }}</span>
+    <span>{{ exp.kind }}</span>
+  </div>
+  <{{ heading }} class="card__title"><a href="{{ exp.path | relative_url }}">{{ exp.title }}</a></{{ heading }}>
+  <p class="card__summary">{{ exp.summary }}</p>
+  <p class="card__question"><span class="visually-hidden">Open question: </span>{{ exp.question }}</p>
+  <div class="card__foot">
+    <ul class="tag-list" aria-label="Built with">
+      {%- for s in exp.stack %}<li class="tag">{{ s }}</li>{% endfor -%}
+    </ul>
+    <span class="arrow" aria-hidden="true">→</span>
+  </div>
+</article>

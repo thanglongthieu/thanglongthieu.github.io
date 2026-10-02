@@ -1,0 +1,71 @@
+---
+layout: default
+---
+{%- assign track = site.data.tracks | where: "id", page.track | first -%}
+{%- assign notes = site.notes | sort: "date" -%}
+{%- for n in notes -%}
+  {%- if n.url == page.url -%}
+    {%- assign prev_index = forloop.index0 | minus: 1 -%}
+    {%- assign next_index = forloop.index0 | plus: 1 -%}
+    {%- if prev_index >= 0 %}{% assign prev_note = notes[prev_index] %}{% endif -%}
+    {%- assign next_note = notes[next_index] -%}
+  {%- endif -%}
+{%- endfor -%}
+
+<article class="wrap{% if track %} track-{{ track.id }}{% endif %}">
+  <header class="page-head page-head--rule">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="{{ '/' | relative_url }}">Studio</a><span aria-hidden="true">/</span>
+      <a href="{{ '/notes/' | relative_url }}">Lab notes</a><span aria-hidden="true">/</span>
+      <time datetime="{{ page.date | date_to_xmlschema }}">{{ page.date | date: "%d %b %Y" }}</time>
+    </nav>
+    <h1 class="title-1">{{ page.title }}</h1>
+    {%- if page.summary %}
+    <p class="lede">{{ page.summary }}</p>
+    {%- endif %}
+  </header>
+
+  <div class="note-layout">
+    <div>
+      <div class="prose">
+        {{ content }}
+      </div>
+
+      {%- if prev_note or next_note %}
+      <nav class="pager" aria-label="More notes">
+        {%- if prev_note %}
+        <a class="prev" href="{{ prev_note.url | relative_url }}"><span class="mono">← Earlier</span><strong>{{ prev_note.title }}</strong></a>
+        {%- endif %}
+        {%- if next_note %}
+        <a class="next" href="{{ next_note.url | relative_url }}"><span class="mono">Later →</span><strong>{{ next_note.title }}</strong></a>
+        {%- endif %}
+      </nav>
+      {%- endif %}
+    </div>
+
+    <aside class="note-aside" aria-label="About this note">
+      <div class="panel">
+        <dl class="kv">
+          <dt>Date</dt><dd>{{ page.date | date: "%d %B %Y" }}</dd>
+          {%- if track %}
+          <dt>Track</dt><dd><span class="card__track"><span class="dot" aria-hidden="true"></span>{{ track.code }} · {{ track.name }}</span></dd>
+          {%- endif %}
+          {%- if page.kind %}
+          <dt>Type</dt><dd>{{ page.kind }}</dd>
+          {%- endif %}
+        </dl>
+      </div>
+      {%- if page.experiments %}
+      <div class="stack">
+        <span class="eyebrow">Related experiments</span>
+        {%- for id in page.experiments %}
+        {%- assign exp = site.data.experiments | where: "id", id | first %}
+        {%- if exp %}
+        {% include experiment-card.html exp=exp heading="h2" %}
+        {%- endif %}
+        {%- endfor %}
+      </div>
+      {%- endif %}
+    </aside>
+  </div>
+</article>

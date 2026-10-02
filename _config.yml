@@ -2,15 +2,42 @@
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "https://thanglongthieu.github.io"
 
-title: "Andi & Anna Games Room"
-description: "Family-friendly collection of math and 3D games"
+title: "Research Studio"
+tagline: "Interactive experiments in space, number, language, and tools for thinking."
+description: "A small research studio that builds interactive experiments — 3D scenes, math simulations, language drills, and AI tools — and writes down what it learns."
+author: "thanglongthieu"
+repository: "thanglongthieu/thanglongthieu.github.io"
 
 markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter_opts:
+    disable: true
 plugins: []
 
-# Exclude build tooling assets from the generated site
+# Lab notes live in _notes/ and publish under /notes/<slug>/
+collections:
+  notes:
+    output: true
+    permalink: /notes/:name/
+
+defaults:
+  - scope:
+      path: ""
+      type: notes
+    values:
+      layout: note
+  - scope:
+      path: ""
+    values:
+      layout: default
+
+# Exclude build tooling and legacy scaffolding from the generated site
 exclude:
   - node_modules
+  - vendor
+  - Gemfile
+  - Gemfile.lock
   - package.json
   - package-lock.json
   - tsconfig.json
@@ -19,5 +46,6 @@ exclude:
   - app.js
   - app.ts
   - app
+  - style.css
   - README.md
   - test.html

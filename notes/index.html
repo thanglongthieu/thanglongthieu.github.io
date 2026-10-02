@@ -1,0 +1,22 @@
+---
+layout: default
+title: Lab notes
+description: "Methods, results, and open questions from the Research Studio's experiments."
+---
+{%- assign notes = site.notes | sort: "date" | reverse -%}
+<div class="wrap">
+  <header class="page-head">
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="{{ '/' | relative_url }}">Studio</a><span aria-hidden="true">/</span><span>Lab notes</span></nav>
+    <h1 class="title-1">Lab notes</h1>
+    <p class="lede">
+      Short write-ups of how the experiments work, what they show, and what is still open. Methods first, claims second,
+      open questions always.
+    </p>
+  </header>
+
+  <ul class="note-list" style="margin-bottom: 80px">
+    {%- for note in notes %}
+    {% include note-row.html note=note %}
+    {%- endfor %}
+  </ul>
+</div>
