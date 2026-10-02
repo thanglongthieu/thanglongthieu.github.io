@@ -1,121 +1,71 @@
 ---
-layout: default
-title: "Photo to 3D Depth | Three.js Studio"
+layout: tool
+title: "Photo → 3D Depth"
+experiment: photo-to-3d
 description: "Upload a picture and turn it into a 3D relief using a live height map, lights, and Three.js controls."
+intro: "Load any picture and watch it become a sculpted surface. Brightness becomes height on a displaced Three.js mesh you can orbit, with live depth and smoothing controls."
 ---
-<section class="space-y-6">
-  <div class="flex flex-wrap items-center justify-between gap-4">
-    <div class="space-y-2">
-      <p class="text-sm font-semibold text-emerald-300">3D utility</p>
-      <h1 class="text-3xl font-bold text-white">Photo → 3D Depth</h1>
-      <p class="text-white/75 max-w-2xl">
-        Load any picture and watch it become a sculpted surface. Three.js rebuilds your image as a height map with lighting,
-        orbit controls, and live depth tuning.
-      </p>
+<div class="tool-grid">
+  <section class="panel panel--flush" aria-labelledby="viewport-title">
+    <div class="panel__head" style="padding: 16px 20px; border-bottom: 1px solid var(--line)">
+      <h2 class="panel__title" id="viewport-title">Depth canvas</h2>
+      <span class="status-pill" data-tone="ready">Live preview</span>
     </div>
-    <a
-      href="{{ '/' | relative_url }}"
-      class="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:border-emerald-200/70"
-    >
-      ← Back home
-    </a>
-  </div>
-
-  <div class="grid gap-6 lg:grid-cols-3">
-    <div class="lg:col-span-2 space-y-4 rounded-3xl border border-white/10 bg-white/5 p-5 shadow-lg shadow-indigo-900/40">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p class="text-sm font-semibold text-blue-200">Viewport</p>
-          <h2 class="text-xl font-bold text-white">Three.js depth canvas</h2>
-        </div>
-        <div class="flex items-center gap-2 text-sm text-white/80">
-          <span class="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_0_4px_rgba(16,185,129,0.15)]"></span>
-          Live preview
-        </div>
-      </div>
-      <div id="scene-shell" class="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-950/70 min-h-[420px]">
-        <div id="renderer" class="h-full"></div>
-        <div id="loading" class="absolute inset-0 flex items-center justify-center bg-slate-950/80 text-white/80">
-          Preparing Three.js...
-        </div>
-      </div>
-      <div class="grid gap-3 md:grid-cols-3">
-        <label class="flex flex-col gap-2 text-sm font-semibold text-white/80">
-          Depth amount
-          <input id="depth-scale" type="range" min="0" max="1" step="0.01" value="0.35" class="accent-emerald-400" />
-          <div class="flex items-center justify-between text-xs text-white/60">
-            <span>Flat</span>
-            <span id="depth-value">0.35</span>
-          </div>
-        </label>
-        <label class="flex flex-col gap-2 text-sm font-semibold text-white/80">
-          Smoothing
-          <input id="smoothing" type="range" min="0" max="1" step="0.05" value="0.15" class="accent-blue-400" />
-          <div class="flex items-center justify-between text-xs text-white/60">
-            <span>Sharp</span>
-            <span id="smooth-value">0.15</span>
-          </div>
-        </label>
-        <div class="flex items-center gap-3">
-          <button
-            id="reset-view"
-            type="button"
-            class="flex-1 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:border-emerald-200/70"
-          >
-            Reset view
-          </button>
-          <button
-            id="pause-rotation"
-            type="button"
-            class="rounded-xl bg-gradient-to-r from-indigo-500 to-blue-500 px-4 py-2 text-sm font-semibold text-slate-900 shadow-md shadow-blue-500/30"
-          >
-            Pause
-          </button>
-        </div>
+    <div id="scene-shell" class="viewport">
+      <div id="renderer" class="viewport__stage"></div>
+      <div id="loading" class="viewport__loading">Preparing Three.js…</div>
+    </div>
+    <div class="controls">
+      <label class="field">
+        <span>Depth amount <output id="depth-value" for="depth-scale">0.35</output></span>
+        <input id="depth-scale" type="range" min="0" max="1" step="0.01" value="0.35">
+        <span class="controls__range"><span>Flat</span><span>Deep</span></span>
+      </label>
+      <label class="field">
+        <span>Smoothing <output id="smooth-value" for="smoothing">0.15</output></span>
+        <input id="smoothing" type="range" min="0" max="1" step="0.05" value="0.15">
+        <span class="controls__range"><span>Sharp</span><span>Soft</span></span>
+      </label>
+      <div class="controls__buttons">
+        <button id="reset-view" type="button" class="btn btn--sm">Reset view</button>
+        <button id="pause-rotation" type="button" class="btn btn--sm" aria-pressed="false">Pause</button>
+        <button id="download-height" type="button" class="btn btn--sm">Height map PNG</button>
       </div>
     </div>
+  </section>
 
-    <div class="space-y-4 rounded-3xl border border-white/10 bg-white/5 p-5 shadow-lg shadow-indigo-900/40">
-      <div class="space-y-3">
-        <p class="text-sm font-semibold text-emerald-300">Image source</p>
-        <label class="flex flex-col gap-2 text-sm font-semibold text-white/80">
-          Upload a photo
-          <input
-            id="image-input"
-            type="file"
-            accept="image/*"
-            class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-white focus:border-emerald-300 focus:outline-none"
-          />
-        </label>
-        <button
-          id="sample-image"
-          type="button"
-          class="w-full rounded-xl bg-gradient-to-r from-emerald-400 via-blue-400 to-indigo-500 px-4 py-2 text-sm font-semibold text-slate-900 shadow-md shadow-emerald-500/30"
-        >
-          Load a sample gradient
-        </button>
-      </div>
+  <aside class="stack" aria-label="Image source and notes">
+    <section class="panel">
+      <h2 class="panel__title">Image source</h2>
+      <label class="field">
+        <span>Upload a photo</span>
+        <input id="image-input" class="input" type="file" accept="image/*">
+      </label>
+      <button id="sample-image" type="button" class="btn btn--primary">Load the sample gradient</button>
+      <p class="hint">The image never leaves your device — it is processed in this page's canvas.</p>
+    </section>
 
-      <div class="space-y-2 rounded-2xl border border-white/10 bg-white/5 p-4">
-        <p class="text-sm font-semibold text-blue-200">How it works</p>
-        <ul class="list-disc space-y-1 pl-5 text-sm text-white/70">
-          <li>The image is resized to a square canvas, keeping its composition centered.</li>
-          <li>Brightness is translated into a displacement map to push geometry forward and backward.</li>
-          <li>Orbit controls let you inspect the relief, while sliders tune depth and smoothing.</li>
-        </ul>
-      </div>
+    <section class="panel">
+      <h2 class="panel__title">How it works</h2>
+      <ol class="list-plain">
+        <li>The image is cover-cropped to a 768 × 768 canvas.</li>
+        <li>A blurred copy is converted to luminance (Rec. 601 weights) to make a height map.</li>
+        <li>The height map displaces a 256 × 256-segment plane; the photo is its colour texture.</li>
+      </ol>
+      <a class="link-arrow" href="{{ '/notes/brightness-as-depth/' | relative_url }}">Read the method note</a>
+    </section>
 
-      <div class="space-y-2 rounded-2xl border border-white/10 bg-white/5 p-4">
-        <p class="text-sm font-semibold text-purple-200">Tips</p>
-        <ul class="list-disc space-y-1 pl-5 text-sm text-white/70">
-          <li>High-contrast black and white photos produce crisp ridges.</li>
-          <li>Portraits work well with gentle smoothing (0.1 - 0.2) and moderate depth.</li>
-          <li>Use Reset view after zooming to center the mesh.</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</section>
+    <section class="panel">
+      <h2 class="panel__title">Tips</h2>
+      <ul class="list-plain">
+        <li>High-contrast black-and-white photos produce crisp ridges.</li>
+        <li>Portraits work well with gentle smoothing (0.1–0.2) and moderate depth.</li>
+        <li>Dark hair and shadows read as pits — brightness is not depth.</li>
+      </ul>
+      <a class="link-arrow" href="{{ '/feature/research-notebook/?experiment=photo-to-3d&type=observation' | relative_url }}">Log an observation</a>
+    </section>
+  </aside>
+</div>
 
 <script type="importmap">
   {
@@ -140,6 +90,7 @@ description: "Upload a picture and turn it into a 3D relief using a live height 
   const smoothValue = document.getElementById('smooth-value');
   const resetBtn = document.getElementById('reset-view');
   const pauseBtn = document.getElementById('pause-rotation');
+  const downloadBtn = document.getElementById('download-height');
 
   const targetSize = 768;
   const colorCanvas = document.createElement('canvas');
@@ -219,7 +170,7 @@ description: "Upload a picture and turn it into a 3D relief using a live height 
     camera.position.set(0, 0.75, 2.1);
 
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(sceneShell.clientWidth, sceneShell.clientHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -257,7 +208,11 @@ description: "Upload a picture and turn it into a 3D relief using a live height 
     controls.dampingFactor = 0.08;
     controls.target.set(0, 0, 0);
 
-    window.addEventListener('resize', handleResize);
+    if ('ResizeObserver' in window) {
+      new ResizeObserver(handleResize).observe(sceneShell);
+    } else {
+      window.addEventListener('resize', handleResize);
+    }
   };
 
   const handleResize = () => {
@@ -282,7 +237,7 @@ description: "Upload a picture and turn it into a 3D relief using a live height 
     sample.onload = () => {
       loadedImage = sample;
       buildTextures();
-      loading.classList.add('hidden');
+      loading.hidden = true;
     };
 
     const canvas = document.createElement('canvas');
@@ -323,7 +278,7 @@ description: "Upload a picture and turn it into a 3D relief using a live height 
       URL.revokeObjectURL(image.src);
       loadedImage = image;
       buildTextures();
-      loading.classList.add('hidden');
+      loading.hidden = true;
     };
     image.src = URL.createObjectURL(file);
   };
@@ -353,16 +308,26 @@ description: "Upload a picture and turn it into a 3D relief using a live height 
     controls.reset();
     autoRotate = true;
     pauseBtn.textContent = 'Pause';
+    pauseBtn.setAttribute('aria-pressed', 'false');
   });
 
   pauseBtn.addEventListener('click', () => {
     autoRotate = !autoRotate;
     pauseBtn.textContent = autoRotate ? 'Pause' : 'Resume';
+    pauseBtn.setAttribute('aria-pressed', String(!autoRotate));
+  });
+
+  downloadBtn.addEventListener('click', () => {
+    if (!loadedImage) return;
+    const link = document.createElement('a');
+    link.href = heightCanvas.toDataURL('image/png');
+    link.download = 'height-map.png';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   });
 
   initScene();
   animate();
   loadSampleImage();
-
-  loading.classList.add('hidden');
 </script>

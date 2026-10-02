@@ -1,0 +1,519 @@
+---
+layout: tool
+title: Research Notebook
+experiment: research-notebook
+description: "A local-first research notebook for questions, hypotheses, observations, and sources. Link entries to experiments and export to Markdown or JSON."
+intro: "Log questions, hypotheses, observations, and sources as they happen. Entries stay in this browser; export them to Markdown or JSON whenever you want a copy."
+---
+<div class="tool-grid">
+  <div class="stack">
+    <section class="panel" aria-labelledby="composer-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="composer-title">New entry</h2>
+        <span class="mono muted" id="composer-mode" aria-live="polite"></span>
+      </div>
+      <form id="entry-form" class="stack" novalidate>
+        <fieldset class="segmented" id="type-picker">
+          <legend>Type</legend>
+          <label class="type-question"><input type="radio" name="type" value="question" checked><span><span class="dot" aria-hidden="true"></span>Question</span></label>
+          <label class="type-hypothesis"><input type="radio" name="type" value="hypothesis"><span><span class="dot" aria-hidden="true"></span>Hypothesis</span></label>
+          <label class="type-observation"><input type="radio" name="type" value="observation"><span><span class="dot" aria-hidden="true"></span>Observation</span></label>
+          <label class="type-source"><input type="radio" name="type" value="source"><span><span class="dot" aria-hidden="true"></span>Source</span></label>
+          <label class="type-idea"><input type="radio" name="type" value="idea"><span><span class="dot" aria-hidden="true"></span>Idea</span></label>
+        </fieldset>
+
+        <label class="field">
+          <span>Title</span>
+          <input class="input" id="entry-title" name="title" type="text" maxlength="200" required placeholder="e.g. Does a visible timer change recall speed?">
+        </label>
+
+        <label class="field">
+          <span>Notes</span>
+          <textarea class="textarea" id="entry-body" name="body" rows="5" placeholder="What you expect, what you saw, or why it matters. Plain text; line breaks are kept."></textarea>
+        </label>
+
+        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 14px">
+          <label class="field">
+            <span>Experiment</span>
+            <select class="select" id="entry-experiment" name="experiment">
+              <option value="">— none —</option>
+              {%- for t in site.data.tracks %}
+              <optgroup label="{{ t.code }} · {{ t.name }}">
+                {%- assign members = site.data.experiments | where: "track", t.id %}
+                {%- for e in members %}
+                <option value="{{ e.id }}">{{ e.title }}</option>
+                {%- endfor %}
+              </optgroup>
+              {%- endfor %}
+            </select>
+          </label>
+          <label class="field">
+            <span>Tags</span>
+            <input class="input" id="entry-tags" name="tags" type="text" placeholder="timer, recall, grade 3">
+          </label>
+        </div>
+
+        <label class="field">
+          <span>Link <span class="hint">(optional — a paper, a page, a video)</span></span>
+          <input class="input" id="entry-url" name="url" type="url" inputmode="url" placeholder="https://">
+        </label>
+
+        <div class="form-row">
+          <span class="hint" id="form-error" role="alert"></span>
+          <span class="spacer"></span>
+          <button class="btn btn--quiet" type="button" id="cancel-edit" hidden>Cancel edit</button>
+          <button class="btn btn--quiet" type="button" id="clear-form">Clear</button>
+          <button class="btn btn--primary" type="submit" id="save-entry">Save entry</button>
+        </div>
+        <p class="hint">Tip: press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> (or <kbd>⌘</kbd> + <kbd>Enter</kbd>) in the notes field to save.</p>
+      </form>
+    </section>
+
+    <section class="panel panel--flush" aria-labelledby="entries-title">
+      <div class="panel__head" style="padding: 18px 20px; border-bottom: 1px solid var(--line)">
+        <h2 class="panel__title" id="entries-title">Entries <span class="mono muted" id="entry-count"></span></h2>
+        <label class="search" style="flex: 1 1 200px; max-width: 280px">
+          <span class="visually-hidden">Search entries</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input class="input" type="search" id="entry-search" placeholder="Search entries" autocomplete="off">
+        </label>
+      </div>
+      <div class="filters__row" style="padding: 12px 20px; border-bottom: 1px solid var(--line)" role="group" aria-label="Filter by type">
+        <button class="chip" type="button" data-type-filter="all" aria-pressed="true">All</button>
+        <button class="chip type-question" type="button" data-type-filter="question" aria-pressed="false"><span class="dot" aria-hidden="true"></span>Questions</button>
+        <button class="chip type-hypothesis" type="button" data-type-filter="hypothesis" aria-pressed="false"><span class="dot" aria-hidden="true"></span>Hypotheses</button>
+        <button class="chip type-observation" type="button" data-type-filter="observation" aria-pressed="false"><span class="dot" aria-hidden="true"></span>Observations</button>
+        <button class="chip type-source" type="button" data-type-filter="source" aria-pressed="false"><span class="dot" aria-hidden="true"></span>Sources</button>
+        <button class="chip type-idea" type="button" data-type-filter="idea" aria-pressed="false"><span class="dot" aria-hidden="true"></span>Ideas</button>
+      </div>
+      <ul class="entry-list" id="entry-list" aria-live="polite"></ul>
+      <div class="empty-state" id="entries-empty" style="margin: 20px; border-radius: var(--radius-sm)" hidden></div>
+    </section>
+  </div>
+
+  <aside class="stack" aria-label="Notebook tools">
+    <section class="panel">
+      <h2 class="panel__title">This notebook</h2>
+      <ul class="count-list" id="type-counts"></ul>
+      <p class="hint">Stored only in this browser (<code>localStorage</code>). Clearing site data deletes it — export to keep a copy.</p>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel__title">Export &amp; import</h2>
+      <div class="form-row">
+        <button class="btn btn--sm" type="button" id="export-md">Markdown</button>
+        <button class="btn btn--sm" type="button" id="export-json">JSON</button>
+        <label class="btn btn--sm" for="import-json">Import JSON</label>
+        <input class="visually-hidden" type="file" id="import-json" accept="application/json,.json">
+      </div>
+      <p class="hint">Import merges by entry id, so re-importing the same file is safe.</p>
+      <button class="btn btn--sm btn--quiet btn--danger" type="button" id="clear-all" style="justify-self: start">Delete all entries…</button>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel__title">Prompts</h2>
+      <p class="hint">One click to start an entry.</p>
+      <div class="recipe-list">
+        <button class="recipe" type="button" data-template-type="hypothesis" data-template-title="Before I try it, I expect…"><strong>Predict first</strong><span>Write the expectation before you open the experiment.</span></button>
+        <button class="recipe" type="button" data-template-type="observation" data-template-title="What surprised me"><strong>Log a surprise</strong><span>Anything that did not match the prediction.</span></button>
+        <button class="recipe" type="button" data-template-type="question" data-template-title="What would change my mind?"><strong>Find the falsifier</strong><span>The result that would make the hypothesis wrong.</span></button>
+        <button class="recipe" type="button" data-template-type="idea" data-template-title="Smallest next experiment"><strong>Next experiment</strong><span>The cheapest page that would test it.</span></button>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script type="application/json" id="experiment-registry">
+[{% for e in site.data.experiments %}{"id":{{ e.id | jsonify }},"title":{{ e.title | jsonify }},"url":{{ e.path | relative_url | jsonify }}}{% unless forloop.last %},{% endunless %}{% endfor %}]
+</script>
+
+<script>
+(function () {
+  'use strict';
+
+  var STORAGE_KEY = 'rs-notebook-v1';
+  var TYPES = {
+    question: 'Question',
+    hypothesis: 'Hypothesis',
+    observation: 'Observation',
+    source: 'Source',
+    idea: 'Idea'
+  };
+
+  var registry = {};
+  JSON.parse(document.getElementById('experiment-registry').textContent).forEach(function (e) { registry[e.id] = e; });
+
+  var form = document.getElementById('entry-form');
+  var titleInput = document.getElementById('entry-title');
+  var bodyInput = document.getElementById('entry-body');
+  var experimentInput = document.getElementById('entry-experiment');
+  var tagsInput = document.getElementById('entry-tags');
+  var urlInput = document.getElementById('entry-url');
+  var formError = document.getElementById('form-error');
+  var saveBtn = document.getElementById('save-entry');
+  var cancelEditBtn = document.getElementById('cancel-edit');
+  var composerMode = document.getElementById('composer-mode');
+  var list = document.getElementById('entry-list');
+  var empty = document.getElementById('entries-empty');
+  var countLabel = document.getElementById('entry-count');
+  var typeCounts = document.getElementById('type-counts');
+  var search = document.getElementById('entry-search');
+  var typeButtons = document.querySelectorAll('[data-type-filter]');
+  var toast = document.getElementById('toast');
+
+  var entries = load();
+  var editingId = null;
+  var filter = { type: 'all', q: '' };
+
+  /* ---------- Storage ---------- */
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      var parsed = raw ? JSON.parse(raw) : null;
+      return parsed && Array.isArray(parsed.entries) ? parsed.entries.filter(isEntry) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function save() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, entries: entries }));
+      return true;
+    } catch (e) {
+      notify('Could not save: browser storage is unavailable or full.');
+      return false;
+    }
+  }
+
+  function isEntry(e) {
+    return e && typeof e.id === 'string' && typeof e.title === 'string' && TYPES.hasOwnProperty(e.type);
+  }
+
+  function uid() {
+    return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+  }
+
+  window.addEventListener('storage', function (event) {
+    if (event.key === STORAGE_KEY) {
+      entries = load();
+      render();
+    }
+  });
+
+  /* ---------- Helpers ---------- */
+
+  function h(tag, attrs, children) {
+    var node = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function (k) {
+      if (k === 'text') node.textContent = attrs[k];
+      else node.setAttribute(k, attrs[k]);
+    });
+    (children || []).forEach(function (c) { if (c) node.appendChild(c); });
+    return node;
+  }
+
+  function fmtDate(iso) {
+    var d = new Date(iso);
+    return isNaN(d) ? '' : d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) +
+      ' · ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function safeUrl(value) {
+    try {
+      var u = new URL(value);
+      return u.protocol === 'http:' || u.protocol === 'https:' ? u.href : '';
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function parseTags(value) {
+    return value.split(',').map(function (t) { return t.trim(); }).filter(Boolean)
+      .filter(function (t, i, arr) { return arr.indexOf(t) === i; }).slice(0, 12);
+  }
+
+  var toastTimer = null;
+  function notify(message) {
+    toast.textContent = message;
+    toast.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toast.hidden = true; }, 2600);
+  }
+
+  function selectedType() {
+    var checked = form.querySelector('input[name="type"]:checked');
+    return checked ? checked.value : 'question';
+  }
+
+  function setType(type) {
+    var input = form.querySelector('input[name="type"][value="' + type + '"]');
+    if (input) input.checked = true;
+  }
+
+  /* ---------- Composer ---------- */
+
+  function resetComposer() {
+    editingId = null;
+    form.reset();
+    formError.textContent = '';
+    saveBtn.textContent = 'Save entry';
+    cancelEditBtn.hidden = true;
+    composerMode.textContent = '';
+    applyQueryDefaults();
+    render();
+  }
+
+  function startEdit(entry) {
+    editingId = entry.id;
+    setType(entry.type);
+    titleInput.value = entry.title;
+    bodyInput.value = entry.body || '';
+    experimentInput.value = entry.experiment && registry[entry.experiment] ? entry.experiment : '';
+    tagsInput.value = (entry.tags || []).join(', ');
+    urlInput.value = entry.url || '';
+    saveBtn.textContent = 'Update entry';
+    cancelEditBtn.hidden = false;
+    composerMode.textContent = 'Editing';
+    render();
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    titleInput.focus({ preventScroll: true });
+  }
+
+  form.addEventListener('submit', function (event) {
+    event.preventDefault();
+    var title = titleInput.value.trim();
+    var url = urlInput.value.trim();
+    if (!title) {
+      formError.textContent = 'Give the entry a title.';
+      titleInput.focus();
+      return;
+    }
+    if (url && !safeUrl(url)) {
+      formError.textContent = 'Links need to start with http:// or https://';
+      urlInput.focus();
+      return;
+    }
+    formError.textContent = '';
+    var now = new Date().toISOString();
+    var data = {
+      type: selectedType(),
+      title: title,
+      body: bodyInput.value.trim(),
+      experiment: experimentInput.value || null,
+      tags: parseTags(tagsInput.value),
+      url: url ? safeUrl(url) : ''
+    };
+    if (editingId) {
+      entries = entries.map(function (e) {
+        return e.id === editingId ? Object.assign({}, e, data, { updated: now }) : e;
+      });
+      if (save()) notify('Entry updated');
+    } else {
+      entries.unshift(Object.assign({ id: uid(), created: now, updated: now }, data));
+      if (save()) notify('Entry saved');
+    }
+    resetComposer();
+    titleInput.focus();
+  });
+
+  document.getElementById('clear-form').addEventListener('click', resetComposer);
+
+  bodyInput.addEventListener('keydown', function (event) {
+    if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+      event.preventDefault();
+      form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event('submit', { cancelable: true }));
+    }
+  });
+
+  cancelEditBtn.addEventListener('click', resetComposer);
+
+  document.querySelectorAll('[data-template-type]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (editingId) resetComposer();
+      setType(btn.getAttribute('data-template-type'));
+      titleInput.value = btn.getAttribute('data-template-title');
+      bodyInput.focus();
+    });
+  });
+
+  function applyQueryDefaults() {
+    var params = new URLSearchParams(window.location.search);
+    var exp = params.get('experiment');
+    var type = params.get('type');
+    if (exp && registry[exp]) experimentInput.value = exp;
+    if (type && TYPES[type]) setType(type);
+  }
+
+  /* ---------- List ---------- */
+
+  function matches(entry) {
+    if (filter.type !== 'all' && entry.type !== filter.type) return false;
+    if (!filter.q) return true;
+    var exp = entry.experiment && registry[entry.experiment] ? registry[entry.experiment].title : '';
+    var hay = [entry.title, entry.body, (entry.tags || []).join(' '), exp, entry.url, TYPES[entry.type]].join(' ').toLowerCase();
+    return filter.q.toLowerCase().split(/\s+/).every(function (t) { return hay.indexOf(t) !== -1; });
+  }
+
+  function renderEntry(entry) {
+    var exp = entry.experiment ? registry[entry.experiment] : null;
+    var url = entry.url ? safeUrl(entry.url) : '';
+
+    var editBtn = h('button', { type: 'button', 'class': 'btn btn--sm btn--quiet', text: 'Edit', 'aria-label': 'Edit “' + entry.title + '”' });
+    editBtn.addEventListener('click', function () { startEdit(entry); });
+    var delBtn = h('button', { type: 'button', 'class': 'btn btn--sm btn--quiet btn--danger', text: 'Delete', 'aria-label': 'Delete “' + entry.title + '”' });
+    delBtn.addEventListener('click', function () {
+      if (!window.confirm('Delete “' + entry.title + '”? This cannot be undone.')) return;
+      entries = entries.filter(function (e) { return e.id !== entry.id; });
+      if (editingId === entry.id) resetComposer();
+      if (save()) notify('Entry deleted');
+      render();
+    });
+
+    var links = [];
+    if (exp) links.push(h('a', { href: exp.url, text: '↗ ' + exp.title }));
+    if (url) links.push(h('a', { href: url, rel: 'noopener noreferrer', target: '_blank', text: '↗ ' + url.replace(/^https?:\/\//, '').slice(0, 60) }));
+
+    var tags = (entry.tags || []).map(function (t) { return h('li', { 'class': 'tag', text: t }); });
+
+    return h('li', { 'class': 'entry type-' + entry.type, 'data-editing': String(editingId === entry.id) }, [
+      h('div', { 'class': 'entry__meta' }, [
+        h('span', { 'class': 'entry__type' }, [h('span', { 'class': 'dot', 'aria-hidden': 'true' }), document.createTextNode(TYPES[entry.type])]),
+        h('time', { datetime: entry.created, text: fmtDate(entry.created) }),
+        entry.updated && entry.updated !== entry.created ? h('span', { text: 'edited' }) : null,
+        h('span', { 'class': 'entry__actions' }, [editBtn, delBtn])
+      ]),
+      h('h3', { 'class': 'entry__title', text: entry.title }),
+      entry.body ? h('p', { 'class': 'entry__body', text: entry.body }) : null,
+      links.length ? h('div', { 'class': 'entry__links' }, links) : null,
+      tags.length ? h('ul', { 'class': 'tag-list', 'aria-label': 'Tags' }, tags) : null
+    ]);
+  }
+
+  function render() {
+    var visible = entries.filter(matches);
+    list.replaceChildren.apply(list, visible.map(renderEntry));
+    countLabel.textContent = entries.length ? '(' + (visible.length === entries.length ? entries.length : visible.length + ' of ' + entries.length) + ')' : '';
+
+    if (!entries.length) {
+      empty.textContent = 'No entries yet. Start with a question — or pick a prompt on the right.';
+      empty.hidden = false;
+    } else if (!visible.length) {
+      empty.textContent = 'No entries match this filter.';
+      empty.hidden = false;
+    } else {
+      empty.hidden = true;
+    }
+
+    typeButtons.forEach(function (btn) {
+      btn.setAttribute('aria-pressed', String(btn.getAttribute('data-type-filter') === filter.type));
+    });
+
+    typeCounts.replaceChildren.apply(typeCounts, Object.keys(TYPES).map(function (type) {
+      var n = entries.filter(function (e) { return e.type === type; }).length;
+      return h('li', { 'class': 'type-' + type }, [
+        h('span', { 'class': 'dot', 'aria-hidden': 'true' }),
+        document.createTextNode(TYPES[type]),
+        h('span', { 'class': 'mono', text: String(n) })
+      ]);
+    }));
+  }
+
+  typeButtons.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      filter.type = btn.getAttribute('data-type-filter');
+      render();
+    });
+  });
+  search.addEventListener('input', function () {
+    filter.q = search.value.trim();
+    render();
+  });
+
+  /* ---------- Export / import ---------- */
+
+  function download(name, type, text) {
+    var blob = new Blob([text], { type: type });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+  }
+
+  function stamp() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  document.getElementById('export-json').addEventListener('click', function () {
+    if (!entries.length) return notify('Nothing to export yet');
+    download('research-notebook-' + stamp() + '.json', 'application/json',
+      JSON.stringify({ version: 1, exported: new Date().toISOString(), entries: entries }, null, 2));
+  });
+
+  document.getElementById('export-md').addEventListener('click', function () {
+    if (!entries.length) return notify('Nothing to export yet');
+    var lines = ['# Research Notebook', '', '_Exported ' + new Date().toISOString() + ' · ' + entries.length + ' entries_', ''];
+    entries.forEach(function (e) {
+      var exp = e.experiment ? registry[e.experiment] : null;
+      var meta = [e.created ? e.created.slice(0, 10) : ''];
+      if (e.tags && e.tags.length) meta.push('tags: ' + e.tags.join(', '));
+      if (exp) meta.push('experiment: [' + exp.title + '](' + new URL(exp.url, window.location.href).href + ')');
+      lines.push('## [' + TYPES[e.type] + '] ' + e.title, '', '_' + meta.filter(Boolean).join(' · ') + '_', '');
+      if (e.body) lines.push(e.body, '');
+      if (e.url) lines.push('Link: <' + e.url + '>', '');
+    });
+    download('research-notebook-' + stamp() + '.md', 'text/markdown', lines.join('\n'));
+  });
+
+  document.getElementById('import-json').addEventListener('change', function (event) {
+    var file = event.target.files && event.target.files[0];
+    event.target.value = '';
+    if (!file) return;
+    file.text().then(function (text) {
+      var parsed = JSON.parse(text);
+      var incoming = (Array.isArray(parsed) ? parsed : parsed.entries || []).filter(isEntry);
+      if (!incoming.length) throw new Error('empty');
+      var byId = {};
+      entries.forEach(function (e) { byId[e.id] = e; });
+      var added = 0;
+      incoming.forEach(function (e) {
+        if (!byId[e.id]) added += 1;
+        byId[e.id] = {
+          id: e.id,
+          type: e.type,
+          title: String(e.title).slice(0, 200),
+          body: typeof e.body === 'string' ? e.body : '',
+          experiment: typeof e.experiment === 'string' ? e.experiment : null,
+          tags: Array.isArray(e.tags) ? e.tags.map(String).slice(0, 12) : [],
+          url: typeof e.url === 'string' ? safeUrl(e.url) : '',
+          created: e.created || new Date().toISOString(),
+          updated: e.updated || e.created || new Date().toISOString()
+        };
+      });
+      entries = Object.keys(byId).map(function (k) { return byId[k]; })
+        .sort(function (a, b) { return String(b.created).localeCompare(String(a.created)); });
+      if (save()) notify('Imported ' + incoming.length + ' entries (' + added + ' new)');
+      render();
+    }).catch(function () {
+      notify('That file is not a notebook export.');
+    });
+  });
+
+  document.getElementById('clear-all').addEventListener('click', function () {
+    if (!entries.length) return notify('The notebook is already empty');
+    if (!window.confirm('Delete all ' + entries.length + ' entries from this browser? Export first if you want a copy.')) return;
+    entries = [];
+    save();
+    resetComposer();
+    notify('Notebook cleared');
+  });
+
+  applyQueryDefaults();
+  render();
+})();
+</script>

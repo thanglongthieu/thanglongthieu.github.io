@@ -1,0 +1,28 @@
+# Research tracks. Every experiment in _data/experiments.yml points at one of these ids.
+- id: spatial
+  code: T1
+  short: Spatial
+  name: Spatial Computing
+  question: "How do we turn flat information into space you can walk around?"
+  summary: "Three.js scenes, height maps, and small worlds that test how depth, motion, and viewpoint change understanding."
+
+- id: math
+  code: T2
+  short: Math
+  name: Mathematical Thinking
+  question: "What makes a math idea click: speed, pictures, or play?"
+  summary: "Timed drills, visual proofs, and word-problem simulators that compare different ways into the same idea."
+
+- id: language
+  code: T3
+  short: Language
+  name: Language & Speech
+  question: "Can instant feedback make a new script and sound system feel learnable?"
+  summary: "Kanji recall games and a Japanese pronunciation coach built on the browser's own speech recognition."
+
+- id: tools
+  code: T4
+  short: Tools
+  name: Tools for Thinking
+  question: "What do research tools look like when they are small, local, and yours?"
+  summary: "A local-first notebook and a model-agnostic AI assistant that support the studio's own research loop."

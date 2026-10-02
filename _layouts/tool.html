@@ -1,0 +1,23 @@
+---
+layout: default
+---
+{%- assign exp = site.data.experiments | where: "id", page.experiment | first -%}
+{%- assign track = site.data.tracks | where: "id", exp.track | first -%}
+<div class="wrap{% if track %} track-{{ track.id }}{% endif %}">
+  <header class="page-head">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="{{ '/' | relative_url }}">Studio</a><span aria-hidden="true">/</span>
+      <a href="{{ '/experiments/' | relative_url }}">Experiments</a><span aria-hidden="true">/</span>
+      {%- if track %}
+      <a href="{{ '/experiments/?track=' | append: track.id | relative_url }}" class="card__track"><span class="dot" aria-hidden="true"></span>{{ track.code }} · {{ track.short }}</a>
+      {%- endif %}
+    </nav>
+    <h1 class="title-1">{{ exp.title | default: page.title }}</h1>
+    <p class="lede">{{ page.intro | default: exp.summary }}</p>
+    {%- if exp.question %}
+    <p class="question-callout"><span class="mono">Q.</span><span>{{ exp.question }}</span></p>
+    {%- endif %}
+  </header>
+
+  {{ content }}
+</div>
