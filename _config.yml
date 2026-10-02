@@ -48,4 +48,5 @@ exclude:
   - app
   - style.css
   - README.md
+  - ISSUES.md
   - test.html
